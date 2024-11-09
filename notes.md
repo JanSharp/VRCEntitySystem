@@ -1,0 +1,23 @@
+
+- [ ] opening
+- [ ] closing
+- [ ] resizing
+- [ ] moving
+- [ ] attaching
+- [ ] hiding ("minimizing")
+- [ ] showing
+- [ ] pinning (to keep open even when toggling all window's visibility)
+- [ ] default title bar
+- [ ] command pallet (think of ctrl+shift+P in vscode/vscodium, or alt+space for the krunner in kde plasma)
+  - [ ] potentially have sections titled `#`, `A`, `B`, `C`, etc, where clicking them toggles a simple list of the alphabet. Clicking in there then takes you to tha section
+- [ ] virtual desktops
+  - [ ] move window to desktop x
+  - [ ] copy window to desktop x
+  - [ ] toggle show on all desktops
+  - [ ] name virtual desktop
+  - [ ] create
+  - [ ] copy
+  - [ ] delete
+- [ ] session import, export
+- [ ] singleton windows
+- [ ] opacity if possible (custom canvas shader?)

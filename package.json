@@ -1,0 +1,23 @@
+{
+  "name": "com.jansharp.entity-system",
+  "version": "0.1.0",
+  "description": "An extensible Entity System for dynamic objects in worlds.",
+  "displayName": "Entity System",
+  "unity": "2022.3",
+  "author": {
+    "name": "JanSharp",
+    "email": "steinmeister36@gmail.com",
+    "url": "https://jansharp.github.io"
+  },
+  "dependencies": {
+    "com.unity.textmeshpro": "3.0.6"
+  },
+  "license": "MIT",
+  "vpmDependencies": {
+    "com.vrchat.worlds": "^3.6.x",
+    "com.jansharp.common": ">=0.1.0",
+    "com.jansharp.lockstep": ">=0.1.0"
+  },
+  "url": "https://github.com/JanSharp/VRCEntitySystem/releases/download/v0.1.0/com.jansharp.entity-system.zip",
+  "changelogUrl": "https://github.com/JanSharp/VRCEntitySystem/blob/v0.1.0/CHANGELOG.md"
+}
