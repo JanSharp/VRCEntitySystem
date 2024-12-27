@@ -1,4 +1,4 @@
-using UdonSharp;
+﻿using UdonSharp;
 using UnityEngine;
 using VRC.SDK3.Data;
 using VRC.SDKBase;
@@ -279,9 +279,9 @@ namespace JanSharp
             #endif
             nextEntityId = lockstep.ReadSmallUInt();
 
-            entityInstancesCount = (int)lockstep.ReadSmallUInt();
-            ArrList.EnsureCapacity(ref entityInstances, entityInstancesCount);
-            for (int i = 0; i < entityInstancesCount; i++)
+            int count = (int)lockstep.ReadSmallUInt();
+            ArrList.EnsureCapacity(ref entityInstances, count);
+            for (int i = 0; i < count; i++)
             {
                 EntityData entityData = lockstep.ReadCustomClass<EntityData>(nameof(EntityData));
                 // TODO: check for pre instantiated entity id.
