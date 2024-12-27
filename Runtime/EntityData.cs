@@ -23,11 +23,10 @@ namespace JanSharp
         [System.NonSerialized] public uint lastUserPlayerId;
         [System.NonSerialized] public bool hidden;
         [System.NonSerialized] public EntityData parentEntity;
-        [System.NonSerialized] public EntityData[] childEntities;
+        [System.NonSerialized] public EntityData[] childEntities = new EntityData[0];
         [System.NonSerialized] public EntityExtensionData[] allExtensionData;
 
         // TODO: resolve after deserialization
-        [System.NonSerialized] public uint unresolvedPrototypeId;
         [System.NonSerialized] public uint unresolvedParentEntityId;
         [System.NonSerialized] public uint[] unresolvedChildEntitiesIds;
 
@@ -47,8 +46,7 @@ namespace JanSharp
             lastUserPlayerId = 0u;
             hidden = false;
             parentEntity = null;
-            childEntities = new EntityData[0];
-            // TODO: init allExtensionData
+            allExtensionData = new EntityExtensionData[entityPrototype.ExtensionClassNames.Length];
         }
 
         public override void Serialize(bool isExport)
@@ -71,7 +69,7 @@ namespace JanSharp
 
         public override void Deserialize(bool isImport, uint importedDataVersion)
         {
-            unresolvedPrototypeId = lockstep.ReadSmallUInt();
+            entityPrototype = entitySystem.GetEntityPrototype(lockstep.ReadSmallUInt());
             id = lockstep.ReadSmallUInt();
             position = lockstep.ReadVector3();
             rotation = lockstep.ReadQuaternion();
@@ -84,9 +82,11 @@ namespace JanSharp
             childEntities = new EntityData[childEntitiesLength];
             for (int i = 0; i < childEntitiesLength; i++)
                 unresolvedChildEntitiesIds[i] = lockstep.ReadSmallUInt();
-            EntityExtensionPrototype[] extensionPrototypes = entityPrototype.ExtensionPrototypes;
-            for (int i = 0; i < allExtensionData.Length; i++)
-                allExtensionData[i] = lockstep.ReadCustomNullableClass<EntityExtensionData>(extensionPrototypes[i].ExtensionDataClassName);
+            string[] extensionClassNames = entityPrototype.ExtensionClassNames;
+            int extensionsCount = extensionClassNames.Length;
+            allExtensionData = new EntityExtensionData[extensionsCount];
+            for (int i = 0; i < extensionsCount; i++)
+                allExtensionData[i] = lockstep.ReadCustomNullableClass<EntityExtensionData>(extensionClassNames[i]);
         }
     }
 }

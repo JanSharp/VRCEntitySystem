@@ -8,6 +8,8 @@ namespace JanSharp
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class Entity : UdonSharpBehaviour
     {
+        [System.NonSerialized] public LockstepAPI lockstep;
+        [System.NonSerialized] public EntitySystem entitySystem;
         [System.NonSerialized] public EntityPrototype prototype;
         [System.NonSerialized] public EntityData entityData;
 
@@ -15,12 +17,14 @@ namespace JanSharp
 
         public void InitFromEntityData(EntityData entityData)
         {
-            this.entityData = entityData;
+            lockstep = entityData.lockstep;
+            entitySystem = entityData.entitySystem;
             prototype = entityData.entityPrototype;
+            this.entityData = entityData;
             Transform t = this.transform;
             t.position = entityData.position;
             t.rotation = entityData.rotation;
-            t.localRotation = entityData.rotation;
+            t.localScale = entityData.scale;
             // TODO: what to do about hidden?
             // TODO: handle parent entity
             // TODO: handle child entities
@@ -29,7 +33,11 @@ namespace JanSharp
             for (int i = 0; i < length; i++)
             {
                 EntityExtension extension = extensions[i];
-                extension.extensionData = allExtensionData[i];
+                extension.lockstep = lockstep;
+                extension.entitySystem = entitySystem;
+                extension.entity = this;
+                EntityExtensionData extensionData = allExtensionData[i];
+                extension.extensionData = extensionData;
                 extension.InitFromExtensionData();
             }
         }

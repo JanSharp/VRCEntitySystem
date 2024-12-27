@@ -9,7 +9,6 @@ namespace JanSharp
     public abstract class EntityExtensionData : SerializableWannaBeClass
     {
         [HideInInspector] [SingletonReference] public EntitySystem entitySystem;
-        [System.NonSerialized] public EntityExtensionPrototype extensionPrototype;
         [System.NonSerialized] public EntityExtension extension;
 
         public abstract void InitFromExtension();

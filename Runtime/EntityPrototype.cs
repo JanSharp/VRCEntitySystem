@@ -14,7 +14,7 @@ namespace JanSharp
         [SerializeField] private string longDescription;
         [SerializeField] private GameObject entityPrefab;
         [SerializeField] private uint[] localExtensionIds;
-        [SerializeField] private EntityExtensionPrototype[] extensionPrototypes;
+        [SerializeField] private string[] extensionClassNames;
 
         public override string PrototypeName => prototypeName;
         public override string DisplayName => displayName;
@@ -22,6 +22,6 @@ namespace JanSharp
         public override string LongDescription => longDescription;
         public GameObject EntityPrefab => entityPrefab;
         public uint[] LocalExtensionIds => localExtensionIds;
-        public EntityExtensionPrototype[] ExtensionPrototypes => extensionPrototypes;
+        public string[] ExtensionClassNames => extensionClassNames;
     }
 }

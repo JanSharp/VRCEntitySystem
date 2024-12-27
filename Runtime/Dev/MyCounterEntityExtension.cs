@@ -9,13 +9,13 @@ namespace JanSharp
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class MyCounterEntityExtension : EntityExtension
     {
-        public MyCounterEntityExtensionData ExtensionData => (MyCounterEntityExtensionData)extensionData;
+        public MyCounterEntityExtensionData Data => (MyCounterEntityExtensionData)extensionData;
         public int counterValue;
         public TextMeshProUGUI text;
 
         public override void InitFromExtensionData()
         {
-            counterValue = ExtensionData.counterValue;
+            counterValue = Data.counterValue;
             UpdateText();
         }
 
@@ -24,12 +24,25 @@ namespace JanSharp
             text.text = counterValue.ToString();
         }
 
-        public void OnIncrementClick()
-        {
-        }
-
         public void OnDecrementClick()
         {
+            lockstep.WriteSmallInt(-1);
+            SendExtensionInputAction(nameof(OnModifyValueIA));
+        }
+
+        public void OnIncrementClick()
+        {
+            lockstep.WriteSmallInt(1);
+            SendExtensionInputAction(nameof(OnModifyValueIA));
+        }
+
+        [EntityExtensionInputAction]
+        public void OnModifyValueIA()
+        {
+            int delta = lockstep.ReadSmallInt();
+            Data.counterValue += delta;
+            counterValue += delta;
+            UpdateText();
         }
     }
 }

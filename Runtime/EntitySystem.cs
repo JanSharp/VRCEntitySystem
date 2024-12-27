@@ -7,6 +7,7 @@ using VRC.Udon;
 namespace JanSharp
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
+    [SingletonScript]
     public class EntitySystem : LockstepGameState
     {
         [SingletonReference] [HideInInspector] [SerializeField] private LockstepAPI lockstep;
@@ -18,6 +19,7 @@ namespace JanSharp
         public uint[] preInstantiatedEntityInstanceIds;
         public EntityPrototype[] preInstantiatedEntityInstancePrototypes;
         private Entity[] entityInstances = new Entity[ArrList.MinCapacity];
+        private DataDictionary entityInstancesById = new DataDictionary();
         private int entityInstancesCount = 0;
         private uint nextEntityId = 1u;
 
@@ -57,7 +59,9 @@ namespace JanSharp
                 entity.entityData = entityData;
                 entityData.InitFromEntity(entity);
                 entityData.id = preInstantiatedEntityInstanceIds[i];
+                // TODO: handle extensions in many ways
                 ArrList.Add(ref entityInstances, ref entityInstancesCount, entity);
+                entityInstancesById.Add(entityData.id, entity);
             }
         }
 
@@ -73,8 +77,8 @@ namespace JanSharp
             return wannaBeClasses.New<EntityData>(nameof(EntityData));
         }
 
-        private EntityPrototype GetEntityPrototype(uint prototypeId) => (EntityPrototype)entityPrototypesById[prototypeId].Reference;
-        private bool TryGetEntityPrototype(uint prototypeId, out EntityPrototype entityPrototype)
+        public EntityPrototype GetEntityPrototype(uint prototypeId) => (EntityPrototype)entityPrototypesById[prototypeId].Reference;
+        public bool TryGetEntityPrototype(uint prototypeId, out EntityPrototype entityPrototype)
         {
             if (entityPrototypesById.TryGetValue(prototypeId, out DataToken token))
             {
@@ -85,8 +89,8 @@ namespace JanSharp
             return false;
         }
 
-        private EntityPrototype GetEntityPrototype(string prototypeName) => (EntityPrototype)entityPrototypesByName[prototypeName].Reference;
-        private bool TryGetEntityPrototype(string prototypeName, out EntityPrototype entityPrototype)
+        public EntityPrototype GetEntityPrototype(string prototypeName) => (EntityPrototype)entityPrototypesByName[prototypeName].Reference;
+        public bool TryGetEntityPrototype(string prototypeName, out EntityPrototype entityPrototype)
         {
             if (entityPrototypesByName.TryGetValue(prototypeName, out DataToken token))
             {
@@ -127,11 +131,78 @@ namespace JanSharp
 
         public Entity CreateEntity(EntityPrototype prototype)
         {
+            Entity entity = InstantiateEntity(prototype);
+            EntityData entityData = NewEntityData();
+            entity.entityData = entityData;
+            entityData.InitFromEntity(entity);
+            entityData.id = nextEntityId++;
+            string[] extensionClassNames = prototype.ExtensionClassNames;
+            EntityExtensionData[] allExtensionData = entityData.allExtensionData;
+            for (int i = 0; i < extensionClassNames.Length; i++)
+            {
+                EntityExtension extension = entity.extensions[i];
+                extension.lockstep = lockstep;
+                extension.entitySystem = this;
+                extension.entity = entity;
+                EntityExtensionData extensionData = wannaBeClasses.New<EntityExtensionData>(extensionClassNames[i]);
+                allExtensionData[i] = extensionData;
+                extension.extensionData = extensionData;
+                extensionData.extension = extension;
+                extensionData.InitFromExtension();
+            }
+            ArrList.Add(ref entityInstances, ref entityInstancesCount, entity);
+            entityInstancesById.Add(entityData.id, entity);
+            return entity;
+        }
+
+        public void WriteEntityExtensionReference(EntityExtension extension)
+        {
+            lockstep.WriteSmallUInt(extension.entity.entityData.id);
+            lockstep.WriteSmallUInt((uint)System.Array.IndexOf(extension.entity.extensions, extension));
+        }
+
+        public EntityExtension ReadEntityExtensionReferenceDynamic()
+        {
+            uint entityId = lockstep.ReadSmallUInt();
+            int index = (int)lockstep.ReadSmallUInt();
+            if (!entityInstancesById.TryGetValue(entityId, out DataToken entityToken))
+                return null;
+            return ((Entity)entityToken.Reference).extensions[index];
+        }
+
+        public ulong SendExtensionInputAction(EntityExtension extension, string methodName)
+        {
+            byte[] buffer = new byte[10 + (5 + methodName.Length)]; // No multi byte characters, so this is fine.
+            int bufferSize = 0;
+            DataStream.WriteSmall(ref buffer, ref bufferSize, (uint)extension.entity.entityData.id);
+            DataStream.WriteSmall(ref buffer, ref bufferSize, (uint)System.Array.IndexOf(extension.entity.extensions, extension));
+            DataStream.Write(ref buffer, ref bufferSize, methodName); // TODO: use build time generated id instead.
+            int iaSize = lockstep.WriteStreamPosition;
+            lockstep.ShiftWriteStream(0, bufferSize, iaSize);
+            lockstep.WriteStreamPosition = 0;
+            lockstep.WriteBytes(buffer, 0, bufferSize);
+            lockstep.WriteStreamPosition = bufferSize + iaSize;
+            return lockstep.SendInputAction(onExtensionInputActionIAId);
+        }
+
+        [HideInInspector] [SerializeField] private uint onExtensionInputActionIAId;
+        [LockstepInputAction(nameof(onExtensionInputActionIAId))]
+        public void OnExtensionInputActionIA()
+        {
+            EntityExtension extension = ReadEntityExtensionReferenceDynamic();
+            if (extension == null)
+                return;
+            string methodName = lockstep.ReadString();
+            extension.SendCustomEvent(methodName);
+        }
+
+        private Entity InstantiateEntity(EntityPrototype prototype)
+        {
             GameObject entityGo = Instantiate(prototype.EntityPrefab);
             Entity entity = entityGo.GetComponent<Entity>();
-            EntityData entityData = wannaBeClasses.RegisterManuallyInstantiated(entity.entityData);
-            entityData.id = nextEntityId++;
-            ArrList.Add(ref entityInstances, ref entityInstancesCount, entity);
+            entity.lockstep = lockstep;
+            entity.entitySystem = this;
+            entity.prototype = prototype;
             return entity;
         }
 
@@ -143,8 +214,7 @@ namespace JanSharp
             for (int i = 0; i < entityInstancesCount; i++)
             {
                 Entity entity = entityInstances[i];
-                entity.entityData.Serialize(isExport);
-                // lockstep.WriteCustomClass(entity.entityData);
+                lockstep.WriteCustomClass(entity.entityData);
             }
         }
 
@@ -156,10 +226,24 @@ namespace JanSharp
             ArrList.EnsureCapacity(ref entityInstances, entityInstancesCount);
             for (int i = 0; i < entityInstancesCount; i++)
             {
-                // EntityData
+                EntityData entityData = lockstep.ReadCustomClass<EntityData>(nameof(EntityData));
+                // TODO: check for pre instantiated entity id.
+                Entity entity = InstantiateEntity(entityData.entityPrototype);
+                entity.InitFromEntityData(entityData);
+                ArrList.Add(ref entityInstances, ref entityInstancesCount, entity);
+                entityInstancesById.Add(entityData.id, entity);
             }
 
             return null;
+        }
+    }
+
+    public static class EntitySystemExtension
+    {
+        public static T ReadEntityExtensionReference<T>(this EntitySystem entitySystem)
+            where T : EntityExtension
+        {
+            return (T)entitySystem.ReadEntityExtensionReferenceDynamic();
         }
     }
 }
