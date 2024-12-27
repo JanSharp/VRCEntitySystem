@@ -1,4 +1,4 @@
-﻿using UdonSharp;
+using UdonSharp;
 using UnityEngine;
 using VRC.SDK3.Data;
 using VRC.SDKBase;
@@ -29,14 +29,20 @@ namespace JanSharp
         public override uint GameStateDataVersion => 0u;
         public override uint GameStateLowestSupportedDataVersion => 0u;
 
-        void Start()
+        private void Start()
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  Start");
+            #endif
             InitEntityPrototypes();
             InitPreInstantiatedEntities();
         }
 
         private void InitEntityPrototypes()
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  InitEntityPrototypes");
+            #endif
             foreach (EntityPrototype prototype in entityPrototypes)
             {
                 entityPrototypesById.Add(prototype.Id, prototype);
@@ -46,6 +52,9 @@ namespace JanSharp
 
         private void InitPreInstantiatedEntities()
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  InitPreInstantiatedEntities");
+            #endif
             int length = preInstantiatedEntityInstances.Length;
             ArrList.EnsureCapacity(ref entityInstances, length);
             for (int i = 0; i < length; i++)
@@ -67,6 +76,9 @@ namespace JanSharp
 
         private void InitNextEntityId()
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  InitNextEntityId");
+            #endif
             nextEntityId = preInstantiatedEntityInstanceIds.Length == 0
                 ? 1u
                 : (preInstantiatedEntityInstanceIds[preInstantiatedEntityInstanceIds.Length - 1] + 1u);
@@ -74,12 +86,18 @@ namespace JanSharp
 
         private EntityData NewEntityData()
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  NewEntityData");
+            #endif
             return wannaBeClasses.New<EntityData>(nameof(EntityData));
         }
 
         public EntityPrototype GetEntityPrototype(uint prototypeId) => (EntityPrototype)entityPrototypesById[prototypeId].Reference;
         public bool TryGetEntityPrototype(uint prototypeId, out EntityPrototype entityPrototype)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  TryGetEntityPrototype");
+            #endif
             if (entityPrototypesById.TryGetValue(prototypeId, out DataToken token))
             {
                 entityPrototype = (EntityPrototype)token.Reference;
@@ -92,6 +110,9 @@ namespace JanSharp
         public EntityPrototype GetEntityPrototype(string prototypeName) => (EntityPrototype)entityPrototypesByName[prototypeName].Reference;
         public bool TryGetEntityPrototype(string prototypeName, out EntityPrototype entityPrototype)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  TryGetEntityPrototype");
+            #endif
             if (entityPrototypesByName.TryGetValue(prototypeName, out DataToken token))
             {
                 entityPrototype = (EntityPrototype)token.Reference;
@@ -103,6 +124,9 @@ namespace JanSharp
 
         public void SendCreateEntityIA(uint prototypeId)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SendCreateEntityIA");
+            #endif
             lockstep.WriteSmallUInt(prototypeId);
             lockstep.SendInputAction(createEntityIAId);
         }
@@ -111,12 +135,18 @@ namespace JanSharp
         [LockstepInputAction(nameof(createEntityIAId))]
         public void OnCreateEntityIA()
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  OnCreateEntityIA");
+            #endif
             uint prototypeId = lockstep.ReadSmallUInt();
             CreateEntity(prototypeId);
         }
 
         public Entity CreateEntity(uint prototypeId)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  CreateEntity");
+            #endif
             if (!TryGetEntityPrototype(prototypeId, out EntityPrototype prototype))
                 return null;
             return CreateEntity(prototype);
@@ -124,6 +154,9 @@ namespace JanSharp
 
         public Entity CreateEntity(string prototypeName)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  CreateEntity");
+            #endif
             if (!TryGetEntityPrototype(prototypeName, out EntityPrototype prototype))
                 return null;
             return CreateEntity(prototype);
@@ -131,6 +164,9 @@ namespace JanSharp
 
         public Entity CreateEntity(EntityPrototype prototype)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  CreateEntity");
+            #endif
             Entity entity = InstantiateEntity(prototype);
             EntityData entityData = NewEntityData();
             entity.entityData = entityData;
@@ -157,12 +193,18 @@ namespace JanSharp
 
         public void WriteEntityExtensionReference(EntityExtension extension)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  WriteEntityExtensionReference");
+            #endif
             lockstep.WriteSmallUInt(extension.entity.entityData.id);
             lockstep.WriteSmallUInt((uint)System.Array.IndexOf(extension.entity.extensions, extension));
         }
 
         public EntityExtension ReadEntityExtensionReferenceDynamic()
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityExtensionReferenceDynamic");
+            #endif
             uint entityId = lockstep.ReadSmallUInt();
             int index = (int)lockstep.ReadSmallUInt();
             if (!entityInstancesById.TryGetValue(entityId, out DataToken entityToken))
@@ -172,6 +214,9 @@ namespace JanSharp
 
         public ulong SendExtensionInputAction(EntityExtension extension, string methodName)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SendExtensionInputAction");
+            #endif
             byte[] buffer = new byte[10 + (5 + methodName.Length)]; // No multi byte characters, so this is fine.
             int bufferSize = 0;
             DataStream.WriteSmall(ref buffer, ref bufferSize, (uint)extension.entity.entityData.id);
@@ -189,6 +234,9 @@ namespace JanSharp
         [LockstepInputAction(nameof(onExtensionInputActionIAId))]
         public void OnExtensionInputActionIA()
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  OnExtensionInputActionIA");
+            #endif
             EntityExtension extension = ReadEntityExtensionReferenceDynamic();
             if (extension == null)
                 return;
@@ -198,6 +246,9 @@ namespace JanSharp
 
         private Entity InstantiateEntity(EntityPrototype prototype)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  InstantiateEntity");
+            #endif
             GameObject entityGo = Instantiate(prototype.EntityPrefab);
             Entity entity = entityGo.GetComponent<Entity>();
             entity.lockstep = lockstep;
@@ -208,6 +259,9 @@ namespace JanSharp
 
         public override void SerializeGameState(bool isExport)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SerializeGameState");
+            #endif
             lockstep.WriteSmallUInt(nextEntityId);
 
             lockstep.WriteSmallUInt((uint)entityInstancesCount);
@@ -220,6 +274,9 @@ namespace JanSharp
 
         public override string DeserializeGameState(bool isImport, uint importedDataVersion)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializeGameState");
+            #endif
             nextEntityId = lockstep.ReadSmallUInt();
 
             entityInstancesCount = (int)lockstep.ReadSmallUInt();

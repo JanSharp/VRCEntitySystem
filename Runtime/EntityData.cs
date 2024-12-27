@@ -36,6 +36,9 @@ namespace JanSharp
         /// <param name="entity"></param>
         public void InitFromEntity(Entity entity)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntityData  InitFromEntity");
+            #endif
             entityPrototype = entity.prototype;
             this.entity = entity;
             Transform t = entity.transform;
@@ -51,6 +54,9 @@ namespace JanSharp
 
         public override void Serialize(bool isExport)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntityData  Serialize");
+            #endif
             lockstep.WriteSmallUInt(entityPrototype.Id);
             lockstep.WriteSmallUInt(id);
             lockstep.WriteVector3(position);
@@ -69,6 +75,9 @@ namespace JanSharp
 
         public override void Deserialize(bool isImport, uint importedDataVersion)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntityData  Deserialize");
+            #endif
             entityPrototype = entitySystem.GetEntityPrototype(lockstep.ReadSmallUInt());
             id = lockstep.ReadSmallUInt();
             position = lockstep.ReadVector3();

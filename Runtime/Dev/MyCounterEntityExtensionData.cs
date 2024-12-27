@@ -17,16 +17,25 @@ namespace JanSharp
 
         public override void InitFromExtension()
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  InitFromExtension");
+            #endif
             counterValue = Extension.counterValue;
         }
 
         public override void Serialize(bool isExport)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  Serialize");
+            #endif
             lockstep.WriteSmallInt(counterValue);
         }
 
         public override void Deserialize(bool isImport, uint importedDataVersion)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  Deserialize");
+            #endif
             counterValue = lockstep.ReadSmallInt();
         }
     }

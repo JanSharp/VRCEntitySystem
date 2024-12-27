@@ -17,6 +17,9 @@ namespace JanSharp
 
         public void InitFromEntityData(EntityData entityData)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] Entity  InitFromEntityData");
+            #endif
             lockstep = entityData.lockstep;
             entitySystem = entityData.entitySystem;
             prototype = entityData.entityPrototype;
