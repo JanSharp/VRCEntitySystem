@@ -1059,32 +1059,32 @@ PrefabInstance:
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: clientLeftIAId
-      value: 15
-      objectReference: {fileID: 0}
-    - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
-        type: 3}
-      propertyPath: importStartIAId
       value: 17
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
+      propertyPath: importStartIAId
+      value: 19
+      objectReference: {fileID: 0}
+    - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
+        type: 3}
       propertyPath: clientJoinedIAId
-      value: 13
+      value: 15
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: masterChangedIAId
-      value: 12
+      value: 14
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: clientCaughtUpIAId
-      value: 16
+      value: 18
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: importGameStateIAId
-      value: 18
+      value: 20
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
@@ -1094,7 +1094,7 @@ PrefabInstance:
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: masterChangeRequestIAId
-      value: 4
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
@@ -1110,17 +1110,17 @@ PrefabInstance:
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: singletonInputActionIAId
-      value: 2
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: cancelledMasterChangeIAId
-      value: 6
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: confirmedMasterChangeIAId
-      value: 5
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
@@ -1130,7 +1130,7 @@ PrefabInstance:
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: acceptedMasterCandidateIAId
-      value: 10
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
@@ -1145,7 +1145,7 @@ PrefabInstance:
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: clientGotLateJoinerDataIAId
-      value: 14
+      value: 16
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
@@ -1165,12 +1165,12 @@ PrefabInstance:
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: timedSingletonInputActionIAId
-      value: 3
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: askForBetterMasterCandidateIAId
-      value: 7
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
@@ -1215,7 +1215,7 @@ PrefabInstance:
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: responseForBetterMasterCandidateIAId
-      value: 8
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
@@ -1230,17 +1230,17 @@ PrefabInstance:
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerInstances.Array.size
-      value: 19
+      value: 21
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: refusedMasterCandidateConfirmationIAId
-      value: 11
+      value: 13
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.size
-      value: 19
+      value: 21
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
@@ -1281,12 +1281,12 @@ PrefabInstance:
         type: 3}
       propertyPath: inputActionHandlerInstances.Array.data[2]
       value: 
-      objectReference: {fileID: 926490372}
+      objectReference: {fileID: 230905815}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerInstances.Array.data[3]
       value: 
-      objectReference: {fileID: 926490372}
+      objectReference: {fileID: 230905815}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerInstances.Array.data[4]
@@ -1330,47 +1330,47 @@ PrefabInstance:
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[1]
-      value: OnExtensionInputActionIA
+      value: OnDestroyEntityIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[2]
-      value: OnSingletonInputActionIA
+      value: OnDestroyAllEntitiesIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[3]
-      value: OnTimedSingletonInputActionIA
+      value: OnExtensionInputActionIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[4]
-      value: OnMasterChangeRequestIA
+      value: OnSingletonInputActionIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[5]
-      value: OnConfirmedMasterChangeIA
+      value: OnTimedSingletonInputActionIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[6]
-      value: OnCancelledMasterChangeIA
+      value: OnMasterChangeRequestIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[7]
-      value: OnAskForBetterMasterCandidateIA
+      value: OnConfirmedMasterChangeIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[8]
-      value: OnResponseForBetterMasterCandidateIA
+      value: OnCancelledMasterChangeIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[9]
-      value: OnStoppedAskingForCandidatesThanksToExistingMasterIA
+      value: OnAskForBetterMasterCandidateIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
@@ -1419,52 +1419,72 @@ PrefabInstance:
       objectReference: {fileID: 926490372}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
+      propertyPath: inputActionHandlerInstances.Array.data[19]
+      value: 
+      objectReference: {fileID: 926490372}
+    - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
+        type: 3}
+      propertyPath: inputActionHandlerInstances.Array.data[20]
+      value: 
+      objectReference: {fileID: 926490372}
+    - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
+        type: 3}
       propertyPath: onLockstepNotificationListeners.Array.size
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[10]
-      value: OnAcceptedMasterCandidateIA
+      value: OnResponseForBetterMasterCandidateIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[11]
-      value: OnRefusedMasterCandidateConfirmationIA
+      value: OnStoppedAskingForCandidatesThanksToExistingMasterIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[12]
-      value: OnMasterClientChangedIA
+      value: OnAcceptedMasterCandidateIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[13]
-      value: OnClientJoinedIA
+      value: OnRefusedMasterCandidateConfirmationIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[14]
-      value: OnClientGotLateJoinerDataIA
+      value: OnMasterClientChangedIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[15]
-      value: OnClientLeftIA
+      value: OnClientJoinedIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[16]
-      value: OnClientCaughtUpIA
+      value: OnClientGotLateJoinerDataIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[17]
-      value: OnImportStartIA
+      value: OnClientLeftIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlerEventNames.Array.data[18]
+      value: OnClientCaughtUpIA
+      objectReference: {fileID: 0}
+    - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
+        type: 3}
+      propertyPath: inputActionHandlerEventNames.Array.data[19]
+      value: OnImportStartIA
+      objectReference: {fileID: 0}
+    - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
+        type: 3}
+      propertyPath: inputActionHandlerEventNames.Array.data[20]
       value: OnImportGameStateIA
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
@@ -1495,7 +1515,7 @@ PrefabInstance:
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlersRequireTimeTracking.Array.size
-      value: 19
+      value: 21
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
@@ -1510,6 +1530,16 @@ PrefabInstance:
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: inputActionHandlersRequireTimeTracking.Array.data[3]
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
+        type: 3}
+      propertyPath: inputActionHandlersRequireTimeTracking.Array.data[4]
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
+        type: 3}
+      propertyPath: inputActionHandlersRequireTimeTracking.Array.data[5]
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
@@ -1530,7 +1560,7 @@ PrefabInstance:
     - target: {fileID: 4728509102619734785, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
       propertyPath: sendStoppedAskingForCandidatesThanksToExistingMasterIAId
-      value: 9
+      value: 11
       objectReference: {fileID: 0}
     - target: {fileID: 4878089997896310911, guid: 4f5050760fb932762b18e249c98c7afd,
         type: 3}
@@ -2311,7 +2341,9 @@ MonoBehaviour:
   preInstantiatedEntityInstanceIds: 
   preInstantiatedEntityInstancePrototypes: []
   createEntityIAId: 0
-  onExtensionInputActionIAId: 1
+  destroyEntityIAId: 1
+  destroyAllEntitiesIAId: 2
+  onExtensionInputActionIAId: 3
 --- !u!4 &230905816
 Transform:
   m_ObjectHideFlags: 0

@@ -13,6 +13,7 @@ namespace JanSharp
         [System.NonSerialized] public WannaBeClassesManager wannaBeClasses;
         [System.NonSerialized] public EntityPrototype prototype;
         [System.NonSerialized] public EntityData entityData;
+        [System.NonSerialized] public int instanceIndex;
 
         public EntityExtension[] extensions;
 
