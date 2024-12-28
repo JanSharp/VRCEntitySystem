@@ -26,7 +26,6 @@ namespace JanSharp
         [System.NonSerialized] public EntityData[] childEntities = new EntityData[0];
         [System.NonSerialized] public EntityExtensionData[] allExtensionData;
 
-        // TODO: resolve after deserialization
         [System.NonSerialized] public uint unresolvedParentEntityId;
         [System.NonSerialized] public uint[] unresolvedChildEntitiesIds;
 
