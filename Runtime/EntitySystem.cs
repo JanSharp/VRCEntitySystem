@@ -1,4 +1,4 @@
-using UdonSharp;
+﻿using UdonSharp;
 using UnityEngine;
 using VRC.SDK3.Data;
 using VRC.SDKBase;
@@ -27,7 +27,10 @@ namespace JanSharp
         private Entity[] entityInstances = new Entity[ArrList.MinCapacity];
         private DataDictionary entityInstancesById = new DataDictionary();
         private int entityInstancesCount = 0;
-        private uint nextEntityId = 1u;
+        /// <summary>
+        /// <para>Must be sent by editor scripting, otherwise ids for pre instantiated entities could end up being reused.</para>
+        /// </summary>
+        public uint nextEntityId = 1u;
 
         private void Start()
         {
@@ -36,7 +39,6 @@ namespace JanSharp
             #endif
             InitEntityPrototypes();
             InitPreInstantiatedEntities();
-            InitNextEntityId();
         }
 
         private void InitEntityPrototypes()
@@ -72,16 +74,6 @@ namespace JanSharp
                 // TODO: handle extensions in many ways
                 RegisterEntity(entityData, entity);
             }
-        }
-
-        private void InitNextEntityId()
-        {
-            #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] EntitySystem  InitNextEntityId");
-            #endif
-            nextEntityId = preInstantiatedEntityInstanceIds.Length == 0
-                ? 1u
-                : (preInstantiatedEntityInstanceIds[preInstantiatedEntityInstanceIds.Length - 1] + 1u);
         }
 
         private void RegisterEntity(EntityData entityData, Entity entity)
