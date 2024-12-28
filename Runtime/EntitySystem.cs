@@ -10,6 +10,12 @@ namespace JanSharp
     [SingletonScript]
     public class EntitySystem : LockstepGameState
     {
+        public override string GameStateInternalName => "jansharp.entity-system";
+        public override string GameStateDisplayName => "Entity System";
+        public override bool GameStateSupportsImportExport => true;
+        public override uint GameStateDataVersion => 0u;
+        public override uint GameStateLowestSupportedDataVersion => 0u;
+
         [SingletonReference] [HideInInspector] [SerializeField] private LockstepAPI lockstep;
         [SingletonReference] [HideInInspector] [SerializeField] private WannaBeClassesManager wannaBeClasses;
         public EntityPrototype[] entityPrototypes;
@@ -22,12 +28,6 @@ namespace JanSharp
         private DataDictionary entityInstancesById = new DataDictionary();
         private int entityInstancesCount = 0;
         private uint nextEntityId = 1u;
-
-        public override string GameStateInternalName => "jansharp.entity-system";
-        public override string GameStateDisplayName => "Entity System";
-        public override bool GameStateSupportsImportExport => false;
-        public override uint GameStateDataVersion => 0u;
-        public override uint GameStateLowestSupportedDataVersion => 0u;
 
         private void Start()
         {
@@ -253,8 +253,169 @@ namespace JanSharp
             Entity entity = entityGo.GetComponent<Entity>();
             entity.lockstep = lockstep;
             entity.entitySystem = this;
+            entity.wannaBeClasses = wannaBeClasses;
             entity.prototype = prototype;
             return entity;
+        }
+
+        private void Export()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  Export");
+            #endif
+            lockstep.WriteSmallUInt((uint)entityPrototypes.Length);
+            foreach (EntityPrototype prototype in entityPrototypes)
+                prototype.ExportMetadata();
+
+            lockstep.WriteSmallUInt((uint)entityInstancesCount);
+            for (int i = 0; i < entityInstancesCount; i++)
+            {
+                Entity entity = entityInstances[i];
+                lockstep.WriteCustomClass(entity.entityData);
+            }
+        }
+
+        private DataDictionary importedPrototypeMetadataById;
+        public EntityPrototypeMetadata GetImportedPrototypeMetadata(uint prototypeId) => (EntityPrototypeMetadata)importedPrototypeMetadataById[prototypeId].Reference;
+        public bool TryGetImportedPrototypeMetadata(uint prototypeId, out EntityPrototypeMetadata metadata)
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  TryGetImportedMetadata");
+            #endif
+            if (importedPrototypeMetadataById.TryGetValue(prototypeId, out DataToken token))
+            {
+                metadata = (EntityPrototypeMetadata)token.Reference;
+                return true;
+            }
+            metadata = null;
+            return false;
+        }
+
+        private DataDictionary remappedImportedEntityData;
+        public EntityData GetRemappedImportedEntityData(uint importedId) => (EntityData)remappedImportedEntityData[importedId].Reference;
+        public bool TryGetRemappedImportedEntityData(uint importedId, out EntityData remappedEntityData)
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  TryGetRemappedImportedEntityData");
+            #endif
+            if (remappedImportedEntityData.TryGetValue(importedId, out DataToken token))
+            {
+                remappedEntityData = (EntityData)token.Reference;
+                return true;
+            }
+            remappedEntityData = null;
+            return false;
+        }
+
+        private void ReadAllImportedPrototypeMetadata()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  ReadAllImportedPrototypeMetadata");
+            #endif
+            int length = (int)lockstep.ReadSmallUInt();
+            EntityPrototypeMetadata[] allImportedMetadata = new EntityPrototypeMetadata[length];
+            for (int i = 0; i < length; i++)
+            {
+                EntityPrototypeMetadata metadata = EntityPrototypeStatics.ImportMetadata(wannaBeClasses, lockstep, this);
+                allImportedMetadata[i] = metadata;
+                importedPrototypeMetadataById.Add(metadata.id, metadata);
+            }
+        }
+
+        private EntityData[] ReadAllImportedEntityData()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  ReadAllImportedEntityData");
+            #endif
+            int length = (int)lockstep.ReadSmallUInt();
+            EntityData[] allImportedEntityData = new EntityData[length];
+            for (int i = 0; i < length; i++)
+            {
+                EntityData entityData = lockstep.ReadCustomClass<EntityData>(nameof(EntityData));
+                allImportedEntityData[i] = entityData;
+                if (entityData.entityPrototype == null)
+                    continue;
+                uint importedId = entityData.id;
+                entityData.id = nextEntityId++;
+                remappedImportedEntityData.Add(importedId, entityData);
+            }
+            return allImportedEntityData;
+        }
+
+        private void ResolveImportedEntityIdReferences(EntityData[] allImportedEntityData)
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  ResolveImportedEntityIdReferences");
+            #endif
+            foreach (EntityData entityData in allImportedEntityData)
+            {
+                if (entityData.entityPrototype == null)
+                    continue;
+
+                if (TryGetRemappedImportedEntityData(entityData.unresolvedParentEntityId, out EntityData data))
+                    entityData.parentEntity = data;
+                entityData.unresolvedParentEntityId = 0u;
+
+                EntityData[] childEntities = new EntityData[entityData.unresolvedChildEntitiesIds.Length];
+                int i = 0;
+                foreach (uint childId in entityData.unresolvedChildEntitiesIds)
+                    if (TryGetRemappedImportedEntityData(childId, out data))
+                        childEntities[i++] = data;
+                if (i != childEntities.Length)
+                {
+                    EntityData[] shortenedList = new EntityData[i];
+                    System.Array.Copy(childEntities, shortenedList, i);
+                    childEntities = shortenedList;
+                }
+                entityData.childEntities = childEntities;
+                entityData.unresolvedChildEntitiesIds = null;
+            }
+        }
+
+        private void CreateImportedEntities(EntityData[] allImportedEntityData)
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  CreateImportedEntities");
+            #endif
+            foreach (EntityData entityData in allImportedEntityData)
+            {
+                if (entityData.entityPrototype == null)
+                    continue;
+                Entity entity = InstantiateEntity(entityData.entityPrototype);
+                entity.InitFromEntityData(entityData);
+                ArrList.Add(ref entityInstances, ref entityInstancesCount, entity);
+                entityInstancesById.Add(entityData.id, entity);
+            }
+        }
+
+        private void DeleteEntityPrototypeMetadataClasses(EntityData[] allImportedEntityData)
+        {
+            DataList list = importedPrototypeMetadataById.GetValues();
+            for (int i = 0; i < list.Count; i++)
+                ((EntityPrototypeMetadata)list[i].Reference).Delete();
+            foreach (EntityData entityData in allImportedEntityData)
+                entityData.importedMetadata = null; // Clear reference to empty unity object reference object so that can get GCed too.
+        }
+
+        private string Import(uint importedDataVersion)
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  Import");
+            #endif
+            importedPrototypeMetadataById = new DataDictionary();
+            remappedImportedEntityData = new DataDictionary();
+
+            // TODO: Delete existing entities.
+
+            ReadAllImportedPrototypeMetadata();
+            EntityData[] allImportedEntityData = ReadAllImportedEntityData();
+            ResolveImportedEntityIdReferences(allImportedEntityData);
+            CreateImportedEntities(allImportedEntityData);
+            DeleteEntityPrototypeMetadataClasses(allImportedEntityData);
+
+            importedPrototypeMetadataById = null;
+            remappedImportedEntityData = null;
+            return null;
         }
 
         public override void SerializeGameState(bool isExport)
@@ -262,6 +423,12 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  SerializeGameState");
             #endif
+            if (isExport)
+            {
+                Export();
+                return;
+            }
+
             lockstep.WriteSmallUInt(nextEntityId);
 
             lockstep.WriteSmallUInt((uint)entityInstancesCount);
@@ -277,6 +444,9 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializeGameState");
             #endif
+            if (isImport)
+                return Import(importedDataVersion);
+
             nextEntityId = lockstep.ReadSmallUInt();
 
             int count = (int)lockstep.ReadSmallUInt();

@@ -10,6 +10,7 @@ namespace JanSharp
     {
         [System.NonSerialized] public LockstepAPI lockstep;
         [System.NonSerialized] public EntitySystem entitySystem;
+        [System.NonSerialized] public WannaBeClassesManager wannaBeClasses;
         [System.NonSerialized] public EntityPrototype prototype;
         [System.NonSerialized] public EntityData entityData;
 
@@ -40,8 +41,20 @@ namespace JanSharp
                 extension.entitySystem = entitySystem;
                 extension.entity = this;
                 EntityExtensionData extensionData = allExtensionData[i];
-                extension.extensionData = extensionData;
-                extension.InitFromExtensionData();
+                if (extensionData != null)
+                {
+                    extension.extensionData = extensionData;
+                    extensionData.extension = extension;
+                    extension.InitFromExtensionData();
+                }
+                else
+                {
+                    extensionData = wannaBeClasses.New<EntityExtensionData>(prototype.ExtensionClassNames[i]);
+                    allExtensionData[i] = extensionData;
+                    extension.extensionData = extensionData;
+                    extensionData.extension = extension;
+                    extensionData.InitFromExtension();
+                }
             }
         }
     }
