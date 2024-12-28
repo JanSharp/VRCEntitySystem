@@ -10,7 +10,12 @@ namespace JanSharp
     public class MyCounterEntityExtension : EntityExtension
     {
         public MyCounterEntityExtensionData Data => (MyCounterEntityExtensionData)extensionData;
+        /// <summary>
+        /// <para>latency state.</para>
+        /// </summary>
         public int counterValue;
+        private ulong[] latencyHiddenUniqueIds = new ulong[ArrList.MinCapacity];
+        private int latencyHiddenUniqueIdsCount = 0;
         public TextMeshProUGUI text;
 
         public override void InitFromExtensionData()
@@ -35,8 +40,7 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  OnDecrementClick");
             #endif
-            lockstep.WriteSmallInt(-1);
-            SendExtensionInputAction(nameof(OnModifyValueIA));
+            SendModifyValueIA(-1);
         }
 
         public void OnIncrementClick()
@@ -44,8 +48,19 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  OnIncrementClick");
             #endif
-            lockstep.WriteSmallInt(1);
-            SendExtensionInputAction(nameof(OnModifyValueIA));
+            SendModifyValueIA(1);
+        }
+
+        private void SendModifyValueIA(int delta)
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  SendModifyValueIA");
+            #endif
+            lockstep.WriteSmallInt(delta);
+            ulong uniqueIds = SendExtensionInputAction(nameof(OnModifyValueIA));
+            ArrList.Add(ref latencyHiddenUniqueIds, ref latencyHiddenUniqueIdsCount, uniqueIds);
+            counterValue += delta;
+            UpdateText();
         }
 
         [EntityExtensionInputAction]
@@ -56,8 +71,11 @@ namespace JanSharp
             #endif
             int delta = lockstep.ReadSmallInt();
             Data.counterValue += delta;
-            counterValue += delta;
-            UpdateText();
+            if (ArrList.Remove(ref latencyHiddenUniqueIds, ref latencyHiddenUniqueIdsCount, lockstep.SendingUniqueId) == -1)
+            {
+                counterValue += delta;
+                UpdateText();
+            }
         }
     }
 }
