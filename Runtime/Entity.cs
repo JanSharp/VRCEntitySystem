@@ -50,7 +50,7 @@ namespace JanSharp
                 }
                 else
                 {
-                    extensionData = wannaBeClasses.New<EntityExtensionData>(prototype.ExtensionClassNames[i]);
+                    extensionData = (EntityExtensionData)wannaBeClasses.NewDynamic(prototype.ExtensionClassNames[i]);
                     allExtensionData[i] = extensionData;
                     extension.extensionData = extensionData;
                     extensionData.extension = extension;

@@ -204,7 +204,7 @@ namespace JanSharp
                 extension.lockstep = lockstep;
                 extension.entitySystem = this;
                 extension.entity = entity;
-                EntityExtensionData extensionData = wannaBeClasses.New<EntityExtensionData>(extensionClassNames[i]);
+                EntityExtensionData extensionData = (EntityExtensionData)wannaBeClasses.NewDynamic(extensionClassNames[i]);
                 allExtensionData[i] = extensionData;
                 extension.extensionData = extensionData;
                 extensionData.extension = extension;
