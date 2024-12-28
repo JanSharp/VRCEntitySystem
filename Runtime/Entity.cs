@@ -38,6 +38,7 @@ namespace JanSharp
             for (int i = 0; i < length; i++)
             {
                 EntityExtension extension = extensions[i];
+                extension.extensionIndex = i;
                 extension.lockstep = lockstep;
                 extension.entitySystem = entitySystem;
                 extension.entity = this;

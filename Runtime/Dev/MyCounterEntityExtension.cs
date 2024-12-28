@@ -6,6 +6,7 @@ using VRC.Udon;
 
 namespace JanSharp
 {
+    // TODO: somehow reference the entity extension data class, probably through an attribute.
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class MyCounterEntityExtension : EntityExtension
     {

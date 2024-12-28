@@ -31,6 +31,11 @@ namespace JanSharp
         /// <para>Must be sent by editor scripting, otherwise ids for pre instantiated entities could end up being reused.</para>
         /// </summary>
         public uint nextEntityId = 1u;
+        public string[] rawExtensionMethodNamesLut;
+        /// <summary>
+        /// <para><see cref="string"/> => <see cref="string[]"/></para>
+        /// </summary>
+        private DataDictionary extensionMethodNamesLut = new DataDictionary();
 
         private void Start()
         {
@@ -39,6 +44,7 @@ namespace JanSharp
             #endif
             InitEntityPrototypes();
             InitPreInstantiatedEntities();
+            InitExtensionIANameLut();
         }
 
         private void InitEntityPrototypes()
@@ -73,6 +79,24 @@ namespace JanSharp
                 entityData.id = preInstantiatedEntityInstanceIds[i];
                 // TODO: handle extensions in many ways
                 RegisterEntity(entityData, entity);
+            }
+        }
+
+        private void InitExtensionIANameLut()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  InitExtensionIANameLut");
+            #endif
+            int i = 0;
+            int length = rawExtensionMethodNamesLut.Length;
+            while (i < length)
+            {
+                string className = rawExtensionMethodNamesLut[i++];
+                int methodNamesCount = int.Parse(rawExtensionMethodNamesLut[i++]);
+                string[] methodNames = new string[methodNamesCount];
+                System.Array.Copy(rawExtensionMethodNamesLut, i, methodNames, 0, methodNamesCount);
+                i += methodNamesCount;
+                extensionMethodNamesLut.Add(className, new DataToken(methodNames));
             }
         }
 
@@ -194,6 +218,7 @@ namespace JanSharp
             for (int i = 0; i < extensionClassNames.Length; i++)
             {
                 EntityExtension extension = entity.extensions[i];
+                extension.extensionIndex = i;
                 extension.lockstep = lockstep;
                 extension.entitySystem = this;
                 extension.entity = entity;
@@ -275,7 +300,7 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] EntitySystem  WriteEntityExtensionReference");
             #endif
             lockstep.WriteSmallUInt(extension.entity.entityData.id);
-            lockstep.WriteSmallUInt((uint)System.Array.IndexOf(extension.entity.extensions, extension));
+            lockstep.WriteSmallUInt((uint)extension.extensionIndex);
         }
 
         public EntityExtension ReadEntityExtensionReferenceDynamic()
@@ -298,8 +323,10 @@ namespace JanSharp
             byte[] buffer = new byte[10 + (5 + methodName.Length)]; // No multi byte characters, so this is fine.
             int bufferSize = 0;
             DataStream.WriteSmall(ref buffer, ref bufferSize, (uint)extension.entity.entityData.id);
-            DataStream.WriteSmall(ref buffer, ref bufferSize, (uint)System.Array.IndexOf(extension.entity.extensions, extension));
-            DataStream.Write(ref buffer, ref bufferSize, methodName); // TODO: use build time generated id instead.
+            DataStream.WriteSmall(ref buffer, ref bufferSize, (uint)extension.extensionIndex);
+            string className = extension.entity.prototype.ExtensionClassNames[extension.extensionIndex];
+            int methodNameIndex = System.Array.IndexOf((string[])extensionMethodNamesLut[className].Reference, methodName);
+            DataStream.WriteSmall(ref buffer, ref bufferSize, (uint)methodNameIndex);
             int iaSize = lockstep.WriteStreamPosition;
             lockstep.ShiftWriteStream(0, bufferSize, iaSize);
             lockstep.WriteStreamPosition = 0;
@@ -318,7 +345,9 @@ namespace JanSharp
             EntityExtension extension = ReadEntityExtensionReferenceDynamic();
             if (extension == null)
                 return;
-            string methodName = lockstep.ReadString();
+            int methodNameIndex = (int)lockstep.ReadSmallUInt();
+            string className = extension.entity.prototype.ExtensionClassNames[extension.extensionIndex];
+            string methodName = ((string[])extensionMethodNamesLut[className].Reference)[methodNameIndex];
             extension.SendCustomEvent(methodName);
         }
 

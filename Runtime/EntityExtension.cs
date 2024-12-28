@@ -8,10 +8,11 @@ namespace JanSharp
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public abstract class EntityExtension : UdonSharpBehaviour
     {
-        [System.NonSerialized] public LockstepAPI lockstep; // TODO: initialize!
-        [System.NonSerialized] public EntitySystem entitySystem; // TODO: initialize!
-        [System.NonSerialized] public Entity entity; // TODO: initialize!
-        [System.NonSerialized] public EntityExtensionData extensionData; // TODO: initialize!
+        [System.NonSerialized] public int extensionIndex;
+        [System.NonSerialized] public LockstepAPI lockstep;
+        [System.NonSerialized] public EntitySystem entitySystem;
+        [System.NonSerialized] public Entity entity;
+        [System.NonSerialized] public EntityExtensionData extensionData;
 
         public abstract void InitFromExtensionData();
 
