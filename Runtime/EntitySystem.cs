@@ -28,7 +28,7 @@ namespace JanSharp
         private DataDictionary entityInstancesById = new DataDictionary();
         private int entityInstancesCount = 0;
         /// <summary>
-        /// <para>Must be sent by editor scripting, otherwise ids for pre instantiated entities could end up being reused.</para>
+        /// <para>Must be set by editor scripting, otherwise ids for pre instantiated entities could end up being reused.</para>
         /// </summary>
         public uint nextEntityId = 1u;
         public string[] rawExtensionMethodNamesLut;
