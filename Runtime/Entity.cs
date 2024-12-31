@@ -21,11 +21,42 @@ namespace JanSharp
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] Entity  InitFromEntityData");
+            if (this.entityData != null)
+                Debug.LogError($"[EntitySystemDebug] Attempt to InitFromEntityData an Entity multiple times.");
             #endif
+            entityData.SetEntity(this);
+            ApplyEntityDataWithoutExtension();
             lockstep = entityData.lockstep;
             entitySystem = entityData.entitySystem;
             prototype = entityData.entityPrototype;
             this.entityData = entityData;
+            EntityExtensionData[] allExtensionData = entityData.allExtensionData;
+            int length = extensions.Length;
+            for (int i = 0; i < length; i++)
+            {
+                EntityExtension extension = extensions[i];
+                extension.Setup(i, lockstep, entitySystem, this);
+                EntityExtensionData extensionData = allExtensionData[i];
+                if (extensionData != null)
+                {
+                    extensionData.SetExtension(extension);
+                    extension.InitFromExtensionData();
+                }
+                else
+                {
+                    extensionData = (EntityExtensionData)wannaBeClasses.NewDynamic(prototype.ExtensionDataClassNames[i]);
+                    allExtensionData[i] = extensionData;
+                    extensionData.SetExtension(extension);
+                    extensionData.InitFromExtension();
+                }
+            }
+        }
+
+        private void ApplyEntityDataWithoutExtension()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityDataWithoutExtension");
+            #endif
             Transform t = this.transform;
             t.position = entityData.position;
             t.rotation = entityData.rotation;
@@ -33,31 +64,16 @@ namespace JanSharp
             // TODO: what to do about hidden?
             // TODO: handle parent entity
             // TODO: handle child entities
-            EntityExtensionData[] allExtensionData = entityData.allExtensionData;
-            int length = extensions.Length;
-            for (int i = 0; i < length; i++)
-            {
-                EntityExtension extension = extensions[i];
-                extension.extensionIndex = i;
-                extension.lockstep = lockstep;
-                extension.entitySystem = entitySystem;
-                extension.entity = this;
-                EntityExtensionData extensionData = allExtensionData[i];
-                if (extensionData != null)
-                {
-                    extension.extensionData = extensionData;
-                    extensionData.extension = extension;
-                    extension.InitFromExtensionData();
-                }
-                else
-                {
-                    extensionData = (EntityExtensionData)wannaBeClasses.NewDynamic(prototype.ExtensionClassNames[i]);
-                    allExtensionData[i] = extensionData;
-                    extension.extensionData = extensionData;
-                    extensionData.extension = extension;
-                    extensionData.InitFromExtension();
-                }
-            }
+        }
+
+        public void ApplyEntityData()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityData");
+            #endif
+            ApplyEntityDataWithoutExtension();
+            foreach (EntityExtension extension in extensions)
+                extension.ApplyExtensionData();
         }
     }
 }

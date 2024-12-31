@@ -14,7 +14,19 @@ namespace JanSharp
         [System.NonSerialized] public Entity entity;
         [System.NonSerialized] public EntityExtensionData extensionData;
 
-        public abstract void InitFromExtensionData();
+        public void Setup(int extensionIndex, LockstepAPI lockstep, EntitySystem entitySystem, Entity entity)
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntityExtension  Setup");
+            #endif
+            this.extensionIndex = extensionIndex;
+            this.lockstep = lockstep;
+            this.entitySystem = entitySystem;
+            this.entity = entity;
+        }
+
+        public virtual void InitFromExtensionData() => ApplyExtensionData();
+        public abstract void ApplyExtensionData();
 
         public ulong SendExtensionInputAction(string methodName) => entitySystem.SendExtensionInputAction(this, methodName);
     }

@@ -19,10 +19,10 @@ namespace JanSharp
         private int latencyHiddenUniqueIdsCount = 0;
         public TextMeshProUGUI text;
 
-        public override void InitFromExtensionData()
+        public override void ApplyExtensionData()
         {
             #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  InitFromExtensionData");
+            Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  ApplyExtensionData");
             #endif
             counterValue = Data.counterValue;
             UpdateText();
