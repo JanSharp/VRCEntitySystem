@@ -36,6 +36,15 @@ namespace JanSharp
             return this;
         }
 
+        public override void WannaBeDestructor()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntityData  WannaBeDestructor");
+            #endif
+            foreach (EntityExtensionData extensionData in allExtensionData)
+                extensionData.DecrementRefsCount();
+        }
+
         public void SetEntity(Entity entity)
         {
             #if EntitySystemDebug

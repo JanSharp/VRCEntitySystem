@@ -377,9 +377,6 @@ namespace JanSharp
             entityInstancesById.Remove(entityData.id);
 
             Destroy(entity.gameObject);
-
-            foreach (EntityExtensionData extensionData in entityData.allExtensionData) // TODO: do this in the EntityData destructor
-                extensionData.DecrementRefsCount();
             entityData.DecrementRefsCount();
         }
 
