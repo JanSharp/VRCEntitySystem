@@ -215,7 +215,8 @@ namespace JanSharp
                 EntityExtensionData extensionData = allExtensionData[index];
                 if (extensionData != null)
                 {
-                    lockstep.ReadCustomNullableClass(extensionData); // TODO: if this returns false, maybe raise an event on the extension data?
+                    if (!lockstep.ReadCustomNullableClass(extensionData))
+                        extensionData.ImportedWithoutDeserialization();
                     continue;
                 }
                 extensionData = (EntityExtensionData)lockstep.ReadCustomNullableClassDynamic(newExtensionClassName);

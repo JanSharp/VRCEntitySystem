@@ -34,6 +34,7 @@ namespace JanSharp
         }
 
         public abstract void InitFromExtension();
+        public virtual void ImportedWithoutDeserialization() { }
     }
 
     public static class EntityExtensionDataStatics
