@@ -207,12 +207,14 @@ namespace JanSharp
             return false;
         }
 
-        public void SendCreateEntityIA(uint prototypeId)
+        public void SendCreateEntityIA(uint prototypeId, Vector3 position, Quaternion rotation)
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  SendCreateEntityIA");
             #endif
             lockstep.WriteSmallUInt(prototypeId);
+            lockstep.WriteVector3(position);
+            lockstep.WriteQuaternion(rotation);
             lockstep.SendInputAction(createEntityIAId);
         }
 
@@ -224,36 +226,39 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] EntitySystem  OnCreateEntityIA");
             #endif
             uint prototypeId = lockstep.ReadSmallUInt();
-            CreateEntity(prototypeId);
+            Vector3 position = lockstep.ReadVector3();
+            Quaternion rotation = lockstep.ReadQuaternion();
+            CreateEntity(prototypeId, position, rotation);
         }
 
-        public Entity CreateEntity(uint prototypeId)
+        public Entity CreateEntity(uint prototypeId, Vector3 position, Quaternion rotation)
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  CreateEntity");
             #endif
             if (!TryGetEntityPrototype(prototypeId, out EntityPrototype prototype))
                 return null;
-            return CreateEntity(prototype);
+            return CreateEntity(prototype, position, rotation);
         }
 
-        public Entity CreateEntity(string prototypeName)
+        public Entity CreateEntity(string prototypeName, Vector3 position, Quaternion rotation)
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  CreateEntity");
             #endif
             if (!TryGetEntityPrototype(prototypeName, out EntityPrototype prototype))
                 return null;
-            return CreateEntity(prototype);
+            return CreateEntity(prototype, position, rotation);
         }
 
-        public Entity CreateEntity(EntityPrototype prototype)
+        public Entity CreateEntity(EntityPrototype prototype, Vector3 position, Quaternion rotation)
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  CreateEntity");
             #endif
             uint id = nextEntityId++;
             Entity entity = InstantiateEntity(prototype, id);
+            entity.transform.SetPositionAndRotation(position, rotation);
             EntityData entityData = NewEntityData(id, prototype);
             entityData.InitFromEntity(entity);
             entityData.InitAllExtensionDataFromExtensions();
@@ -284,6 +289,35 @@ namespace JanSharp
             int length = entity.extensions.Length;
             for (int i = 0; i < length; i++)
                 entity.extensions[i].Setup(i, lockstep, this, entity);
+        }
+
+        public void SendMoveEntityIA(uint entityId, Vector3 position, Quaternion rotation)
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SendMoveEntityIA");
+            #endif
+            lockstep.WriteSmallUInt(entityId);
+            lockstep.WriteVector3(position);
+            lockstep.WriteQuaternion(rotation);
+            lockstep.SendInputAction(moveEntityIAId);
+        }
+
+        [HideInInspector] [SerializeField] private uint moveEntityIAId;
+        [LockstepInputAction(nameof(moveEntityIAId))]
+        public void OnMoveEntityIA()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  OnMoveEntityIA");
+            #endif
+            uint entityId = lockstep.ReadSmallUInt();
+            Vector3 position = lockstep.ReadVector3();
+            Quaternion rotation = lockstep.ReadQuaternion();
+            if (!TryGetEntityInstance(entityId, out Entity entity))
+                return;
+            EntityData entityData = entity.entityData;
+            entityData.position = position;
+            entityData.rotation = rotation;
+            entity.Move();
         }
 
         public void SendDestroyEntityIA(uint entityId)

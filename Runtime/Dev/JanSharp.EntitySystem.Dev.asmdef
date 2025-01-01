@@ -1,0 +1,24 @@
+{
+    "name": "JanSharp.EntitySystem.Dev",
+    "rootNamespace": "",
+    "references": [
+        "GUID:f51aec1f5fe613f1c83cf6a5ff68b753",
+        "GUID:53b3f0410f643353eb92ce3f038d84d3",
+        "GUID:30168d4f3227bab08adee2dcc6b5660d",
+        "GUID:e4f6f4c8bf41c61aca44dfdbce96e78a",
+        "GUID:99835874ee819da44948776e0df4ff1d",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f",
+        "GUID:6490804aa441dfe4b88eb56cccbdf081",
+        "GUID:3456780c4fb2d324ab9c633d6f1b0ddb",
+        "GUID:3c1bc1267eab5884ebe7f232c09ee0d9"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

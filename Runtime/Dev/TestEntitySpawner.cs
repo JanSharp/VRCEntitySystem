@@ -11,6 +11,7 @@ namespace JanSharp
         [HideInInspector] [SerializeField] [SingletonReference] private EntitySystem entitySystem;
 
         public string entityPrototypeName;
+        public Transform spawnLocation;
 
         public override void Interact()
         {
@@ -19,7 +20,7 @@ namespace JanSharp
             #endif
             if (!entitySystem.TryGetEntityPrototype(entityPrototypeName, out EntityPrototype prototype))
                 return;
-            entitySystem.SendCreateEntityIA(prototype.Id);
+            entitySystem.SendCreateEntityIA(prototype.Id, spawnLocation.position, spawnLocation.rotation);
         }
     }
 }

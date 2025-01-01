@@ -75,5 +75,14 @@ namespace JanSharp
             foreach (EntityExtension extension in extensions)
                 extension.ApplyExtensionData();
         }
+
+        public void Move()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] Entity  Move");
+            #endif
+            // TODO: Interpolate.
+            this.transform.SetPositionAndRotation(entityData.position, entityData.rotation);
+        }
     }
 }

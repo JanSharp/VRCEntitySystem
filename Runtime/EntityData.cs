@@ -41,6 +41,8 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityData  WannaBeDestructor");
             #endif
+            if (allExtensionData == null)
+                return;
             foreach (EntityExtensionData extensionData in allExtensionData)
                 extensionData.DecrementRefsCount();
         }
