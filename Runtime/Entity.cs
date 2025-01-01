@@ -84,5 +84,14 @@ namespace JanSharp
             // TODO: Interpolate.
             this.transform.SetPositionAndRotation(entityData.position, entityData.rotation);
         }
+
+        public void ApplyScale()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] Entity  ApplyScale");
+            #endif
+            // TODO: Interpolate.
+            this.transform.localScale = entityData.scale;
+        }
     }
 }

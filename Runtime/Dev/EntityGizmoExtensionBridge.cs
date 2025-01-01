@@ -18,13 +18,15 @@ namespace JanSharp
             {
                 if (value == currentEntity)
                     return;
-                currentEntity = value;
-                if (currentEntity == null)
+                if (value == null)
                 {
-                    gizmo.SetTracked(null, null);
                     SendMovementIA();
+                    SendScaleIA();
+                    currentEntity = null; // After sending.
+                    gizmo.SetTracked(null, null);
                     return;
                 }
+                currentEntity = value;
                 gizmo.SetTracked(currentEntity.transform, this);
             }
         }
@@ -106,7 +108,7 @@ namespace JanSharp
 
         public override void OnScaleModified()
         {
-
+            EnqueueScaleIA();
         }
 
         private void EnqueueMovementIA()
@@ -124,6 +126,23 @@ namespace JanSharp
                 return;
             isMovementIAQueued = false;
             entitySystem.SendMoveEntityIA(CurrentEntity.entityData.id, CurrentEntity.transform.position, CurrentEntity.transform.rotation);
+        }
+
+        private void EnqueueScaleIA()
+        {
+            if (isScaleIAQueued)
+                return;
+            isScaleIAQueued = true;
+            SendCustomEventDelayedSeconds(nameof(SendScaleIA), 0.39f);
+        }
+
+        private bool isScaleIAQueued = false;
+        public void SendScaleIA()
+        {
+            if (CurrentEntity == null)
+                return;
+            isScaleIAQueued = false;
+            entitySystem.SendSetEntityScaleIA(CurrentEntity.entityData.id, CurrentEntity.transform.localScale);
         }
     }
 }

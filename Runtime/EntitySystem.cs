@@ -320,6 +320,31 @@ namespace JanSharp
             entity.Move();
         }
 
+        public void SendSetEntityScaleIA(uint entityId, Vector3 scale)
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SendSetEntityScaleIA");
+            #endif
+            lockstep.WriteSmallUInt(entityId);
+            lockstep.WriteVector3(scale);
+            lockstep.SendInputAction(setEntityScaleIAId);
+        }
+
+        [HideInInspector] [SerializeField] private uint setEntityScaleIAId;
+        [LockstepInputAction(nameof(setEntityScaleIAId))]
+        public void OnSetEntityScaleIA()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  OnSetEntityScaleIA");
+            #endif
+            uint entityId = lockstep.ReadSmallUInt();
+            Vector3 scale = lockstep.ReadVector3();
+            if (!TryGetEntityInstance(entityId, out Entity entity))
+                return;
+            entity.entityData.scale = scale;
+            entity.ApplyScale();
+        }
+
         public void SendDestroyEntityIA(uint entityId)
         {
             #if EntitySystemDebug
