@@ -10,23 +10,26 @@ namespace JanSharp
     {
         [HideInInspector] [SerializeField] [SingletonReference] private EntitySystem entitySystem;
         public TransformGizmo gizmo;
+        private bool isTracking = false;
         private Entity currentEntity;
         public Entity CurrentEntity
         {
             get => currentEntity;
             set
             {
-                if (value == currentEntity)
-                    return;
-                if (value == null)
+                if (value == null && isTracking)
                 {
                     SendMovementIA();
                     SendScaleIA();
                     currentEntity = null; // After sending.
+                    isTracking = false;
                     gizmo.SetTracked(null, null);
                     return;
                 }
+                if (value == currentEntity)
+                    return;
                 currentEntity = value;
+                isTracking = true;
                 gizmo.SetTracked(currentEntity.transform, this);
             }
         }
@@ -43,7 +46,11 @@ namespace JanSharp
         private void Update()
         {
             if (CurrentEntity == null)
+            {
+                if (isTracking)
+                    CurrentEntity = null;
                 return;
+            }
             if (Input.GetMouseButtonDown(0))
                 gizmo.Activate();
             if (Input.GetMouseButtonUp(0))
