@@ -15,8 +15,9 @@ namespace JanSharp
         public override bool GameStateSupportsImportExport => true;
         public override uint GameStateDataVersion => 0u;
         public override uint GameStateLowestSupportedDataVersion => 0u;
+        public override LockstepGameStateOptionsUI ExportUI => null;
+        public override LockstepGameStateOptionsUI ImportUI => null;
 
-        [SingletonReference] [HideInInspector] [SerializeField] private LockstepAPI lockstep;
         [SingletonReference] [HideInInspector] [SerializeField] private WannaBeClassesManager wannaBeClasses;
         public EntityPrototype[] entityPrototypes;
         private DataDictionary entityPrototypesById = new DataDictionary();
@@ -712,7 +713,7 @@ namespace JanSharp
             return entityData;
         }
 
-        public override void SerializeGameState(bool isExport)
+        public override void SerializeGameState(bool isExport, LockstepGameStateOptionsData exportOptions)
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  SerializeGameState");
@@ -730,7 +731,7 @@ namespace JanSharp
                 WriteEntityData(entityInstances[i].entityData, isExport);
         }
 
-        public override string DeserializeGameState(bool isImport, uint importedDataVersion)
+        public override string DeserializeGameState(bool isImport, uint importedDataVersion, LockstepGameStateOptionsData importOptions)
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializeGameState");

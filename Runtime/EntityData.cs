@@ -105,7 +105,7 @@ namespace JanSharp
             lockstep.WriteVector3(scale);
             lockstep.WriteSmallUInt(createdByPlayerId);
             lockstep.WriteSmallUInt(lastUserPlayerId);
-            lockstep.WriteByte((byte)(hidden ? 1 : 0));
+            lockstep.WriteFlags(hidden);
             lockstep.WriteSmallUInt(parentEntity == null ? 0u : parentEntity.id);
             lockstep.WriteSmallUInt((uint)childEntities.Length);
             foreach (EntityData child in childEntities)
@@ -126,7 +126,7 @@ namespace JanSharp
             scale = lockstep.ReadVector3();
             createdByPlayerId = lockstep.ReadSmallUInt();
             lastUserPlayerId = lockstep.ReadSmallUInt();
-            hidden = lockstep.ReadByte() != 0;
+            lockstep.ReadFlags(out hidden);
             unresolvedParentEntityId = lockstep.ReadSmallUInt();
             int childEntitiesLength = (int)lockstep.ReadSmallUInt();
             unresolvedChildEntitiesIds = new uint[childEntitiesLength];
