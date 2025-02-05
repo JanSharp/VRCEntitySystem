@@ -18,10 +18,11 @@ namespace JanSharp
         public override LockstepGameStateOptionsUI ExportUI => null;
         public override LockstepGameStateOptionsUI ImportUI => null;
 
-        [SingletonReference] [HideInInspector] [SerializeField] private WannaBeClassesManager wannaBeClasses;
+        [HideInInspector] [SerializeField] [SingletonReference] private WannaBeClassesManager wannaBeClasses;
         public EntityPrototype[] entityPrototypes;
         private DataDictionary entityPrototypesById = new DataDictionary();
         private DataDictionary entityPrototypesByName = new DataDictionary();
+        [BuildTimeIdAssignment(nameof(preInstantiatedEntityInstanceIds), nameof(highestPreInstantiatedEntityId))]
         public Entity[] preInstantiatedEntityInstances;
         public uint[] preInstantiatedEntityInstanceIds;
         public EntityPrototype[] preInstantiatedEntityInstancePrototypes;
@@ -31,7 +32,7 @@ namespace JanSharp
         /// <summary>
         /// <para>Must be set by editor scripting, otherwise ids for pre instantiated entities could end up being reused.</para>
         /// </summary>
-        public uint highestPreInstantiatedEntityId = 1u;
+        public uint highestPreInstantiatedEntityId;
         private uint highestImportedPreInstantiatedEntityId;
         private uint nextEntityId;
         public string[] rawExtensionMethodNamesLut;
