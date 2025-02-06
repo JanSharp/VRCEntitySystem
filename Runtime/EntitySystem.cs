@@ -7,7 +7,7 @@ using VRC.Udon;
 namespace JanSharp
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
-    [SingletonScript]
+    [SingletonScript("d627f7fa95da90f1f87280f822155c9d")] // Runtime/Prefabs/EntitySystem.prefab
     public class EntitySystem : LockstepGameState
     {
         public override string GameStateInternalName => "jansharp.entity-system";
