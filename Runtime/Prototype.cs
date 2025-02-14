@@ -8,7 +8,7 @@ namespace JanSharp
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public abstract class Prototype : UdonSharpBehaviour
     {
-        [HideInInspector] [SerializeField] private uint id;
+        /*[HideInInspector]*/ [SerializeField] private uint id;
         public uint Id => id;
         public abstract string PrototypeName { get; }
         public abstract string DisplayName { get; }
