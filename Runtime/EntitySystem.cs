@@ -293,33 +293,25 @@ namespace JanSharp
                 entity.extensions[i].Setup(i, lockstep, this, entity);
         }
 
-        public ulong SendMoveEntityIA(uint entityId, Vector3 position, Quaternion rotation)
+        public ulong SendTransformChangeIA()
         {
             #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] EntitySystem  SendMoveEntityIA");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SendTransformChangeIA");
             #endif
-            lockstep.WriteSmallUInt(entityId);
-            lockstep.WriteVector3(position);
-            lockstep.WriteQuaternion(rotation);
-            return lockstep.SendInputAction(moveEntityIAId);
+            return lockstep.SendInputAction(transformChangeIAId);
         }
 
-        [HideInInspector] [SerializeField] private uint moveEntityIAId;
-        [LockstepInputAction(nameof(moveEntityIAId))]
-        public void OnMoveEntityIA()
+        [HideInInspector] [SerializeField] private uint transformChangeIAId;
+        [LockstepInputAction(nameof(transformChangeIAId))]
+        public void OnTransformChangeIA()
         {
             #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] EntitySystem  OnMoveEntityIA");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  OnTransformChangeIA");
             #endif
             uint entityId = lockstep.ReadSmallUInt();
-            Vector3 position = lockstep.ReadVector3();
-            Quaternion rotation = lockstep.ReadQuaternion();
             if (!TryGetEntityInstance(entityId, out Entity entity))
                 return;
-            EntityData entityData = entity.entityData;
-            entityData.position = position;
-            entityData.rotation = rotation;
-            entity.OnMovementIA();
+            entity.OnTransformChangeIA();
         }
 
         public void SendDestroyEntityIA(uint entityId)

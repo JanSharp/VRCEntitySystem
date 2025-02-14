@@ -18,9 +18,13 @@ namespace JanSharp
 
         public EntityExtension[] extensions;
 
+        private bool transformChangeIAIsQueued = false;
         private bool flaggedForMovement = false;
-        private float timeAtLastMovementIA = 0f;
-        private const float TimeBetweenMovementIAs = 0.2f;
+        private bool flaggedForDiscontinuousMovement = false;
+        private bool flaggedForScaleChange = false;
+        private bool flaggedForDiscontinuousScaleChange = false;
+        private float timeAtLastTransformChangeIA = 0f;
+        private const float TimeBetweenTransformChangeIAs = 0.2f;
         private DataDictionary latencyHiddenUniqueIds = new DataDictionary();
 
         public void InitFromEntityData(EntityData entityData)
@@ -82,75 +86,125 @@ namespace JanSharp
                 extension.ApplyExtensionData();
         }
 
-        // public void Move()
-        // {
-        //     #if EntitySystemDebug
-        //     Debug.Log($"[EntitySystemDebug] Entity  Move");
-        //     #endif
-        //     // TODO: Interpolate.
-        //     this.transform.SetPositionAndRotation(entityData.position, entityData.rotation);
-        // }
-
-        // public void ApplyScale()
-        // {
-        //     #if EntitySystemDebug
-        //     Debug.Log($"[EntitySystemDebug] Entity  ApplyScale");
-        //     #endif
-        //     // TODO: Interpolate.
-        //     this.transform.localScale = entityData.scale;
-        // }
-
-        public void FlagForMovement()
+        private void EnqueueTransformChangeIA()
         {
             #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] Entity  FlagForMovement");
+            Debug.Log($"[EntitySystemDebug] Entity  EnqueueTransformChangeIA");
             #endif
-            if (entityData.transformState != EntityTransformState.Synced)
-            {
-                // TODO: do something different.
+            if (transformChangeIAIsQueued)
                 return;
-            }
-            if (flaggedForMovement)
-                return;
-            float timeUntilNextMovementIA = TimeBetweenMovementIAs - (Time.time - timeAtLastMovementIA);
+            transformChangeIAIsQueued = true;
+            float timeUntilNextMovementIA = TimeBetweenTransformChangeIAs - (Time.time - timeAtLastTransformChangeIA);
             if (timeUntilNextMovementIA <= 0f)
-            {
-                SendMovementIA();
-                return;
-            }
-            flaggedForMovement = true;
-            SendCustomEventDelayedSeconds(nameof(SendMovementIA), timeUntilNextMovementIA);
+                SendCustomEventDelayedFrames(nameof(SendTransformChangeIA), 1);
+            else
+                SendCustomEventDelayedSeconds(nameof(SendTransformChangeIA), timeUntilNextMovementIA);
         }
 
-        public void SendMovementIA()
+        public void FlagForMovement(bool flagForDiscontinuity = false)
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] Entity  FlagForMovement");
             #endif
-            flaggedForMovement = false;
             if (entityData.transformState != EntityTransformState.Synced)
                 return;
-            timeAtLastMovementIA = Time.time;
-            ulong uniqueId = entitySystem.SendMoveEntityIA(entityData.id, this.transform.position, this.transform.rotation);
+            if (flagForDiscontinuity)
+                flaggedForDiscontinuousMovement = true;
+            if (flaggedForMovement)
+                return;
+            flaggedForMovement = true;
+            EnqueueTransformChangeIA();
+        }
+
+        public void FlagForScaleChange(bool flagForDiscontinuity = false)
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] Entity  FlagForScaleChange");
+            #endif
+            if (entityData.transformState != EntityTransformState.Synced)
+                return;
+            if (flagForDiscontinuity)
+                flaggedForDiscontinuousScaleChange = true;
+            if (flaggedForScaleChange)
+                return;
+            flaggedForScaleChange = true;
+            EnqueueTransformChangeIA();
+        }
+
+        private void ResetTransformChangeFlags()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] Entity  ResetTransformChangeFlags");
+            #endif
+            transformChangeIAIsQueued = false;
+            flaggedForMovement = false;
+            flaggedForDiscontinuousMovement = false;
+            flaggedForScaleChange = false;
+            flaggedForDiscontinuousScaleChange = false;
+        }
+
+        public void SendTransformChangeIA()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] Entity  SendTransformChangeIA");
+            #endif
+            if (entityData.transformState != EntityTransformState.Synced)
+            {
+                ResetTransformChangeFlags();
+                return;
+            }
+            timeAtLastTransformChangeIA = Time.time;
+
+            lockstep.WriteSmallUInt(entityData.id);
+            lockstep.WriteFlags(
+                flaggedForMovement, flaggedForDiscontinuousMovement,
+                flaggedForScaleChange, flaggedForDiscontinuousScaleChange);
+
+            if (flaggedForMovement)
+            {
+                lockstep.WriteVector3(this.transform.position);
+                lockstep.WriteQuaternion(this.transform.rotation);
+            }
+            if (flaggedForScaleChange)
+                lockstep.WriteVector3(this.transform.localScale);
+
+            ResetTransformChangeFlags();
+            ulong uniqueId = entitySystem.SendTransformChangeIA();
             latencyHiddenUniqueIds.Add(uniqueId, true);
         }
 
-        public void OnMovementIA()
+        public void OnTransformChangeIA()
         {
             #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] Entity  OnMovementIA");
+            Debug.Log($"[EntitySystemDebug] Entity  OnTransformChangeIA");
             #endif
+            lockstep.ReadFlags(
+                out bool movement, out bool discontinuousMovement,
+                out bool scaleChange, out bool discontinuousScaleChange);
+
+            if (movement)
+            {
+                entityData.position = lockstep.ReadVector3();
+                entityData.rotation = lockstep.ReadQuaternion();
+            }
+            if (scaleChange)
+                entityData.scale = lockstep.ReadVector3();
+
             if (latencyHiddenUniqueIds.Remove(lockstep.SendingUniqueId))
                 return;
             if (entityData.transformState != EntityTransformState.Synced)
                 return;
-            // TODO: Interpolate.
-            this.transform.SetPositionAndRotation(entityData.position, entityData.rotation);
+
+            if (movement)
+            {
+                // TODO: Interpolate and respect discontinuity.
+                this.transform.SetPositionAndRotation(entityData.position, entityData.rotation);
+            }
+            if (scaleChange)
+            {
+                // TODO: Interpolate and respect discontinuity.
+                this.transform.localScale = entityData.scale;
+            }
         }
-
-        // public void FlagForDiscontinuity()
-        // {
-
-        // }
     }
 }

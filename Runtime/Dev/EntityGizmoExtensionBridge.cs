@@ -112,7 +112,7 @@ namespace JanSharp
 
         public override void OnScaleModified()
         {
-            // TODO: add flag for scale change for entities
+            currentEntity.FlagForScaleChange();
         }
     }
 }
