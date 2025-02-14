@@ -19,8 +19,10 @@ namespace JanSharp
         public EntityExtension[] extensions;
 
         private bool transformChangeIAIsQueued = false;
-        private bool flaggedForMovement = false;
-        private bool flaggedForDiscontinuousMovement = false;
+        private bool flaggedForPositionChange = false;
+        private bool flaggedForDiscontinuousPositionChange = false;
+        private bool flaggedForRotationChange = false;
+        private bool flaggedForDiscontinuousRotationChange = false;
         private bool flaggedForScaleChange = false;
         private bool flaggedForDiscontinuousScaleChange = false;
         private float timeAtLastTransformChangeIA = 0f;
@@ -101,18 +103,46 @@ namespace JanSharp
                 SendCustomEventDelayedSeconds(nameof(SendTransformChangeIA), timeUntilNextMovementIA);
         }
 
-        public void FlagForMovement(bool flagForDiscontinuity = false)
+        public void FlagForPositionChange(bool flagForDiscontinuity = false)
         {
             #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] Entity  FlagForMovement");
+            Debug.Log($"[EntitySystemDebug] Entity  FlagForPositionChange");
             #endif
             if (entityData.transformState != EntityTransformState.Synced)
                 return;
             if (flagForDiscontinuity)
-                flaggedForDiscontinuousMovement = true;
-            if (flaggedForMovement)
+                flaggedForDiscontinuousPositionChange = true;
+            flaggedForPositionChange = true;
+            EnqueueTransformChangeIA();
+        }
+
+        public void FlagForRotationChange(bool flagForDiscontinuity = false)
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] Entity  FlagForRotationChange");
+            #endif
+            if (entityData.transformState != EntityTransformState.Synced)
                 return;
-            flaggedForMovement = true;
+            if (flagForDiscontinuity)
+                flaggedForDiscontinuousRotationChange = true;
+            flaggedForRotationChange = true;
+            EnqueueTransformChangeIA();
+        }
+
+        public void FlagForPositionAndRotationChange(bool flagForDiscontinuity = false)
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] Entity  FlagForPositionAndRotationChange");
+            #endif
+            if (entityData.transformState != EntityTransformState.Synced)
+                return;
+            if (flagForDiscontinuity)
+            {
+                flaggedForDiscontinuousPositionChange = true;
+                flaggedForDiscontinuousRotationChange = true;
+            }
+            flaggedForPositionChange = true;
+            flaggedForRotationChange = true;
             EnqueueTransformChangeIA();
         }
 
@@ -137,8 +167,10 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] Entity  ResetTransformChangeFlags");
             #endif
             transformChangeIAIsQueued = false;
-            flaggedForMovement = false;
-            flaggedForDiscontinuousMovement = false;
+            flaggedForPositionChange = false;
+            flaggedForDiscontinuousPositionChange = false;
+            flaggedForRotationChange = false;
+            flaggedForDiscontinuousRotationChange = false;
             flaggedForScaleChange = false;
             flaggedForDiscontinuousScaleChange = false;
         }
@@ -157,14 +189,14 @@ namespace JanSharp
 
             lockstep.WriteSmallUInt(entityData.id);
             lockstep.WriteFlags(
-                flaggedForMovement, flaggedForDiscontinuousMovement,
+                flaggedForPositionChange, flaggedForDiscontinuousPositionChange,
+                flaggedForRotationChange, flaggedForDiscontinuousRotationChange,
                 flaggedForScaleChange, flaggedForDiscontinuousScaleChange);
 
-            if (flaggedForMovement)
-            {
+            if (flaggedForPositionChange)
                 lockstep.WriteVector3(this.transform.position);
+            if (flaggedForRotationChange)
                 lockstep.WriteQuaternion(this.transform.rotation);
-            }
             if (flaggedForScaleChange)
                 lockstep.WriteVector3(this.transform.localScale);
 
@@ -179,14 +211,14 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] Entity  OnTransformChangeIA");
             #endif
             lockstep.ReadFlags(
-                out bool movement, out bool discontinuousMovement,
+                out bool positionChange, out bool discontinuousPositionChange,
+                out bool rotationChange, out bool discontinuousRotationChange,
                 out bool scaleChange, out bool discontinuousScaleChange);
 
-            if (movement)
-            {
+            if (positionChange)
                 entityData.position = lockstep.ReadVector3();
+            if (rotationChange)
                 entityData.rotation = lockstep.ReadQuaternion();
-            }
             if (scaleChange)
                 entityData.scale = lockstep.ReadVector3();
 
@@ -195,10 +227,15 @@ namespace JanSharp
             if (entityData.transformState != EntityTransformState.Synced)
                 return;
 
-            if (movement)
+            if (positionChange)
             {
                 // TODO: Interpolate and respect discontinuity.
-                this.transform.SetPositionAndRotation(entityData.position, entityData.rotation);
+                this.transform.position = entityData.position;
+            }
+            if (rotationChange)
+            {
+                // TODO: Interpolate and respect discontinuity.
+                this.transform.rotation = entityData.rotation;
             }
             if (scaleChange)
             {

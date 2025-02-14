@@ -102,12 +102,12 @@ namespace JanSharp
 
         public override void OnPositionModified()
         {
-            currentEntity.FlagForMovement();
+            currentEntity.FlagForPositionChange();
         }
 
         public override void OnRotationModified()
         {
-            currentEntity.FlagForMovement();
+            currentEntity.FlagForRotationChange();
         }
 
         public override void OnScaleModified()
