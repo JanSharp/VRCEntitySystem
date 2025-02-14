@@ -8,7 +8,6 @@ namespace JanSharp
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class EntityGizmoExtensionBridge : TransformGizmoBridge
     {
-        [HideInInspector] [SerializeField] [SingletonReference] private EntitySystem entitySystem;
         public TransformGizmo gizmo;
         private bool isTracking = false;
         private Entity currentEntity;
@@ -19,8 +18,6 @@ namespace JanSharp
             {
                 if (value == null && isTracking)
                 {
-                    SendMovementIA();
-                    SendScaleIA();
                     currentEntity = null; // After sending.
                     isTracking = false;
                     gizmo.SetTracked(null, null);
@@ -105,51 +102,17 @@ namespace JanSharp
 
         public override void OnPositionModified()
         {
-            EnqueueMovementIA();
+            currentEntity.FlagForMovement();
         }
 
         public override void OnRotationModified()
         {
-            EnqueueMovementIA();
+            currentEntity.FlagForMovement();
         }
 
         public override void OnScaleModified()
         {
-            EnqueueScaleIA();
-        }
-
-        private void EnqueueMovementIA()
-        {
-            if (isMovementIAQueued)
-                return;
-            isMovementIAQueued = true;
-            SendCustomEventDelayedSeconds(nameof(SendMovementIA), 0.39f);
-        }
-
-        private bool isMovementIAQueued = false;
-        public void SendMovementIA()
-        {
-            if (CurrentEntity == null)
-                return;
-            isMovementIAQueued = false;
-            entitySystem.SendMoveEntityIA(CurrentEntity.entityData.id, CurrentEntity.transform.position, CurrentEntity.transform.rotation);
-        }
-
-        private void EnqueueScaleIA()
-        {
-            if (isScaleIAQueued)
-                return;
-            isScaleIAQueued = true;
-            SendCustomEventDelayedSeconds(nameof(SendScaleIA), 0.39f);
-        }
-
-        private bool isScaleIAQueued = false;
-        public void SendScaleIA()
-        {
-            if (CurrentEntity == null)
-                return;
-            isScaleIAQueued = false;
-            entitySystem.SendSetEntityScaleIA(CurrentEntity.entityData.id, CurrentEntity.transform.localScale);
+            // TODO: add flag for scale change for entities
         }
     }
 }

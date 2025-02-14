@@ -293,7 +293,7 @@ namespace JanSharp
                 entity.extensions[i].Setup(i, lockstep, this, entity);
         }
 
-        public void SendMoveEntityIA(uint entityId, Vector3 position, Quaternion rotation)
+        public ulong SendMoveEntityIA(uint entityId, Vector3 position, Quaternion rotation)
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  SendMoveEntityIA");
@@ -301,7 +301,7 @@ namespace JanSharp
             lockstep.WriteSmallUInt(entityId);
             lockstep.WriteVector3(position);
             lockstep.WriteQuaternion(rotation);
-            lockstep.SendInputAction(moveEntityIAId);
+            return lockstep.SendInputAction(moveEntityIAId);
         }
 
         [HideInInspector] [SerializeField] private uint moveEntityIAId;
@@ -319,32 +319,7 @@ namespace JanSharp
             EntityData entityData = entity.entityData;
             entityData.position = position;
             entityData.rotation = rotation;
-            entity.Move();
-        }
-
-        public void SendSetEntityScaleIA(uint entityId, Vector3 scale)
-        {
-            #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] EntitySystem  SendSetEntityScaleIA");
-            #endif
-            lockstep.WriteSmallUInt(entityId);
-            lockstep.WriteVector3(scale);
-            lockstep.SendInputAction(setEntityScaleIAId);
-        }
-
-        [HideInInspector] [SerializeField] private uint setEntityScaleIAId;
-        [LockstepInputAction(nameof(setEntityScaleIAId))]
-        public void OnSetEntityScaleIA()
-        {
-            #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] EntitySystem  OnSetEntityScaleIA");
-            #endif
-            uint entityId = lockstep.ReadSmallUInt();
-            Vector3 scale = lockstep.ReadVector3();
-            if (!TryGetEntityInstance(entityId, out Entity entity))
-                return;
-            entity.entityData.scale = scale;
-            entity.ApplyScale();
+            entity.OnMovementIA();
         }
 
         public void SendDestroyEntityIA(uint entityId)
@@ -469,10 +444,17 @@ namespace JanSharp
             #endif
             byte[] buffer = new byte[10 + (5 + methodName.Length)]; // No multi byte characters, so this is fine.
             int bufferSize = 0;
-            DataStream.WriteSmall(ref buffer, ref bufferSize, (uint)extension.entity.entityData.id);
+            DataStream.WriteSmall(ref buffer, ref bufferSize, extension.entity.entityData.id);
             DataStream.WriteSmall(ref buffer, ref bufferSize, (uint)extension.extensionIndex);
             string className = extension.entity.prototype.ExtensionDataClassNames[extension.extensionIndex];
             int methodNameIndex = System.Array.IndexOf((string[])extensionMethodNamesLut[className].Reference, methodName);
+            if (methodNameIndex == -1)
+            {
+                Debug.LogError($"[EntitySystem] Attempt to SendExtensionInputAction with the method name "
+                    + $"{methodName} on the class {className}, however no such method has the "
+                    + $"[{nameof(EntityExtensionInputActionAttribute)}].");
+                return 0uL;
+            }
             DataStream.WriteSmall(ref buffer, ref bufferSize, (uint)methodNameIndex);
             int iaSize = lockstep.WriteStreamPosition;
             lockstep.ShiftWriteStream(0, bufferSize, iaSize);

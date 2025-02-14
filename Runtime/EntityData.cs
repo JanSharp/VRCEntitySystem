@@ -5,6 +5,14 @@ using VRC.Udon;
 
 namespace JanSharp
 {
+    public enum EntityTransformState : byte
+    {
+        // These are part of import export data, making explicit values quite relevant.
+        Synced = 0,
+        Desynced = 1,
+        // Static = 2,
+    }
+
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class EntityData : WannaBeClass
     {
@@ -14,6 +22,7 @@ namespace JanSharp
         [System.NonSerialized] public Entity entity;
         [System.NonSerialized] public bool wasPreInstantiated = false;
         [System.NonSerialized] public uint id;
+        [System.NonSerialized] public EntityTransformState transformState;
         [System.NonSerialized] public Vector3 position;
         [System.NonSerialized] public Quaternion rotation;
         [System.NonSerialized] public Vector3 scale;
@@ -100,6 +109,7 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityData  Serialize");
             #endif
+            lockstep.WriteByte((byte)transformState);
             lockstep.WriteVector3(position);
             lockstep.WriteQuaternion(rotation);
             lockstep.WriteVector3(scale);
@@ -121,6 +131,7 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityData  Deserialize");
             #endif
+            transformState = (EntityTransformState)lockstep.ReadByte();
             position = lockstep.ReadVector3();
             rotation = lockstep.ReadQuaternion();
             scale = lockstep.ReadVector3();
@@ -221,7 +232,7 @@ namespace JanSharp
                         extensionData.ImportedWithoutDeserialization();
                     continue;
                 }
-                extensionData = (EntityExtensionData)lockstep.ReadCustomNullableClassDynamic(newExtensionClassName);
+                extensionData = (EntityExtensionData)lockstep.ReadCustomNullableClass(newExtensionClassName);
                 if (extensionData != null)
                 {
                     extensionData.WannaBeConstructor(i, this, null);
