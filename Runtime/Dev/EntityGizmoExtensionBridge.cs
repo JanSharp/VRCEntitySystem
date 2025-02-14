@@ -2,6 +2,7 @@
 using UnityEngine;
 using VRC.SDKBase;
 using VRC.Udon;
+using VRC.Udon.Common;
 
 namespace JanSharp
 {
@@ -54,6 +55,16 @@ namespace JanSharp
                 gizmo.Deactivate();
             if (Input.GetKeyDown(KeyCode.Q))
                 CurrentEntity = null;
+        }
+
+        public override void InputUse(bool value, UdonInputEventArgs args)
+        {
+            if (!isInVR || args.handType != HandType.RIGHT)
+                return;
+            if (value)
+                gizmo.Activate();
+            else
+                gizmo.Deactivate();
         }
 
         public override void GetHead(out Vector3 position, out Quaternion rotation)
