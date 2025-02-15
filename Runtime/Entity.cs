@@ -69,13 +69,13 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityDataWithoutExtension");
             #endif
-            if (!entityData.NoTransformSync)
-            {
-                Transform t = this.transform;
+            Transform t = this.transform;
+            if (!entityData.NoPositionSync)
                 t.position = entityData.position;
+            if (!entityData.NoRotationSync)
                 t.rotation = entityData.rotation;
+            if (!entityData.NoScaleSync)
                 t.localScale = entityData.scale;
-            }
             // TODO: what to do about hidden?
             // TODO: handle parent entity
             // TODO: handle child entities
@@ -111,7 +111,7 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] Entity  FlagForPositionChange");
             #endif
-            if (entityData.NoTransformSync)
+            if (entityData.NoPositionSync)
                 return;
             if (flagForDiscontinuity)
                 flaggedForDiscontinuousPositionChange = true;
@@ -124,7 +124,7 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] Entity  FlagForRotationChange");
             #endif
-            if (entityData.NoTransformSync)
+            if (entityData.NoRotationSync)
                 return;
             if (flagForDiscontinuity)
                 flaggedForDiscontinuousRotationChange = true;
@@ -137,16 +137,8 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] Entity  FlagForPositionAndRotationChange");
             #endif
-            if (entityData.NoTransformSync)
-                return;
-            if (flagForDiscontinuity)
-            {
-                flaggedForDiscontinuousPositionChange = true;
-                flaggedForDiscontinuousRotationChange = true;
-            }
-            flaggedForPositionChange = true;
-            flaggedForRotationChange = true;
-            EnqueueTransformChangeIA();
+            FlagForPositionChange(flagForDiscontinuity);
+            FlagForRotationChange(flagForDiscontinuity);
         }
 
         public void FlagForScaleChange(bool flagForDiscontinuity = false)
@@ -154,7 +146,7 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] Entity  FlagForScaleChange");
             #endif
-            if (entityData.NoTransformSync)
+            if (entityData.NoScaleSync)
                 return;
             if (flagForDiscontinuity)
                 flaggedForDiscontinuousScaleChange = true;
@@ -183,18 +175,13 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] Entity  SendTransformChangeIA");
             #endif
-            if (entityData.NoTransformSync)
-            {
-                ResetTransformChangeFlags();
-                return;
-            }
-            timeAtLastTransformChangeIA = Time.time;
-
             lockstep.WriteSmallUInt(entityData.id);
             lockstep.WriteFlags(
                 flaggedForPositionChange, flaggedForDiscontinuousPositionChange,
                 flaggedForRotationChange, flaggedForDiscontinuousRotationChange,
                 flaggedForScaleChange, flaggedForDiscontinuousScaleChange);
+
+            int startPosition = lockstep.WriteStreamPosition;
 
             if (flaggedForPositionChange)
                 lockstep.WriteVector3(this.transform.position);
@@ -202,8 +189,15 @@ namespace JanSharp
                 lockstep.WriteQuaternion(this.transform.rotation);
             if (flaggedForScaleChange)
                 lockstep.WriteVector3(this.transform.localScale);
-
             ResetTransformChangeFlags();
+
+            if (lockstep.WriteStreamPosition == startPosition)
+            {
+                lockstep.ResetWriteStream();
+                return;
+            }
+
+            timeAtLastTransformChangeIA = Time.time;
             ulong uniqueId = entitySystem.SendTransformChangeIA();
             latencyHiddenUniqueIds.Add(uniqueId, true);
         }
@@ -227,20 +221,18 @@ namespace JanSharp
 
             if (latencyHiddenUniqueIds.Remove(lockstep.SendingUniqueId))
                 return;
-            if (entityData.NoTransformSync)
-                return;
 
-            if (positionChange)
+            if (positionChange && !entityData.NoPositionSync)
             {
                 // TODO: Interpolate and respect discontinuity.
                 this.transform.position = entityData.position;
             }
-            if (rotationChange)
+            if (rotationChange && !entityData.NoRotationSync)
             {
                 // TODO: Interpolate and respect discontinuity.
                 this.transform.rotation = entityData.rotation;
             }
-            if (scaleChange)
+            if (scaleChange && !entityData.NoScaleSync)
             {
                 // TODO: Interpolate and respect discontinuity.
                 this.transform.localScale = entityData.scale;

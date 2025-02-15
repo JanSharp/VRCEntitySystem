@@ -14,7 +14,9 @@ namespace JanSharp
         [System.NonSerialized] public Entity entity;
         [System.NonSerialized] public bool wasPreInstantiated = false;
         [System.NonSerialized] public uint id;
-        private bool noTransformSync;
+        private bool noPositionSync;
+        private bool noRotationSync;
+        private bool noScaleSync;
         [System.NonSerialized] public Vector3 position;
         [System.NonSerialized] public Quaternion rotation;
         [System.NonSerialized] public Vector3 scale;
@@ -30,16 +32,34 @@ namespace JanSharp
 
         [System.NonSerialized] public EntityPrototypeMetadata importedMetadata;
 
-        public bool NoTransformSync
+        public bool NoPositionSync
         {
-            get => noTransformSync;
+            get => noPositionSync;
             set
             {
-                if (value == noTransformSync)
-                    return;
-                noTransformSync = value;
+                noPositionSync = value;
                 if (value)
-                    ResetTransformValues();
+                    position = Vector3.zero;
+            }
+        }
+        public bool NoRotationSync
+        {
+            get => noRotationSync;
+            set
+            {
+                noRotationSync = value;
+                if (value)
+                    rotation = Quaternion.identity;
+            }
+        }
+        public bool NoScaleSync
+        {
+            get => noScaleSync;
+            set
+            {
+                noScaleSync = value;
+                if (value)
+                    scale = Vector3.one;
             }
         }
 
@@ -112,26 +132,17 @@ namespace JanSharp
             }
         }
 
-        private void ResetTransformValues()
-        {
-            #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] EntityData  ResetTransformValues");
-            #endif
-            position = Vector3.zero;
-            rotation = Quaternion.identity;
-            scale = Vector3.one;
-        }
-
         private void SerializeTransformValues()
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityData  SerializeTransformValues");
             #endif
-            if (noTransformSync)
-                return;
-            lockstep.WriteVector3(position);
-            lockstep.WriteQuaternion(rotation);
-            lockstep.WriteVector3(scale);
+            if (!noPositionSync)
+                lockstep.WriteVector3(position);
+            if (!noRotationSync)
+                lockstep.WriteQuaternion(rotation);
+            if (!noScaleSync)
+                lockstep.WriteVector3(scale);
         }
 
         private void DeserializeTransformValue()
@@ -139,14 +150,9 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityData  DeserializeTransformValue");
             #endif
-            if (noTransformSync)
-            {
-                ResetTransformValues();
-                return;
-            }
-            position = lockstep.ReadVector3();
-            rotation = lockstep.ReadQuaternion();
-            scale = lockstep.ReadVector3();
+            position = noPositionSync ? Vector3.zero : lockstep.ReadVector3();
+            rotation = noRotationSync ? Quaternion.identity : lockstep.ReadQuaternion();
+            scale = noScaleSync ? Vector3.one : lockstep.ReadVector3();
         }
 
         public void Serialize(bool isExport)
@@ -154,7 +160,7 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityData  Serialize");
             #endif
-            lockstep.WriteFlags(noTransformSync, hidden);
+            lockstep.WriteFlags(noPositionSync, noRotationSync, noScaleSync, hidden);
             SerializeTransformValues();
             lockstep.WriteSmallUInt(createdByPlayerId);
             lockstep.WriteSmallUInt(lastUserPlayerId);
@@ -173,7 +179,7 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityData  Deserialize");
             #endif
-            lockstep.ReadFlags(out noTransformSync, out hidden);
+            lockstep.ReadFlags(out noPositionSync, out noRotationSync, out noScaleSync, out hidden);
             DeserializeTransformValue();
             createdByPlayerId = lockstep.ReadSmallUInt();
             lastUserPlayerId = lockstep.ReadSmallUInt();
