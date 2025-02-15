@@ -7,3 +7,5 @@
 - [x] non export serialization desynced entities should not include transform values
 - [ ] add flag to mark an entity as static
 - [ ] maybe change the no transform sync flag to a counter. Though when there are multiple systems trying to take control of syncing of an entity's transform, I don't foresee that going well currently so this is low priority if it even makes sense at all
+- [ ] no transform sync is annoying to use because of the transform values reset in the game state that happens when enabling it. The reset is required in order to have identical game states including for those who join late, however if a system using the no transform sync feature doesn't actually handle all 3 of the transform values, like not handling scale for example, the result is the scale in the game state differing from the real scale of the entity when no transform sync gets disabled again
+- [ ] import of pre instantiated entities deleted them and created new ones, pretty sure, which it's not supposed to
