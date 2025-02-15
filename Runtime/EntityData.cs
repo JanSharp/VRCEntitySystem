@@ -5,14 +5,6 @@ using VRC.Udon;
 
 namespace JanSharp
 {
-    public enum EntityTransformState : byte
-    {
-        // These are part of import export data, making explicit values quite relevant.
-        Synced = 0,
-        Desynced = 1,
-        // Static = 2,
-    }
-
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class EntityData : WannaBeClass
     {
@@ -22,7 +14,7 @@ namespace JanSharp
         [System.NonSerialized] public Entity entity;
         [System.NonSerialized] public bool wasPreInstantiated = false;
         [System.NonSerialized] public uint id;
-        [System.NonSerialized] public EntityTransformState transformState;
+        private bool noTransformSync;
         [System.NonSerialized] public Vector3 position;
         [System.NonSerialized] public Quaternion rotation;
         [System.NonSerialized] public Vector3 scale;
@@ -38,8 +30,24 @@ namespace JanSharp
 
         [System.NonSerialized] public EntityPrototypeMetadata importedMetadata;
 
+        public bool NoTransformSync
+        {
+            get => noTransformSync;
+            set
+            {
+                if (value == noTransformSync)
+                    return;
+                noTransformSync = value;
+                if (value)
+                    ResetTransformValues();
+            }
+        }
+
         public EntityData WannaBeConstructor(uint id, EntityPrototype entityPrototype)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntityData  WannaBeDestructor - id: {id}");
+            #endif
             this.id = id;
             this.entityPrototype = entityPrototype;
             return this;
@@ -104,18 +112,52 @@ namespace JanSharp
             }
         }
 
+        private void ResetTransformValues()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntityData  ResetTransformValues");
+            #endif
+            position = Vector3.zero;
+            rotation = Quaternion.identity;
+            scale = Vector3.one;
+        }
+
+        private void SerializeTransformValues()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntityData  SerializeTransformValues");
+            #endif
+            if (noTransformSync)
+                return;
+            lockstep.WriteVector3(position);
+            lockstep.WriteQuaternion(rotation);
+            lockstep.WriteVector3(scale);
+        }
+
+        private void DeserializeTransformValue()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntityData  DeserializeTransformValue");
+            #endif
+            if (noTransformSync)
+            {
+                ResetTransformValues();
+                return;
+            }
+            position = lockstep.ReadVector3();
+            rotation = lockstep.ReadQuaternion();
+            scale = lockstep.ReadVector3();
+        }
+
         public void Serialize(bool isExport)
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityData  Serialize");
             #endif
-            lockstep.WriteByte((byte)transformState);
-            lockstep.WriteVector3(position);
-            lockstep.WriteQuaternion(rotation);
-            lockstep.WriteVector3(scale);
+            lockstep.WriteFlags(noTransformSync, hidden);
+            SerializeTransformValues();
             lockstep.WriteSmallUInt(createdByPlayerId);
             lockstep.WriteSmallUInt(lastUserPlayerId);
-            lockstep.WriteFlags(hidden);
             lockstep.WriteSmallUInt(parentEntity == null ? 0u : parentEntity.id);
             lockstep.WriteSmallUInt((uint)childEntities.Length);
             foreach (EntityData child in childEntities)
@@ -131,13 +173,10 @@ namespace JanSharp
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityData  Deserialize");
             #endif
-            transformState = (EntityTransformState)lockstep.ReadByte();
-            position = lockstep.ReadVector3();
-            rotation = lockstep.ReadQuaternion();
-            scale = lockstep.ReadVector3();
+            lockstep.ReadFlags(out noTransformSync, out hidden);
+            DeserializeTransformValue();
             createdByPlayerId = lockstep.ReadSmallUInt();
             lastUserPlayerId = lockstep.ReadSmallUInt();
-            lockstep.ReadFlags(out hidden);
             unresolvedParentEntityId = lockstep.ReadSmallUInt();
             int childEntitiesLength = (int)lockstep.ReadSmallUInt();
             unresolvedChildEntitiesIds = new uint[childEntitiesLength];
