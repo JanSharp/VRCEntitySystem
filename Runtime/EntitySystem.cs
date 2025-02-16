@@ -271,11 +271,20 @@ namespace JanSharp
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  InstantiateEntity");
+            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+            sw.Start();
             #endif
             GameObject entityGo = Instantiate(prototype.EntityPrefab);
+            #if EntitySystemDebug
+            double instantiateMs = sw.Elapsed.TotalMilliseconds;
+            #endif
             Entity entity = entityGo.GetComponent<Entity>();
             SetupNewEntity(entity, prototype);
             RegisterEntity(entity, entityId);
+            #if EntitySystemDebug
+            double setupAndRegisterMs = sw.Elapsed.TotalMilliseconds - instantiateMs;
+            Debug.Log($"[EntitySystemDebug] [sw] EntitySystem  InstantiateEntity (inner) - instantiateMs: {instantiateMs}, setupAndRegisterMs: {setupAndRegisterMs}, PrototypeName: {prototype.PrototypeName}");
+            #endif
             return entity;
         }
 
