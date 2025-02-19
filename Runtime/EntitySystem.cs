@@ -291,7 +291,7 @@ namespace JanSharp
         private void SetupNewEntity(Entity entity, EntityPrototype prototype)
         {
             #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] EntitySystem  CreateEntity");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SetupNewEntity");
             #endif
             entity.lockstep = lockstep;
             entity.entitySystem = this;
