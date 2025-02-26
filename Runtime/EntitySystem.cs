@@ -715,6 +715,9 @@ namespace JanSharp
                 WriteEntityData(entityInstances[i].entityData, isExport);
         }
 
+        private int entitiesToReadCount;
+        private int entitiesToReadIndex;
+
         public override string DeserializeGameState(bool isImport, uint importedDataVersion, LockstepGameStateOptionsData importOptions)
         {
             #if EntitySystemDebug
@@ -723,14 +726,36 @@ namespace JanSharp
             if (isImport)
                 return Import(importedDataVersion);
 
+            if (lockstep.IsContinuationFromPrevFrame)
+            {
+                ContinueDeserializeGameState();
+                return null;
+            }
             nextEntityId = lockstep.ReadSmallUInt();
-
-            int count = (int)lockstep.ReadSmallUInt();
-            ArrList.EnsureCapacity(ref entityInstances, count);
-            for (int i = 0; i < count; i++)
-                ReadEntityData();
-
+            entitiesToReadCount = (int)lockstep.ReadSmallUInt();
+            entitiesToReadIndex = 0;
+            ArrList.EnsureCapacity(ref entityInstances, entitiesToReadCount);
+            ContinueDeserializeGameState();
             return null;
+        }
+
+        private void ContinueDeserializeGameState()
+        {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  ContinueDeserializeGameState");
+            #endif
+            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+            sw.Start();
+            while (entitiesToReadIndex < entitiesToReadCount)
+            {
+                if (sw.ElapsedMilliseconds > 25L)
+                {
+                    lockstep.FlagToContinueNextFrame();
+                    return;
+                }
+                ReadEntityData();
+                entitiesToReadIndex++;
+            }
         }
     }
 
