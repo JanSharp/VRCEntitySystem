@@ -371,30 +371,56 @@ namespace JanSharp
                 DestroyEntity(entityInstances[i]);
         }
 
+        private int destroyNonPreInstantiatedEntitiesIndex = -1;
         private void DestroyNonPreInstantiatedEntities()
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  DestroyNonPreInstantiatedEntities");
             #endif
-            for (int i = entityInstancesCount - 1; i >= 0 ; i--)
+            bool isImporting = lockstep.IsDeserializingForImport;
+            int startIndex = destroyNonPreInstantiatedEntitiesIndex == -1
+                ? entityInstancesCount - 1
+                : destroyNonPreInstantiatedEntitiesIndex - 1;
+            for (int i = startIndex; i >= 0 ; i--)
             {
                 Entity entity = entityInstances[i];
-                if (!IsPreInstantiatedEntityId(entity.entityData.id, isImport: false))
-                    DestroyEntity(entity);
+                if (IsPreInstantiatedEntityId(entity.entityData.id, isImport: false))
+                    continue;
+                DestroyEntity(entity);
+                if (isImporting && ImportIsRunningLong())
+                {
+                    destroyNonPreInstantiatedEntitiesIndex = i;
+                    return;
+                }
             }
+            destroyNonPreInstantiatedEntitiesIndex = -1;
+            if (isImporting)
+                importStage++;
         }
 
+        private int destroyPreInstantiatedEntitiesWhichWereNotImportedIndex = -1;
         private void DestroyPreInstantiatedEntitiesWhichWereNotImported()
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  DestroyPreInstantiatedEntitiesWhichWereNotImported");
             #endif
-            for (int i = entityInstancesCount - 1; i >= 0 ; i--)
+            int startIndex = destroyPreInstantiatedEntitiesWhichWereNotImportedIndex == -1
+                ? entityInstancesCount - 1
+                : destroyPreInstantiatedEntitiesWhichWereNotImportedIndex - 1;
+            for (int i = startIndex; i >= 0 ; i--)
             {
                 Entity entity = entityInstances[i];
-                if (IsPreInstantiatedEntityId(entity.entityData.id, isImport: true) && entity.entityData.importedMetadata == null)
-                    DestroyEntity(entity);
+                if (!IsPreInstantiatedEntityId(entity.entityData.id, isImport: true) || entity.entityData.importedMetadata != null)
+                    continue;
+                DestroyEntity(entity);
+                if (ImportIsRunningLong())
+                {
+                    destroyPreInstantiatedEntitiesWhichWereNotImportedIndex = i;
+                    return;
+                }
             }
+            destroyPreInstantiatedEntitiesWhichWereNotImportedIndex = -1;
+            importStage++;
         }
 
         public void DestroyEntity(Entity entity)
@@ -503,26 +529,54 @@ namespace JanSharp
                 entityInstances[i].entityData.Serialize(isExport: true);
         }
 
+        private int importStage = 0;
+        private EntityData[] allImportedEntityData = null;
+        private System.Diagnostics.Stopwatch importSw = new System.Diagnostics.Stopwatch();
+
+        private bool ImportIsRunningLong()
+        {
+            bool result = importSw.ElapsedMilliseconds > 10L;
+            if (result)
+                lockstep.FlagToContinueNextFrame();
+            return result;
+        }
+
         private string Import(uint importedDataVersion)
         {
             #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] EntitySystem  Import");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  Import - importStage: {importStage}");
             #endif
-            importedPrototypeMetadataById = new DataDictionary();
-            remappedImportedEntityData = new DataDictionary();
+            importSw.Reset();
+            importSw.Start();
 
-            highestImportedPreInstantiatedEntityId = lockstep.ReadSmallUInt();
+            if (importStage == 0)
+            {
+                importedPrototypeMetadataById = new DataDictionary();
+                remappedImportedEntityData = new DataDictionary();
+                highestImportedPreInstantiatedEntityId = lockstep.ReadSmallUInt();
+                importStage++;
+            }
             // There's technically no reason for this to happen separately to
             // DestroyPreInstantiatedEntitiesWhichWereNotImported, but this is easier to read.
-            DestroyNonPreInstantiatedEntities();
-            ReadAllImportedPrototypeMetadata();
-            EntityData[] allImportedEntityData = ReadImportedIds();
-            DestroyPreInstantiatedEntitiesWhichWereNotImported();
-            ReadAndCreateImportedEntities(allImportedEntityData, importedDataVersion);
-            DeleteEntityPrototypeMetadataClasses(allImportedEntityData);
-
-            importedPrototypeMetadataById = null;
-            remappedImportedEntityData = null;
+            if (importStage == 1)
+                DestroyNonPreInstantiatedEntities();
+            if (importStage == 2)
+                ReadAllImportedPrototypeMetadata();
+            if (importStage == 3)
+                allImportedEntityData = ReadImportedIds();
+            if (importStage == 4)
+                DestroyPreInstantiatedEntitiesWhichWereNotImported();
+            if (importStage == 5)
+                ReadAndCreateImportedEntities(allImportedEntityData, importedDataVersion);
+            if (importStage == 6)
+                DeleteEntityPrototypeMetadataClasses(allImportedEntityData);
+            if (importStage == 7)
+            {
+                importStage = 0;
+                allImportedEntityData = null;
+                importedPrototypeMetadataById = null;
+                remappedImportedEntityData = null;
+            }
             return null;
         }
 
@@ -558,29 +612,41 @@ namespace JanSharp
             return false;
         }
 
+        private int readAllImportedPrototypeMetadataLength = -1;
+        private int readAllImportedPrototypeMetadataIndex = 0;
         private void ReadAllImportedPrototypeMetadata()
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadAllImportedPrototypeMetadata");
             #endif
-            int length = (int)lockstep.ReadSmallUInt();
-            EntityPrototypeMetadata[] allImportedMetadata = new EntityPrototypeMetadata[length];
-            for (int i = 0; i < length; i++)
+            if (readAllImportedPrototypeMetadataLength == -1)
+                readAllImportedPrototypeMetadataLength = (int)lockstep.ReadSmallUInt();
+            for (int i = readAllImportedPrototypeMetadataIndex; i < readAllImportedPrototypeMetadataLength; i++)
             {
                 EntityPrototypeMetadata metadata = EntityPrototypeStatics.ImportMetadata(wannaBeClasses, lockstep, this);
-                allImportedMetadata[i] = metadata;
                 importedPrototypeMetadataById.Add(metadata.id, metadata);
+                if (ImportIsRunningLong())
+                {
+                    readAllImportedPrototypeMetadataIndex = i + 1;
+                    return;
+                }
             }
+            readAllImportedPrototypeMetadataLength = -1;
+            readAllImportedPrototypeMetadataIndex = 0;
+            importStage++;
         }
 
+        private int readImportedIdsIndex = 0;
+        private EntityData[] readImportedIdsAllEntityData = null;
         private EntityData[] ReadImportedIds()
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadImportedIds");
             #endif
-            int count = (int)lockstep.ReadSmallUInt();
-            EntityData[] allEntityData = new EntityData[count];
-            for (int i = 0; i < count; i++)
+            if (readImportedIdsAllEntityData == null)
+                readImportedIdsAllEntityData = new EntityData[(int)lockstep.ReadSmallUInt()];
+            int length = readImportedIdsAllEntityData.Length;
+            for (int i = readImportedIdsIndex; i < length; i++)
             {
                 uint id = lockstep.ReadSmallUInt();
                 uint prototypeId = lockstep.ReadSmallUInt();
@@ -593,23 +659,48 @@ namespace JanSharp
                     ? entity.entityData
                     : NewEntityData(nextEntityId++, metadata.entityPrototype);
                 entityData.importedMetadata = metadata;
-                allEntityData[i] = entityData;
+                readImportedIdsAllEntityData[i] = entityData;
                 remappedImportedEntityData.Add(id, entityData);
+                if (ImportIsRunningLong())
+                {
+                    readImportedIdsIndex = i + 1;
+                    return null;
+                }
             }
-            return allEntityData;
+            EntityData[] result = readImportedIdsAllEntityData;
+            readImportedIdsIndex = 0;
+            readImportedIdsAllEntityData = null;
+            importStage++;
+            return result;
         }
 
+        private int readAndCreateImportedEntitiesIndex = -1;
+        private EntityData readAndCreateImportedEntitiesDummy = null;
         private void ReadAndCreateImportedEntities(EntityData[] allImportedEntityData, uint importedDataVersion)
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadAndCreateImportedEntities");
             #endif
-            EntityData dummyEntityData = NewEntityData(0u, null);
-            foreach (EntityData entityData in allImportedEntityData)
+            int length = allImportedEntityData.Length;
+            int startIndex;
+            if (readAndCreateImportedEntitiesIndex != -1)
+                startIndex = readAndCreateImportedEntitiesIndex;
+            else
             {
+                startIndex = 0;
+                readAndCreateImportedEntitiesDummy = NewEntityData(0u, null);
+            }
+            for (int i = startIndex; i < length; i++)
+            {
+                if (ImportIsRunningLong())
+                {
+                    readAndCreateImportedEntitiesIndex = i;
+                    return;
+                }
+                EntityData entityData = allImportedEntityData[i];
                 if (entityData == null)
                 {
-                    dummyEntityData.Deserialize(isImport: true, importedDataVersion);
+                    readAndCreateImportedEntitiesDummy.Deserialize(isImport: true, importedDataVersion);
                     continue;
                 }
                 entityData.Deserialize(isImport: true, importedDataVersion);
@@ -621,16 +712,24 @@ namespace JanSharp
                 Entity entity = InstantiateEntity(entityData.entityPrototype, entityData.id);
                 entity.InitFromEntityData(entityData);
             }
-            dummyEntityData.Delete();
+            readAndCreateImportedEntitiesIndex = -1;
+            readAndCreateImportedEntitiesDummy.Delete();
+            readAndCreateImportedEntitiesDummy = null;
+            importStage++;
         }
 
         private void DeleteEntityPrototypeMetadataClasses(EntityData[] allImportedEntityData)
         {
+            #if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  DeleteEntityPrototypeMetadataClasses");
+            #endif
             DataList list = importedPrototypeMetadataById.GetValues();
             for (int i = 0; i < list.Count; i++)
                 ((EntityPrototypeMetadata)list[i].Reference).Delete();
             foreach (EntityData entityData in allImportedEntityData)
-                entityData.importedMetadata = null; // Clear reference to empty unity object reference object so that can get GCed too.
+                if (entityData != null)
+                    entityData.importedMetadata = null; // Clear reference to empty unity object reference object so that can get GCed too.
+            importStage++;
         }
 
         private void WriteEntityData(EntityData entityData, bool isExport)
@@ -748,7 +847,7 @@ namespace JanSharp
             sw.Start();
             while (entitiesToReadIndex < entitiesToReadCount)
             {
-                if (sw.ElapsedMilliseconds > 25L)
+                if (sw.ElapsedMilliseconds > 10L)
                 {
                     lockstep.FlagToContinueNextFrame();
                     return;
