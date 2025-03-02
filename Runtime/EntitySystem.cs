@@ -18,6 +18,8 @@ namespace JanSharp
         public override LockstepGameStateOptionsUI ExportUI => null;
         public override LockstepGameStateOptionsUI ImportUI => null;
 
+        private const long MaxDeserializeFrameMS = 20L;
+
         [HideInInspector] [SerializeField] [SingletonReference] private WannaBeClassesManager wannaBeClasses;
         public EntityPrototype[] entityPrototypes;
         private DataDictionary entityPrototypesById = new DataDictionary();
@@ -535,7 +537,7 @@ namespace JanSharp
 
         private bool ImportIsRunningLong()
         {
-            bool result = importSw.ElapsedMilliseconds > 10L;
+            bool result = importSw.ElapsedMilliseconds > MaxDeserializeFrameMS;
             if (result)
                 lockstep.FlagToContinueNextFrame();
             return result;
@@ -847,7 +849,7 @@ namespace JanSharp
             sw.Start();
             while (entitiesToReadIndex < entitiesToReadCount)
             {
-                if (sw.ElapsedMilliseconds > 10L)
+                if (sw.ElapsedMilliseconds > MaxDeserializeFrameMS)
                 {
                     lockstep.FlagToContinueNextFrame();
                     return;
