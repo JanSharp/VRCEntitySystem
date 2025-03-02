@@ -18,7 +18,7 @@ namespace JanSharp
         public override LockstepGameStateOptionsUI ExportUI => null;
         public override LockstepGameStateOptionsUI ImportUI => null;
 
-        private const long MaxDeserializeFrameMS = 20L;
+        private const long MaxWorkMSPerFrame = 20L;
 
         [HideInInspector] [SerializeField] [SingletonReference] private WannaBeClassesManager wannaBeClasses;
         public EntityPrototype[] entityPrototypes;
@@ -537,7 +537,7 @@ namespace JanSharp
 
         private bool ImportIsRunningLong()
         {
-            bool result = importSw.ElapsedMilliseconds > MaxDeserializeFrameMS;
+            bool result = importSw.ElapsedMilliseconds > MaxWorkMSPerFrame;
             if (result)
                 lockstep.FlagToContinueNextFrame();
             return result;
@@ -798,6 +798,8 @@ namespace JanSharp
             return entityData;
         }
 
+        private int entitiesToWriteIndex;
+
         public override void SerializeGameState(bool isExport, LockstepGameStateOptionsData exportOptions)
         {
             #if EntitySystemDebug
@@ -809,11 +811,24 @@ namespace JanSharp
                 return;
             }
 
-            lockstep.WriteSmallUInt(nextEntityId);
-
-            lockstep.WriteSmallUInt((uint)entityInstancesCount);
-            for (int i = 0; i < entityInstancesCount; i++)
-                WriteEntityData(entityInstances[i].entityData, isExport);
+            if (!lockstep.IsContinuationFromPrevFrame)
+            {
+                lockstep.WriteSmallUInt(nextEntityId);
+                lockstep.WriteSmallUInt((uint)entityInstancesCount);
+                entitiesToWriteIndex = 0;
+            }
+            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+            sw.Start();
+            while (entitiesToWriteIndex < entityInstancesCount)
+            {
+                if (sw.ElapsedMilliseconds > MaxWorkMSPerFrame)
+                {
+                    lockstep.FlagToContinueNextFrame();
+                    return;
+                }
+                WriteEntityData(entityInstances[entitiesToWriteIndex].entityData, isExport);
+                entitiesToWriteIndex++;
+            }
         }
 
         private int entitiesToReadCount;
@@ -849,7 +864,7 @@ namespace JanSharp
             sw.Start();
             while (entitiesToReadIndex < entitiesToReadCount)
             {
-                if (sw.ElapsedMilliseconds > MaxDeserializeFrameMS)
+                if (sw.ElapsedMilliseconds > MaxWorkMSPerFrame)
                 {
                     lockstep.FlagToContinueNextFrame();
                     return;
