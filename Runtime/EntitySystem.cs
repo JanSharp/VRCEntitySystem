@@ -509,26 +509,61 @@ namespace JanSharp
             extension.SendCustomEvent(methodName);
         }
 
+        private int exportStage = 0;
+        private int suspendedIndexInArray = 0;
+
         private void Export()
         {
             #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  Export");
             #endif
-            lockstep.WriteSmallUInt(highestPreInstantiatedEntityId);
-
-            lockstep.WriteSmallUInt((uint)entityPrototypes.Length);
-            foreach (EntityPrototype prototype in entityPrototypes)
-                prototype.ExportMetadata();
-
-            lockstep.WriteSmallUInt((uint)entityInstancesCount);
-            for (int i = 0; i < entityInstancesCount; i++)
+            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+            sw.Start();
+            if (exportStage == 0)
             {
-                EntityData entityData = entityInstances[i].entityData;
-                lockstep.WriteSmallUInt(entityData.id);
-                lockstep.WriteSmallUInt(entityData.entityPrototype.Id);
+                lockstep.WriteSmallUInt(highestPreInstantiatedEntityId);
+
+                lockstep.WriteSmallUInt((uint)entityPrototypes.Length);
+                foreach (EntityPrototype prototype in entityPrototypes)
+                    prototype.ExportMetadata();
+
+                lockstep.WriteSmallUInt((uint)entityInstancesCount);
+                exportStage++;
             }
-            for (int i = 0; i < entityInstancesCount; i++)
-                entityInstances[i].entityData.Serialize(isExport: true);
+
+            if (exportStage == 1)
+            {
+                for (int i = suspendedIndexInArray; i < entityInstancesCount; i++)
+                {
+                    EntityData entityData = entityInstances[i].entityData;
+                    lockstep.WriteSmallUInt(entityData.id);
+                    lockstep.WriteSmallUInt(entityData.entityPrototype.Id);
+                    if (sw.ElapsedMilliseconds > MaxWorkMSPerFrame)
+                    {
+                        suspendedIndexInArray = i + 1;
+                        lockstep.FlagToContinueNextFrame();
+                        return;
+                    }
+                }
+                suspendedIndexInArray = 0;
+                exportStage++;
+            }
+
+            if (exportStage == 2)
+            {
+                for (int i = suspendedIndexInArray; i < entityInstancesCount; i++)
+                {
+                    entityInstances[i].entityData.Serialize(isExport: true);
+                    if (sw.ElapsedMilliseconds > MaxWorkMSPerFrame)
+                    {
+                        suspendedIndexInArray = i + 1;
+                        lockstep.FlagToContinueNextFrame();
+                        return;
+                    }
+                }
+                suspendedIndexInArray = 0;
+                exportStage = 0;
+            }
         }
 
         private int importStage = 0;
