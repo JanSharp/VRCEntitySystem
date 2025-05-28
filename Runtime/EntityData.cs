@@ -66,7 +66,7 @@ namespace JanSharp
         public EntityData WannaBeConstructor(uint id, EntityPrototype entityPrototype)
         {
             #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] EntityData  WannaBeDestructor - id: {id}");
+            Debug.Log($"[EntitySystemDebug] EntityData  WannaBeConstructor - id: {id}");
             #endif
             this.id = id;
             this.entityPrototype = entityPrototype;
