@@ -20,7 +20,7 @@ namespace JanSharp
 
         private const long MaxWorkMSPerFrame = 20L;
 
-        [HideInInspector] [SerializeField] [SingletonReference] private WannaBeClassesManager wannaBeClasses;
+        [HideInInspector][SerializeField][SingletonReference] private WannaBeClassesManager wannaBeClasses;
         public EntityPrototype[] entityPrototypes;
         private DataDictionary entityPrototypesById = new DataDictionary();
         private DataDictionary entityPrototypesByName = new DataDictionary();
@@ -28,6 +28,7 @@ namespace JanSharp
         public Entity[] preInstantiatedEntityInstances;
         public uint[] preInstantiatedEntityInstanceIds;
         public EntityPrototype[] preInstantiatedEntityInstancePrototypes;
+        public EntityData[] preInstantiatedEntityData;
         private Entity[] entityInstances = new Entity[ArrList.MinCapacity];
         private DataDictionary entityInstancesById = new DataDictionary();
         private int entityInstancesCount = 0;
@@ -45,9 +46,9 @@ namespace JanSharp
 
         private void Start()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  Start");
-            #endif
+#endif
             InitEntityPrototypes();
             InitExtensionIANameLut();
             SetupPreInstantiatedEntities();
@@ -57,9 +58,9 @@ namespace JanSharp
         [LockstepEvent(LockstepEventType.OnInit)]
         public void OnInit()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  OnInit");
-            #endif
+#endif
             // Init pre instantiated entities.
             InitPreInstantiatedEntities();
         }
@@ -67,17 +68,17 @@ namespace JanSharp
         [LockstepEvent(LockstepEventType.OnClientBeginCatchUp)]
         public void OnClientBeginCatchUp()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  OnClientBeginCatchUp");
-            #endif
+#endif
             // Load existing game state into pre instantiated entities.
         }
 
         private void InitEntityPrototypes()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  InitEntityPrototypes");
-            #endif
+#endif
             foreach (EntityPrototype prototype in entityPrototypes)
             {
                 entityPrototypesById.Add(prototype.Id, prototype);
@@ -87,9 +88,9 @@ namespace JanSharp
 
         private void SetupPreInstantiatedEntities()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  SetupPreInstantiatedEntities");
-            #endif
+#endif
             int length = preInstantiatedEntityInstances.Length;
             for (int i = 0; i < length; i++)
             {
@@ -103,9 +104,9 @@ namespace JanSharp
 
         private void InitPreInstantiatedEntities()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  InitPreInstantiatedEntities");
-            #endif
+#endif
             int length = preInstantiatedEntityInstances.Length;
             ArrList.EnsureCapacity(ref entityInstances, length);
             for (int i = 0; i < length; i++)
@@ -122,9 +123,9 @@ namespace JanSharp
 
         private void InitExtensionIANameLut()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  InitExtensionIANameLut");
-            #endif
+#endif
             int i = 0;
             int length = rawExtensionMethodNamesLut.Length;
             while (i < length)
@@ -140,18 +141,18 @@ namespace JanSharp
 
         public bool IsPreInstantiatedEntityId(uint id, bool isImport)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  IsPreInstantiatedEntityId - id: {id}");
-            #endif
+#endif
             return id <= highestPreInstantiatedEntityId
                 && (!isImport || id <= highestImportedPreInstantiatedEntityId);
         }
 
         private void RegisterEntity(Entity entity, uint entityId)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  RegisterEntity");
-            #endif
+#endif
             entity.instanceIndex = entityInstancesCount;
             ArrList.Add(ref entityInstances, ref entityInstancesCount, entity);
             entityInstancesById.Add(entityId, entity);
@@ -159,9 +160,9 @@ namespace JanSharp
 
         private EntityData NewEntityData(uint id, EntityPrototype entityPrototype)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  NewEntityData");
-            #endif
+#endif
             return wannaBeClasses.New<EntityData>(nameof(EntityData))
                 .WannaBeConstructor(id, entityPrototype);
         }
@@ -169,9 +170,9 @@ namespace JanSharp
         public EntityPrototype GetEntityPrototype(uint prototypeId) => (EntityPrototype)entityPrototypesById[prototypeId].Reference;
         public bool TryGetEntityPrototype(uint prototypeId, out EntityPrototype entityPrototype)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  TryGetEntityPrototype");
-            #endif
+#endif
             if (entityPrototypesById.TryGetValue(prototypeId, out DataToken token))
             {
                 entityPrototype = (EntityPrototype)token.Reference;
@@ -184,9 +185,9 @@ namespace JanSharp
         public EntityPrototype GetEntityPrototype(string prototypeName) => (EntityPrototype)entityPrototypesByName[prototypeName].Reference;
         public bool TryGetEntityPrototype(string prototypeName, out EntityPrototype entityPrototype)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  TryGetEntityPrototype");
-            #endif
+#endif
             if (entityPrototypesByName.TryGetValue(prototypeName, out DataToken token))
             {
                 entityPrototype = (EntityPrototype)token.Reference;
@@ -199,9 +200,9 @@ namespace JanSharp
         public Entity GetEntityInstance(uint entityId) => (Entity)entityInstancesById[entityId].Reference;
         public bool TryGetEntityInstance(uint entityId, out Entity entity)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  TryGetEntityInstance");
-            #endif
+#endif
             if (entityInstancesById.TryGetValue(entityId, out DataToken token))
             {
                 entity = (Entity)token.Reference;
@@ -213,22 +214,22 @@ namespace JanSharp
 
         public void SendCreateEntityIA(uint prototypeId, Vector3 position, Quaternion rotation)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  SendCreateEntityIA");
-            #endif
+#endif
             lockstep.WriteSmallUInt(prototypeId);
             lockstep.WriteVector3(position);
             lockstep.WriteQuaternion(rotation);
             lockstep.SendInputAction(createEntityIAId);
         }
 
-        [HideInInspector] [SerializeField] private uint createEntityIAId;
+        [HideInInspector][SerializeField] private uint createEntityIAId;
         [LockstepInputAction(nameof(createEntityIAId))]
         public void OnCreateEntityIA()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  OnCreateEntityIA");
-            #endif
+#endif
             uint prototypeId = lockstep.ReadSmallUInt();
             Vector3 position = lockstep.ReadVector3();
             Quaternion rotation = lockstep.ReadQuaternion();
@@ -237,9 +238,9 @@ namespace JanSharp
 
         public Entity CreateEntity(uint prototypeId, Vector3 position, Quaternion rotation)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  CreateEntity");
-            #endif
+#endif
             if (!TryGetEntityPrototype(prototypeId, out EntityPrototype prototype))
                 return null;
             return CreateEntity(prototype, position, rotation);
@@ -247,9 +248,9 @@ namespace JanSharp
 
         public Entity CreateEntity(string prototypeName, Vector3 position, Quaternion rotation)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  CreateEntity");
-            #endif
+#endif
             if (!TryGetEntityPrototype(prototypeName, out EntityPrototype prototype))
                 return null;
             return CreateEntity(prototype, position, rotation);
@@ -257,9 +258,9 @@ namespace JanSharp
 
         public Entity CreateEntity(EntityPrototype prototype, Vector3 position, Quaternion rotation)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  CreateEntity");
-            #endif
+#endif
             uint id = nextEntityId++;
             Entity entity = InstantiateEntity(prototype, id);
             entity.transform.SetPositionAndRotation(position, rotation);
@@ -271,54 +272,54 @@ namespace JanSharp
 
         private Entity InstantiateEntity(EntityPrototype prototype, uint entityId)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  InstantiateEntity");
             System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
             sw.Start();
-            #endif
+#endif
             GameObject entityGo = Instantiate(prototype.EntityPrefab);
-            #if EntitySystemDebug
+#if EntitySystemDebug
             double instantiateMs = sw.Elapsed.TotalMilliseconds;
-            #endif
+#endif
             Entity entity = entityGo.GetComponent<Entity>();
             SetupNewEntity(entity, prototype);
             RegisterEntity(entity, entityId);
-            #if EntitySystemDebug
+#if EntitySystemDebug
             double setupAndRegisterMs = sw.Elapsed.TotalMilliseconds - instantiateMs;
             Debug.Log($"[EntitySystemDebug] [sw] EntitySystem  InstantiateEntity (inner) - instantiateMs: {instantiateMs}, setupAndRegisterMs: {setupAndRegisterMs}, PrototypeName: {prototype.PrototypeName}");
-            #endif
+#endif
             return entity;
         }
 
         private void SetupNewEntity(Entity entity, EntityPrototype prototype)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  SetupNewEntity");
-            #endif
+#endif
             entity.lockstep = lockstep;
             entity.entitySystem = this;
             entity.wannaBeClasses = wannaBeClasses;
             entity.prototype = prototype;
             int length = entity.extensions.Length;
             for (int i = 0; i < length; i++)
-                entity.extensions[i].Setup(i, lockstep, this, entity);
+                entity.extensions[i].InternalSetup(i, lockstep, this, entity);
         }
 
         public ulong SendTransformChangeIA()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  SendTransformChangeIA");
-            #endif
+#endif
             return lockstep.SendInputAction(transformChangeIAId);
         }
 
-        [HideInInspector] [SerializeField] private uint transformChangeIAId;
+        [HideInInspector][SerializeField] private uint transformChangeIAId;
         [LockstepInputAction(nameof(transformChangeIAId))]
         public void OnTransformChangeIA()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  OnTransformChangeIA");
-            #endif
+#endif
             uint entityId = lockstep.ReadSmallUInt();
             if (!TryGetEntityInstance(entityId, out Entity entity))
                 return;
@@ -327,20 +328,20 @@ namespace JanSharp
 
         public void SendDestroyEntityIA(uint entityId)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  SendDestroyEntityIA");
-            #endif
+#endif
             lockstep.WriteSmallUInt(entityId);
             lockstep.SendInputAction(destroyEntityIAId);
         }
 
-        [HideInInspector] [SerializeField] private uint destroyEntityIAId;
+        [HideInInspector][SerializeField] private uint destroyEntityIAId;
         [LockstepInputAction(nameof(destroyEntityIAId))]
         public void OnDestroyEntityIA()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  OnDestroyEntityIA");
-            #endif
+#endif
             uint entityId = lockstep.ReadSmallUInt();
             if (TryGetEntityInstance(entityId, out Entity entity))
                 DestroyEntity(entity);
@@ -348,42 +349,42 @@ namespace JanSharp
 
         public void SendDestroyAllEntitiesIA()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  SendDestroyAllEntitiesIA");
-            #endif
+#endif
             lockstep.SendInputAction(destroyAllEntitiesIAId);
         }
 
-        [HideInInspector] [SerializeField] private uint destroyAllEntitiesIAId;
+        [HideInInspector][SerializeField] private uint destroyAllEntitiesIAId;
         [LockstepInputAction(nameof(destroyAllEntitiesIAId))]
         public void OnDestroyAllEntitiesIA()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  OnDestroyAllEntitiesIA");
-            #endif
+#endif
             DestroyAllEntities();
         }
 
         private void DestroyAllEntities()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  DestroyAllEntities");
-            #endif
-            for (int i = entityInstancesCount - 1; i >= 0 ; i--)
+#endif
+            for (int i = entityInstancesCount - 1; i >= 0; i--)
                 DestroyEntity(entityInstances[i]);
         }
 
         private int destroyNonPreInstantiatedEntitiesIndex = -1;
         private void DestroyNonPreInstantiatedEntities()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  DestroyNonPreInstantiatedEntities");
-            #endif
+#endif
             bool isImporting = lockstep.IsDeserializingForImport;
             int startIndex = destroyNonPreInstantiatedEntitiesIndex == -1
                 ? entityInstancesCount - 1
                 : destroyNonPreInstantiatedEntitiesIndex - 1;
-            for (int i = startIndex; i >= 0 ; i--)
+            for (int i = startIndex; i >= 0; i--)
             {
                 Entity entity = entityInstances[i];
                 if (IsPreInstantiatedEntityId(entity.entityData.id, isImport: false))
@@ -403,13 +404,13 @@ namespace JanSharp
         private int destroyPreInstantiatedEntitiesWhichWereNotImportedIndex = -1;
         private void DestroyPreInstantiatedEntitiesWhichWereNotImported()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  DestroyPreInstantiatedEntitiesWhichWereNotImported");
-            #endif
+#endif
             int startIndex = destroyPreInstantiatedEntitiesWhichWereNotImportedIndex == -1
                 ? entityInstancesCount - 1
                 : destroyPreInstantiatedEntitiesWhichWereNotImportedIndex - 1;
-            for (int i = startIndex; i >= 0 ; i--)
+            for (int i = startIndex; i >= 0; i--)
             {
                 Entity entity = entityInstances[i];
                 if (!IsPreInstantiatedEntityId(entity.entityData.id, isImport: true) || entity.entityData.importedMetadata != null)
@@ -427,9 +428,9 @@ namespace JanSharp
 
         public void DestroyEntity(Entity entity)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  DestroyEntity");
-            #endif
+#endif
             entityInstancesCount--;
             int instanceIndex = entity.instanceIndex;
             if (instanceIndex != entityInstancesCount)
@@ -447,18 +448,18 @@ namespace JanSharp
 
         public void WriteEntityExtensionReference(EntityExtension extension)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  WriteEntityExtensionReference");
-            #endif
+#endif
             lockstep.WriteSmallUInt(extension.entity.entityData.id);
             lockstep.WriteSmallUInt((uint)extension.extensionIndex);
         }
 
         public EntityExtension ReadEntityExtensionReferenceDynamic()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityExtensionReferenceDynamic");
-            #endif
+#endif
             uint entityId = lockstep.ReadSmallUInt();
             int index = (int)lockstep.ReadSmallUInt();
             if (!TryGetEntityInstance(entityId, out Entity entity))
@@ -468,9 +469,9 @@ namespace JanSharp
 
         public ulong SendExtensionInputAction(EntityExtension extension, string methodName)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  SendExtensionInputAction");
-            #endif
+#endif
             byte[] buffer = new byte[10 + (5 + methodName.Length)]; // No multi byte characters, so this is fine.
             int bufferSize = 0;
             DataStream.WriteSmall(ref buffer, ref bufferSize, extension.entity.entityData.id);
@@ -493,13 +494,13 @@ namespace JanSharp
             return lockstep.SendInputAction(onExtensionInputActionIAId);
         }
 
-        [HideInInspector] [SerializeField] private uint onExtensionInputActionIAId;
+        [HideInInspector][SerializeField] private uint onExtensionInputActionIAId;
         [LockstepInputAction(nameof(onExtensionInputActionIAId))]
         public void OnExtensionInputActionIA()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  OnExtensionInputActionIA");
-            #endif
+#endif
             EntityExtension extension = ReadEntityExtensionReferenceDynamic();
             if (extension == null)
                 return;
@@ -514,9 +515,9 @@ namespace JanSharp
 
         private void Export()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  Export");
-            #endif
+#endif
             System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
             sw.Start();
             if (exportStage == 0)
@@ -580,9 +581,9 @@ namespace JanSharp
 
         private string Import(uint importedDataVersion)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  Import - importStage: {importStage}");
-            #endif
+#endif
             importSw.Reset();
             importSw.Start();
 
@@ -621,9 +622,9 @@ namespace JanSharp
         public EntityPrototypeMetadata GetImportedPrototypeMetadata(uint prototypeId) => (EntityPrototypeMetadata)importedPrototypeMetadataById[prototypeId].Reference;
         public bool TryGetImportedPrototypeMetadata(uint prototypeId, out EntityPrototypeMetadata metadata)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  TryGetImportedMetadata");
-            #endif
+#endif
             if (importedPrototypeMetadataById.TryGetValue(prototypeId, out DataToken token))
             {
                 metadata = (EntityPrototypeMetadata)token.Reference;
@@ -637,9 +638,9 @@ namespace JanSharp
         public EntityData GetRemappedImportedEntityData(uint importedId) => (EntityData)remappedImportedEntityData[importedId].Reference;
         public bool TryGetRemappedImportedEntityData(uint importedId, out EntityData remappedEntityData)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  TryGetRemappedImportedEntityData");
-            #endif
+#endif
             if (remappedImportedEntityData.TryGetValue(importedId, out DataToken token))
             {
                 remappedEntityData = (EntityData)token.Reference;
@@ -653,9 +654,9 @@ namespace JanSharp
         private int readAllImportedPrototypeMetadataIndex = 0;
         private void ReadAllImportedPrototypeMetadata()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadAllImportedPrototypeMetadata");
-            #endif
+#endif
             if (readAllImportedPrototypeMetadataLength == -1)
                 readAllImportedPrototypeMetadataLength = (int)lockstep.ReadSmallUInt();
             for (int i = readAllImportedPrototypeMetadataIndex; i < readAllImportedPrototypeMetadataLength; i++)
@@ -677,9 +678,9 @@ namespace JanSharp
         private EntityData[] readImportedIdsAllEntityData = null;
         private EntityData[] ReadImportedIds()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadImportedIds");
-            #endif
+#endif
             if (readImportedIdsAllEntityData == null)
                 readImportedIdsAllEntityData = new EntityData[(int)lockstep.ReadSmallUInt()];
             int length = readImportedIdsAllEntityData.Length;
@@ -715,9 +716,9 @@ namespace JanSharp
         private EntityData readAndCreateImportedEntitiesDummy = null;
         private void ReadAndCreateImportedEntities(EntityData[] allImportedEntityData, uint importedDataVersion)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadAndCreateImportedEntities");
-            #endif
+#endif
             int length = allImportedEntityData.Length;
             int startIndex;
             if (readAndCreateImportedEntitiesIndex != -1)
@@ -757,9 +758,9 @@ namespace JanSharp
 
         private void DeleteEntityPrototypeMetadataClasses(EntityData[] allImportedEntityData)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  DeleteEntityPrototypeMetadataClasses");
-            #endif
+#endif
             DataList list = importedPrototypeMetadataById.GetValues();
             for (int i = 0; i < list.Count; i++)
                 ((EntityPrototypeMetadata)list[i].Reference).Delete();
@@ -771,9 +772,9 @@ namespace JanSharp
 
         private void WriteEntityData(EntityData entityData, bool isExport)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  WriteEntityData - entityData.id: {entityData.id}, entityData.entityPrototype.Id: {entityData.entityPrototype.Id}");
-            #endif
+#endif
             lockstep.WriteSmallUInt(entityData.id);
             lockstep.WriteSmallUInt(entityData.entityPrototype.Id);
             entityData.Serialize(isExport);
@@ -781,14 +782,14 @@ namespace JanSharp
 
         private EntityData ReadEntityData()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityData");
-            #endif
+#endif
             uint id = lockstep.ReadSmallUInt();
             uint prototypeId = lockstep.ReadSmallUInt();
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityData (inner) - id: {id}, prototypeId: {prototypeId}");
-            #endif
+#endif
 
             EntityPrototype prototype = GetEntityPrototype(prototypeId);
 
@@ -805,9 +806,9 @@ namespace JanSharp
 
         private EntityData ReadEntityDataIntoExistingEntity(Entity entity, uint id)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityDataIntoExistingEntity");
-            #endif
+#endif
             EntityData entityData = entity.entityData;
             if (entityData != null)
             {
@@ -823,9 +824,9 @@ namespace JanSharp
 
         private EntityData ReadEntityDataIntoNewEntity(EntityPrototype prototype, uint id)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityDataIntoNewEntity");
-            #endif
+#endif
             EntityData entityData = NewEntityData(id, prototype);
             entityData.Deserialize(isImport: false, importedDataVersion: 0u);
             Entity entity = InstantiateEntity(prototype, id);
@@ -837,9 +838,9 @@ namespace JanSharp
 
         public override void SerializeGameState(bool isExport, LockstepGameStateOptionsData exportOptions)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  SerializeGameState");
-            #endif
+#endif
             if (isExport)
             {
                 Export();
@@ -871,9 +872,9 @@ namespace JanSharp
 
         public override string DeserializeGameState(bool isImport, uint importedDataVersion, LockstepGameStateOptionsData importOptions)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializeGameState");
-            #endif
+#endif
             if (isImport)
                 return Import(importedDataVersion);
 
@@ -892,9 +893,9 @@ namespace JanSharp
 
         private void ContinueDeserializeGameState()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  ContinueDeserializeGameState");
-            #endif
+#endif
             System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
             sw.Start();
             while (entitiesToReadIndex < entitiesToReadCount)
