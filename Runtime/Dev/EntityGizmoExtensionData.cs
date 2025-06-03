@@ -12,15 +12,23 @@ namespace JanSharp
         public override uint DataVersion => 0u;
         public override uint LowestSupportedDataVersion => 0u;
 
-        public override void Deserialize(bool isImport, uint importedDataVersion)
+        public override void InitFromDefault(EntityExtension entityExtension)
         {
         }
 
-        public override void InitFromExtension()
+        public override void InitFromPreInstantiated(EntityExtension entityExtension)
+        {
+        }
+
+        public override void OnAssociatedWithExtension()
         {
         }
 
         public override void Serialize(bool isExport)
+        {
+        }
+
+        public override void Deserialize(bool isImport, uint importedDataVersion)
         {
         }
     }

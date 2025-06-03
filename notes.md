@@ -1,8 +1,9 @@
 
-- [ ] Add entity instance pooling instead of instantiating and destroying every time
-- [ ] Add support for entity data existing without an entity existing yet
-  - [ ] Preferably add staggered entity instantiation, limited to x entities per frame
-- [ ] Add support for latency hidden entities (when creating them)
+- [x] Add entity instance pooling instead of instantiating and destroying every time
+- [x] Add support for entity data existing without an entity existing yet
+  - [x] Preferably add staggered entity instantiation, limited to x entities per frame
+- [x] Add support for latency hidden entities (when creating, and when destroying them)
+  - [ ] Test destroying entities
 - [ ] Add dependency on player data, specifically to use persistent ids
 - [x] ~~Desynced transform state should periodically fetch the current position and rotation and save that in the entity system's game state~~ nope, since exports can actually include non game state safe data there's no longer a need for this information
 - [ ] exporting entities with desynced transforms should include their current transform values
@@ -11,3 +12,5 @@
 - [ ] maybe change the no transform sync flag to a counter. Though when there are multiple systems trying to take control of syncing of an entity's transform, I don't foresee that going well currently so this is low priority if it even makes sense at all
 - [x] no transform sync is annoying to use because of the transform values reset in the game state that happens when enabling it. The reset is required in order to have identical game states including for those who join late, however if a system using the no transform sync feature doesn't actually handle all 3 of the transform values, like not handling scale for example, the result is the scale in the game state differing from the real scale of the entity when no transform sync gets disabled again
 - [x] ~~import of pre instantiated entities deleted them and created new ones, pretty sure, which it's not supposed to~~ incorrect observation
+- [ ] consider raising the OnInstantiate event for pre instantiated entities on start rather than later. Now that every pre instantiated entity is going to get it raise eventually, it should be safe to do so sooner as well. Can also spread it out across frames if desired
+- [ ] probably collapse the Prototype class into the EntityPrototype class

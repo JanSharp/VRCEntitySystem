@@ -2,9 +2,9 @@
 namespace JanSharp
 {
     [System.AttributeUsage(System.AttributeTargets.Method, Inherited = true, AllowMultiple = false)]
-    public class EntityExtensionInputActionAttribute : System.Attribute
+    public class EntityExtensionDataInputActionAttribute : System.Attribute
     {
-        public EntityExtensionInputActionAttribute()
+        public EntityExtensionDataInputActionAttribute()
         { }
     }
 

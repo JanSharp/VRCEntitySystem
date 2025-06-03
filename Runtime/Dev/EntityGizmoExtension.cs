@@ -35,5 +35,9 @@ namespace JanSharp
                 return;
             gizmoBridge.CurrentEntity = gizmoBridge.CurrentEntity == entity ? null : entity;
         }
+
+        public override void DisassociateFromExtensionDataAndReset(EntityExtension defaultExtension)
+        {
+        }
     }
 }

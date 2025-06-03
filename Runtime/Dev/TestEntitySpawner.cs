@@ -20,7 +20,15 @@ namespace JanSharp
             #endif
             if (!entitySystem.TryGetEntityPrototype(entityPrototypeName, out EntityPrototype prototype))
                 return;
-            entitySystem.SendCreateEntityIA(prototype.Id, spawnLocation.position, spawnLocation.rotation);
+            for (int i = 0; i < 16; i++)
+            {
+                entitySystem.SendCreateEntityIA(
+                    prototype.Id,
+                    spawnLocation.position
+                        + Vector3.right * Random.Range(0f, 10f)
+                        + Vector3.up * Random.Range(0f, 2f),
+                    spawnLocation.rotation);
+            }
         }
     }
 }

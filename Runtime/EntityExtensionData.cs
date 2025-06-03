@@ -8,33 +8,40 @@ namespace JanSharp
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public abstract class EntityExtensionData : SerializableWannaBeClass
     {
-        [HideInInspector] [SingletonReference] public EntitySystem entitySystem;
+        [HideInInspector][SingletonReference] public EntitySystem entitySystem;
         [System.NonSerialized] public int extensionIndex;
         [System.NonSerialized] public EntityData entityData;
         [System.NonSerialized] public EntityExtension extension;
 
-        public EntityExtensionData WannaBeConstructor(int extensionIndex, EntityData entityData, EntityExtension extension)
+        public EntityExtensionData WannaBeConstructor(int extensionIndex, EntityData entityData)
         {
             this.extensionIndex = extensionIndex;
             this.entityData = entityData;
             entityData.allExtensionData[extensionIndex] = this;
-            this.extension = extension;
-            if (extension != null)
-                extension.extensionData = this;
+            // extension = null; // Default.
             return this;
         }
 
         public void SetExtension(EntityExtension extension)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityExtensionData  SetExtension");
-            #endif
+#endif
             this.extension = extension;
             extension.extensionData = this;
         }
 
-        public abstract void InitFromExtension();
-        public virtual void ImportedWithoutDeserialization() { }
+        /// <summary>
+        /// <para>The given extension instance is immutable.</para>
+        /// </summary>
+        /// <param name="entityExtension"></param>
+        public abstract void InitFromDefault(EntityExtension entityExtension);
+        public abstract void InitFromPreInstantiated(EntityExtension entityExtension);
+        public abstract void OnAssociatedWithExtension();
+        public virtual void OnDisassociateFromExtension() { }
+        public virtual void ImportedWithoutDeserialization() { } // TODO: maybe add On prefix, also add to lifecycle
+
+        public ulong SendExtensionDataInputAction(string methodName) => entitySystem.SendExtensionDataInputAction(this, methodName);
     }
 
     public static class EntityExtensionDataStatics
@@ -43,14 +50,13 @@ namespace JanSharp
             WannaBeClassesManager wannaBeClasses,
             string extensionDataClassName,
             int extensionIndex,
-            EntityData entityData,
-            EntityExtension extension)
+            EntityData entityData)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityExtensionDataStatics  New - extensionDataClassName: {extensionDataClassName}, extensionIndex: {extensionIndex}");
-            #endif
+#endif
             return ((EntityExtensionData)wannaBeClasses.NewDynamic(extensionDataClassName))
-                .WannaBeConstructor(extensionIndex, entityData, extension);
+                .WannaBeConstructor(extensionIndex, entityData);
         }
     }
 }

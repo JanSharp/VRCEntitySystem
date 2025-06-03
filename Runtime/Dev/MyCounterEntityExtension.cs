@@ -15,68 +15,49 @@ namespace JanSharp
         /// <para>latency state.</para>
         /// </summary>
         public int counterValue;
-        private ulong[] latencyHiddenUniqueIds = new ulong[ArrList.MinCapacity];
-        private int latencyHiddenUniqueIdsCount = 0;
         public TextMeshProUGUI text;
 
         public override void ApplyExtensionData()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  ApplyExtensionData");
-            #endif
+#endif
             counterValue = Data.counterValue;
             UpdateText();
         }
 
-        private void UpdateText()
+        public override void DisassociateFromExtensionDataAndReset(EntityExtension defaultExtension)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  DisassociateFromExtensionDataAndReset");
+#endif
+            MyCounterEntityExtension extension = (MyCounterEntityExtension)defaultExtension;
+            counterValue = extension.counterValue;
+            UpdateText();
+        }
+
+        public void UpdateText()
+        {
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  UpdateText");
-            #endif
+#endif
             text.text = counterValue.ToString();
         }
 
         public void OnDecrementClick()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  OnDecrementClick");
-            #endif
-            SendModifyValueIA(-1);
+#endif
+            Data.SendModifyValueIA(-1);
         }
 
         public void OnIncrementClick()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  OnIncrementClick");
-            #endif
-            SendModifyValueIA(1);
-        }
-
-        private void SendModifyValueIA(int delta)
-        {
-            #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  SendModifyValueIA");
-            #endif
-            lockstep.WriteSmallInt(delta);
-            ulong uniqueIds = SendExtensionInputAction(nameof(OnModifyValueIA));
-            ArrList.Add(ref latencyHiddenUniqueIds, ref latencyHiddenUniqueIdsCount, uniqueIds);
-            counterValue += delta;
-            UpdateText();
-        }
-
-        [EntityExtensionInputAction]
-        public void OnModifyValueIA()
-        {
-            #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  OnModifyValueIA");
-            #endif
-            int delta = lockstep.ReadSmallInt();
-            Data.counterValue += delta;
-            if (ArrList.Remove(ref latencyHiddenUniqueIds, ref latencyHiddenUniqueIdsCount, lockstep.SendingUniqueId) == -1)
-            {
-                counterValue += delta;
-                UpdateText();
-            }
+#endif
+            Data.SendModifyValueIA(1);
         }
     }
 }

@@ -8,12 +8,15 @@ namespace JanSharp
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class EntityPrototype : Prototype
     {
-        [HideInInspector] [SerializeField] [SingletonReference] LockstepAPI lockstep;
+        [HideInInspector][SerializeField][SingletonReference] LockstepAPI lockstep;
         [SerializeField] private string prototypeName;
         [SerializeField] private string displayName;
         [SerializeField] private string shortDescription;
         [SerializeField] private string longDescription;
         [SerializeField] private GameObject entityPrefab;
+        [SerializeField] private Vector3 defaultScale;
+        [SerializeField] private Entity defaultEntityInst;
+        // TODO: this probably needs a "highest id" field just like build time id assignment does
         [SerializeField] private uint[] localExtensionIds;
         [SerializeField] private string[] extensionDataClassNames;
 
@@ -22,14 +25,16 @@ namespace JanSharp
         public override string ShortDescription => shortDescription;
         public override string LongDescription => longDescription;
         public GameObject EntityPrefab => entityPrefab;
+        public Vector3 DefaultScale => defaultScale;
+        public Entity DefaultEntityInst => defaultEntityInst;
         public uint[] LocalExtensionIds => localExtensionIds;
         public string[] ExtensionDataClassNames => extensionDataClassNames;
 
         public void ExportMetadata()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityPrototype  ExportMetadata");
-            #endif
+#endif
             lockstep.WriteSmallUInt(Id);
             lockstep.WriteString(prototypeName);
             lockstep.WriteString(displayName);
@@ -43,9 +48,9 @@ namespace JanSharp
     {
         public static EntityPrototypeMetadata ImportMetadata(WannaBeClassesManager wannaBeClasses, LockstepAPI lockstep, EntitySystem entitySystem)
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityPrototype  ImportMetadata");
-            #endif
+#endif
             EntityPrototypeMetadata metadata = wannaBeClasses.New<EntityPrototypeMetadata>(nameof(EntityPrototypeMetadata));
             metadata.id = lockstep.ReadSmallUInt();
             metadata.prototypeName = lockstep.ReadString();
