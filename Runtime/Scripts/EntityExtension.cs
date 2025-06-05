@@ -25,6 +25,7 @@ namespace JanSharp
             this.entity = entity;
         }
 
+        public virtual void OnInstantiateDefaultInstance() => OnInstantiate();
         public virtual void OnInstantiate() { }
         public virtual void AssociateWithExtensionData() => ApplyExtensionData();
         public abstract void ApplyExtensionData();

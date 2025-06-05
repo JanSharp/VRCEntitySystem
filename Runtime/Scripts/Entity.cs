@@ -32,7 +32,8 @@ namespace JanSharp
             LockstepAPI lockstep,
             EntitySystem entitySystem,
             WannaBeClassesManager wannaBeClasses,
-            EntityPrototype prototype)
+            EntityPrototype prototype,
+            bool isDefaultInstance)
         {
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] Entity  OnInstantiate");
@@ -44,8 +45,12 @@ namespace JanSharp
             int length = extensions.Length;
             for (int i = 0; i < length; i++)
                 extensions[i].InternalSetup(i, lockstep, entitySystem, this);
-            for (int i = 0; i < length; i++)
-                extensions[i].OnInstantiate();
+            if (isDefaultInstance)
+                for (int i = 0; i < length; i++)
+                    extensions[i].OnInstantiateDefaultInstance();
+            else
+                for (int i = 0; i < length; i++)
+                    extensions[i].OnInstantiate();
         }
 
         public void SendDestroyEntityIA()
@@ -64,7 +69,7 @@ namespace JanSharp
                 Debug.LogError($"[EntitySystemDebug] Attempt to InitFromEntityData an Entity multiple times.");
 #endif
             entityData.SetEntity(this);
-            ApplyEntityDataWithoutExtension();
+            ApplyEntityDataWithoutExtensions();
             EntityExtensionData[] allExtensionData = entityData.allExtensionData;
             int length = extensions.Length;
             for (int i = 0; i < length; i++)
@@ -74,10 +79,10 @@ namespace JanSharp
             entityData.OnAssociatedWithEntity();
         }
 
-        private void ApplyEntityDataWithoutExtension()
+        private void ApplyEntityDataWithoutExtensions()
         {
 #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityDataWithoutExtension");
+            Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityDataWithoutExtensions");
 #endif
             Transform t = this.transform;
             if (!entityData.NoPositionSync)
@@ -96,7 +101,7 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityData");
 #endif
-            ApplyEntityDataWithoutExtension();
+            ApplyEntityDataWithoutExtensions();
             foreach (EntityExtension extension in extensions)
                 extension.ApplyExtensionData();
         }

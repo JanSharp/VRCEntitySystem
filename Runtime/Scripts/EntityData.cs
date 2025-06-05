@@ -1,4 +1,5 @@
-﻿using UdonSharp;
+﻿using System;
+using UdonSharp;
 using UnityEngine;
 using VRC.SDKBase;
 using VRC.Udon;
@@ -136,7 +137,7 @@ namespace JanSharp
         public void InitFromDefault(Vector3 position, Quaternion rotation, Vector3 scale)
         {
 #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] EntityData  InitFromEntity");
+            Debug.Log($"[EntitySystemDebug] EntityData  InitFromDefault");
 #endif
             this.position = position;
             this.rotation = rotation;
@@ -185,6 +186,15 @@ namespace JanSharp
                 allExtensionData[i].InitFromPreInstantiated(extensions[i]);
         }
 
+        public void OnEntityDataCreated()
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntityData  OnEntityDataCreated");
+#endif
+            foreach (EntityExtensionData extensionData in allExtensionData)
+                extensionData.OnEntityExtensionDataCreated();
+        }
+
         public void OnAssociatedWithEntity()
         {
 #if EntitySystemDebug
@@ -201,6 +211,15 @@ namespace JanSharp
 #endif
             foreach (EntityExtensionData extensionData in allExtensionData)
                 extensionData.OnDisassociateFromExtension();
+        }
+
+        public void OnEntityDataDestroyed()
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntityData  OnEntityDataDestroyed");
+#endif
+            foreach (EntityExtensionData extensionData in allExtensionData)
+                extensionData.OnEntityExtensionDataDestroyed();
         }
 
         private void SerializeTransformValues()

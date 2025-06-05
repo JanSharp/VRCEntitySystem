@@ -14,3 +14,10 @@
 - [x] ~~import of pre instantiated entities deleted them and created new ones, pretty sure, which it's not supposed to~~ incorrect observation
 - [ ] consider raising the OnInstantiate event for pre instantiated entities on start rather than later. Now that every pre instantiated entity is going to get it raise eventually, it should be safe to do so sooner as well. Can also spread it out across frames if desired
 - [ ] probably collapse the Prototype class into the EntityPrototype class
+- [x] need game state safe events on EntityExtensionData for when they get created and deleted
+- [x] raise an event on default entities to "initialize" them, similar to Start, except that order of operations is known and this initialize function actually calls OnInitialize by default
+- [ ] late joiner does not destroy entities. It would seem that destroying entities doesn't actually destroy them, more like hide them
+- [ ] impl sleeping physics entities
+- [ ] impl physics entities interpolation when receiving new data that doesn't match what it simulated locally
+- [ ] consider using collision events to detect rigid bodies waking up
+- [ ] gradual update loop for sleeping physics entities to make sure they didn't move without it being synced at some point

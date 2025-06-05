@@ -8,7 +8,7 @@ namespace JanSharp
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     [SingletonScript("d627f7fa95da90f1f87280f822155c9d")] // Runtime/Prefabs/EntitySystem.prefab
-    public class EntitySystem : LockstepGameState
+    public partial class EntitySystem : LockstepGameState
     {
         public override string GameStateInternalName => "jansharp.entity-system";
         public override string GameStateDisplayName => "Entity System";
@@ -109,6 +109,7 @@ namespace JanSharp
             {
                 entityPrototypesById.Add(prototype.Id, prototype);
                 entityPrototypesByName.Add(prototype.PrototypeName, prototype);
+                prototype.DefaultEntityInst.OnInstantiate(lockstep, this, wannaBeClasses, prototype, isDefaultInstance: true);
             }
         }
 
@@ -136,7 +137,7 @@ namespace JanSharp
             EntityPrototype prototype = preInstantiatedEntityInstancePrototypes[index];
             EntityData entityData = preInstantiatedEntityData[index];
             entityData.WannaBeConstructor(prototype, InvalidUniqueId, id);
-            entity.OnInstantiate(lockstep, this, wannaBeClasses, prototype);
+            entity.OnInstantiate(lockstep, this, wannaBeClasses, prototype, isDefaultInstance: false);
             RegisterEntityDataAndId(entityData);
             entityData.InitFromPreInstantiated(entity);
             entity.AssociateWithEntityData(entityData);
@@ -195,8 +196,6 @@ namespace JanSharp
                 allEntityData[allEntityDataCount] = null; // Let GC clean up empty unity object reference objects.
             }
             entityDataById.Remove(entityData.id);
-
-            entityData.DecrementRefsCount();
         }
 
         private EntityData NewEntityData(EntityPrototype prototype, ulong uniqueId, uint id)
@@ -272,23 +271,69 @@ namespace JanSharp
             return false;
         }
 
-        public EntityData SendCreateEntityIA(uint prototypeId, Vector3 position, Quaternion rotation)
+        public EntityData SendCustomCreateEntityIA(uint iaId, uint prototypeId, Vector3 position, Quaternion rotation)
         {
 #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] EntitySystem  SendCreateEntityIA");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SendCustomCreateEntityIA");
 #endif
+            if (!lockstep.IsInitialized)
+                return null;
+
             lockstep.WriteSmallUInt(prototypeId);
             lockstep.WriteVector3(position);
             lockstep.WriteQuaternion(rotation);
-            ulong uniqueId = lockstep.SendInputAction(createEntityIAId);
-            if (uniqueId == InvalidUniqueId)
-                return null;
+            ulong uniqueId = lockstep.SendInputAction(iaId);
 
             // Latency hiding.
             return CreateDefaultEntity(
                 GetEntityPrototype(prototypeId), uniqueId, InvalidId,
                 position, rotation,
                 highPriority: true);
+        }
+
+        public EntityData ReadEntityInCustomCreateEntityIA(bool onEntityCreatedGetsRaisedLater = false)
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityInCustomCreateEntityIA");
+#endif
+            uint prototypeId = lockstep.ReadSmallUInt();
+            Vector3 position = lockstep.ReadVector3();
+            Quaternion rotation = lockstep.ReadQuaternion();
+            ulong uniqueId = lockstep.SendingUniqueId;
+            uint id = nextEntityId++;
+
+            EntityData entityData;
+            if (lockstep.SendingPlayerId == localPlayerId) // Latency hiding
+            {
+                entityData = (EntityData)entityDataByUniqueId[uniqueId].Reference;
+                SetEntityDataId(entityData, id);
+            }
+            else
+                entityData = CreateDefaultEntity(
+                    GetEntityPrototype(prototypeId), uniqueId, id,
+                    position, rotation,
+                    highPriority: false);
+
+            entityData.OnEntityDataCreated();
+            if (!onEntityCreatedGetsRaisedLater)
+                RaiseOnEntityCreated(entityData);
+            return entityData;
+        }
+
+        public void RaiseOnEntityCreatedInCustomCreateEntityIA(EntityData entityData)
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  RaiseOnEntityCreatedInCustomCreateEntityIA");
+#endif
+            RaiseOnEntityCreated(entityData);
+        }
+
+        public EntityData SendCreateEntityIA(uint prototypeId, Vector3 position, Quaternion rotation)
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SendCreateEntityIA");
+#endif
+            return SendCustomCreateEntityIA(createEntityIAId, prototypeId, position, rotation);
         }
 
         [HideInInspector][SerializeField] private uint createEntityIAId;
@@ -298,21 +343,7 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  OnCreateEntityIA");
 #endif
-            uint prototypeId = lockstep.ReadSmallUInt();
-            Vector3 position = lockstep.ReadVector3();
-            Quaternion rotation = lockstep.ReadQuaternion();
-            ulong uniqueId = lockstep.SendingUniqueId;
-            uint id = nextEntityId++;
-
-            if (lockstep.SendingPlayerId == localPlayerId) // Latency hiding
-                SetEntityDataId((EntityData)entityDataByUniqueId[uniqueId].Reference, id);
-            else
-            {
-                CreateDefaultEntity(
-                    GetEntityPrototype(prototypeId), uniqueId, id,
-                    position, rotation,
-                    highPriority: false);
-            }
+            ReadEntityInCustomCreateEntityIA();
         }
 
         private EntityData CreateDefaultEntity(
@@ -508,6 +539,9 @@ namespace JanSharp
             if (entityData.uniqueId != InvalidUniqueId)
                 entityDataByUniqueId.Remove(entityData.uniqueId);
             DeregisterEntityDataAndId(entityData);
+            entityData.OnEntityDataDestroyed();
+            RaiseOnEntityDestroyed(entityData);
+            entityData.DecrementRefsCount();
         }
 
         public void WriteEntityExtensionDataRef(EntityExtensionData extensionData)
@@ -892,7 +926,7 @@ namespace JanSharp
             Entity entity = preInstantiatedEntityInstances[index];
             if (entity != null)
             {
-                entity.OnInstantiate(lockstep, this, wannaBeClasses, prototype);
+                entity.OnInstantiate(lockstep, this, wannaBeClasses, prototype, isDefaultInstance: false);
                 entity.AssociateWithEntityData(entityData);
                 return entityData;
             }
@@ -980,7 +1014,8 @@ namespace JanSharp
             }
             while (deserializeEntitiesIndex < deserializeEntitiesCount)
             {
-                ReadEntityData();
+                EntityData entityData = ReadEntityData();
+                RaiseOnEntityDeserialized(entityData);
                 deserializeEntitiesIndex++;
                 if (DeserializationIsRunningLong())
                     return;

@@ -137,7 +137,7 @@ namespace JanSharp
             {
                 GameObject entityGo = Instantiate(prototype.EntityPrefab);
                 entity = entityGo.GetComponent<Entity>();
-                entity.OnInstantiate(lockstep, entitySystem, wannaBeClasses, prototype);
+                entity.OnInstantiate(lockstep, entitySystem, wannaBeClasses, prototype, isDefaultInstance: false);
             }
             Transform t = entity.transform;
             t.position = entityData.NoPositionSync ? (Vector3)request[1] : entityData.position;

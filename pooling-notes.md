@@ -19,12 +19,14 @@ Or, separate lifetime:
 EntityData lifetime
 - [x] WannaBeConstructor
 - [x] One of
-  - [x] InitFromDefault
+  - [x] InitFromDefault (not game state safe, however can init the EntityData structure)
   - [x] InitFromPreInstantiated
-  - [x] Deserialize
-- [x] Import (potentially multiple times)
+  - [x] Deserialize (game state safe)
+- [x] OnEntityDataCreated (game state safe)
+- [x] Import (potentially multiple times, game state safe)
 - [x] OnAssociatedWithEntity (raised after AssociateWithEntityData)
 - [x] OnDisassociateFromEntity (for latency entity destroying)
+- [x] OnEntityDataDestroyed (game state safe)
 - [x] WannaBeDestructor
 
 EntityExtension lifetime
@@ -41,10 +43,12 @@ Or, separate lifetime:
 EntityExtensionData lifetime
 - [x] WannaBeConstructor
 - [x] One of
-  - [x] InitFromDefault
+  - [x] InitFromDefault (not game state safe, however can init the EntityData structure)
   - [x] InitFromPreInstantiated
-  - [x] Deserialize
+  - [x] Deserialize (game state safe)
+- [x] OnExtensionDataCreated (game state safe)
 - [x] Import (potentially multiple times)
 - [x] OnAssociatedWithExtension (raised after AssociateWithExtensionData)
 - [x] OnDisassociateFromExtension (for latency entity destroying)
+- [x] OnEntityExtensionDataDestroyed (game state safe)
 - [x] WannaBeDestructor

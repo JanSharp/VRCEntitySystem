@@ -37,8 +37,10 @@ namespace JanSharp
         /// <param name="entityExtension"></param>
         public abstract void InitFromDefault(EntityExtension entityExtension);
         public abstract void InitFromPreInstantiated(EntityExtension entityExtension);
+        public virtual void OnEntityExtensionDataCreated() { }
         public abstract void OnAssociatedWithExtension();
         public virtual void OnDisassociateFromExtension() { }
+        public virtual void OnEntityExtensionDataDestroyed() { }
         public virtual void ImportedWithoutDeserialization() { } // TODO: maybe add On prefix, also add to lifecycle
 
         public ulong SendExtensionDataInputAction(string methodName) => entitySystem.SendExtensionDataInputAction(this, methodName);

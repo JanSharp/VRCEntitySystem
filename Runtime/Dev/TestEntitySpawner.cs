@@ -8,16 +8,16 @@ namespace JanSharp
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class TestEntitySpawner : UdonSharpBehaviour
     {
-        [HideInInspector] [SerializeField] [SingletonReference] private EntitySystem entitySystem;
+        [HideInInspector][SerializeField][SingletonReference] private EntitySystem entitySystem;
 
         public string entityPrototypeName;
         public Transform spawnLocation;
 
         public override void Interact()
         {
-            #if EntitySystemDebug
+#if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] TestEntitySpawner  Interact");
-            #endif
+#endif
             if (!entitySystem.TryGetEntityPrototype(entityPrototypeName, out EntityPrototype prototype))
                 return;
             for (int i = 0; i < 16; i++)
