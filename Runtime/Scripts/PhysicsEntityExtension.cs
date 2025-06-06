@@ -15,6 +15,11 @@ namespace JanSharp
     {
         [System.NonSerialized] public PhysicsEntityExtensionData data;
 
+        public const float PhysicsSyncInterval = 1f;
+        public const float InterpolationDuration = 0.2f;
+        public const float PositionalOffsetTolerance = 0.02f;
+        public const float RotationalOffsetTolerance = 0.98f;
+
         [System.NonSerialized] public Rigidbody rb;
 
         private VRCPlayerApi localPlayer;
@@ -41,7 +46,7 @@ namespace JanSharp
             data.ext = this;
             this.transform.SetPositionAndRotation(data.position, data.rotation);
             ApplyExtensionData();
-            UpdateUpdateLoopRunningState();
+            SendCustomEventDelayedSeconds(nameof(UpdateUpdateLoopRunningState), PhysicsSyncInterval);
         }
 
         public override void ApplyExtensionData()
@@ -59,8 +64,8 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  ApplyDataToRigidbody - data.velocity: {data.velocity}");
 #endif
             // TODO: Handle already interpolating.
-            if (Vector3.Distance(rb.position, data.position) < 0.02f
-                || Vector3.Dot(rb.rotation * Vector3.forward, data.rotation * Vector3.forward) > 0.98f)
+            if (Vector3.Distance(rb.position, data.position) < PositionalOffsetTolerance
+                || Vector3.Dot(rb.rotation * Vector3.forward, data.rotation * Vector3.forward) > RotationalOffsetTolerance)
             {
                 // It is close enough, do not change the position and rotation.
                 // rb.Move(data.position, data.rotation);
@@ -69,8 +74,8 @@ namespace JanSharp
                 return;
             }
             InterpolationManager interpolation = data.interpolation;
-            interpolation.InterpolateWorldPosition(this.transform, data.position, 0.1f);
-            interpolation.InterpolateWorldRotation(this.transform, data.rotation, 0.1f, this, nameof(OnInterpolationFinished), null);
+            interpolation.InterpolateWorldPosition(this.transform, data.position, InterpolationDuration);
+            interpolation.InterpolateWorldRotation(this.transform, data.rotation, InterpolationDuration, this, nameof(OnInterpolationFinished), null);
             rb.isKinematic = true;
         }
 
@@ -125,7 +130,7 @@ namespace JanSharp
                 return;
             }
             data.SendRigidbodyUpdateIA();
-            SendCustomEventDelayedSeconds(nameof(UpdateLoop), 1f);
+            SendCustomEventDelayedSeconds(nameof(UpdateLoop), PhysicsSyncInterval);
         }
     }
 }
