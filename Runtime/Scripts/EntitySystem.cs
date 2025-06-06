@@ -188,6 +188,7 @@ namespace JanSharp
 #endif
             allEntityDataCount--;
             int instanceIndex = entityData.instanceIndex;
+            entityData.instanceIndex = -1;
             if (instanceIndex != allEntityDataCount)
             {
                 EntityData entityDataTakingThePlace = allEntityData[allEntityDataCount];
@@ -533,7 +534,7 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntitySystem  DestroyEntity");
 #endif
-            if (entityData.entityIsDestroyed)
+            if (entityData.instanceIndex == -1)
                 return;
             pooling.ReturnEntity(entityData);
             if (entityData.uniqueId != InvalidUniqueId)

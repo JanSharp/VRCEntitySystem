@@ -16,7 +16,7 @@
 - [ ] probably collapse the Prototype class into the EntityPrototype class
 - [x] need game state safe events on EntityExtensionData for when they get created and deleted
 - [x] raise an event on default entities to "initialize" them, similar to Start, except that order of operations is known and this initialize function actually calls OnInitialize by default
-- [ ] late joiner does not destroy entities. It would seem that destroying entities doesn't actually destroy them, more like hide them
+- [x] late joiner does not destroy entities. It would seem that destroying entities doesn't actually destroy them, more like hide them
 - [ ] impl sleeping physics entities
 - [ ] impl physics entities interpolation when receiving new data that doesn't match what it simulated locally
 - [ ] consider using collision events to detect rigid bodies waking up
