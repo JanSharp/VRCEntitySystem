@@ -19,6 +19,7 @@
 - [x] late joiner does not destroy entities. It would seem that destroying entities doesn't actually destroy them, more like hide them
 - [ ] impl sleeping physics entities
 - [x] impl physics entities interpolation when receiving new data that doesn't match what it simulated locally
-- [ ] consider using collision events to detect rigid bodies waking up
-- [ ] gradual update loop for sleeping physics entities to make sure they didn't move without it being synced at some point
+- [x] sleeping rigidbodies get set to be kinematic, this deprecates these 2 TODOs, at least for the time being
+  - [x] ~~consider using collision events to detect rigid bodies waking up~~
+  - [x] ~~gradual update loop for sleeping physics entities to make sure they didn't move without it being synced at some point~~
 - [ ] use UpdateManager for EntityPooling

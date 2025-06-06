@@ -36,6 +36,8 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] TestPhysicsEntitySpawner  SpawnAndThrowEntity");
 #endif
+            if (!lockstep.IsInitialized)
+                return;
             if (!entitySystem.TryGetEntityPrototype(entityPrototypeName, out EntityPrototype prototype))
                 return;
             var head = localPlayer.GetTrackingData(VRCPlayerApi.TrackingDataType.Head);
@@ -50,6 +52,7 @@ namespace JanSharp
             PhysicsEntityExtensionData extensionData = GetExtensionData(entityData);
             extensionData.velocity = velocity;
             extensionData.responsiblePlayerId = localPlayerId;
+            EnsureIsAwake(extensionData);
         }
 
         [HideInInspector][SerializeField] private uint onCreatePhysicsEntityIAId;
@@ -62,11 +65,27 @@ namespace JanSharp
             Vector3 velocity = lockstep.ReadVector3();
             EntityData entityData = entitySystem.ReadEntityInCustomCreateEntityIA();
 
-            PhysicsEntityExtensionData extensionData = GetExtensionData(entityData);
-            extensionData.velocity = velocity;
-            extensionData.responsiblePlayerId = lockstep.SendingPlayerId;
+            if (lockstep.SendingPlayerId != localPlayerId) // The sending local player already performed this initialization.
+            {
+                PhysicsEntityExtensionData extensionData = GetExtensionData(entityData);
+                extensionData.velocity = velocity;
+                extensionData.responsiblePlayerId = lockstep.SendingPlayerId;
+                EnsureIsAwake(extensionData);
+            }
 
             entitySystem.RaiseOnEntityCreatedInCustomCreateEntityIA(entityData);
+        }
+
+        private void EnsureIsAwake(PhysicsEntityExtensionData extensionData)
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] TestPhysicsEntitySpawner  EnsureIsAwake");
+#endif
+            if (!extensionData.isSleeping)
+                return;
+            extensionData.position = extensionData.entityData.position;
+            extensionData.rotation = extensionData.entityData.rotation;
+            extensionData.WakeUp();
         }
 
         private PhysicsEntityExtensionData GetExtensionData(EntityData entityData)
