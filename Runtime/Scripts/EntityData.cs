@@ -1,5 +1,4 @@
-﻿using System;
-using UdonSharp;
+﻿using UdonSharp;
 using UnityEngine;
 using VRC.SDKBase;
 using VRC.Udon;
@@ -11,6 +10,7 @@ namespace JanSharp
     {
         [HideInInspector][SingletonReference] public LockstepAPI lockstep;
         [HideInInspector][SingletonReference] public EntitySystem entitySystem;
+        [HideInInspector][SingletonReference] public InterpolationManager interpolation;
         [System.NonSerialized] public int instanceIndex;
         [System.NonSerialized] public EntityPrototype entityPrototype;
         /// <summary>
@@ -377,20 +377,38 @@ namespace JanSharp
                 return;
 
             Transform entityTransform = entity.transform;
+
             if (positionChange && !noPositionSync)
             {
-                // TODO: Interpolate and respect discontinuity.
-                entityTransform.position = position;
+                if (discontinuousPositionChange)
+                    interpolation.InterpolateWorldPosition(entityTransform, position, Entity.TransformChangeInterpolationDuration);
+                else
+                {
+                    interpolation.CancelWorldPositionInterpolation(entityTransform);
+                    entityTransform.position = position;
+                }
             }
+
             if (rotationChange && !noRotationSync)
             {
-                // TODO: Interpolate and respect discontinuity.
-                entityTransform.rotation = rotation;
+                if (discontinuousRotationChange)
+                    interpolation.InterpolateWorldRotation(entityTransform, rotation, Entity.TransformChangeInterpolationDuration);
+                else
+                {
+                    interpolation.CancelRotationInterpolation(entityTransform);
+                    entityTransform.rotation = rotation;
+                }
             }
+
             if (scaleChange && !noScaleSync)
             {
-                // TODO: Interpolate and respect discontinuity.
-                entityTransform.localScale = scale;
+                if (!discontinuousScaleChange)
+                    interpolation.InterpolateLocalScale(entityTransform, scale, Entity.TransformChangeInterpolationDuration);
+                else
+                {
+                    interpolation.CancelLocalScaleInterpolation(entityTransform);
+                    entityTransform.localScale = scale;
+                }
             }
         }
     }

@@ -21,3 +21,4 @@
 - [ ] impl physics entities interpolation when receiving new data that doesn't match what it simulated locally
 - [ ] consider using collision events to detect rigid bodies waking up
 - [ ] gradual update loop for sleeping physics entities to make sure they didn't move without it being synced at some point
+- [ ] use UpdateManager for EntityPooling

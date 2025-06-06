@@ -26,7 +26,8 @@ namespace JanSharp
         private bool flaggedForScaleChange = false;
         private bool flaggedForDiscontinuousScaleChange = false;
         private float timeAtLastTransformChangeIA = 0f;
-        private const float TimeBetweenTransformChangeIAs = 0.2f;
+        public const float TimeBetweenTransformChangeIAs = 0.2f;
+        public const float TransformChangeInterpolationDuration = TimeBetweenTransformChangeIAs + 0.1f;
 
         public void OnInstantiate(
             LockstepAPI lockstep,
@@ -85,12 +86,22 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityDataWithoutExtensions");
 #endif
             Transform t = this.transform;
+            var interpolation = entityData.interpolation;
             if (!entityData.NoPositionSync)
+            {
+                interpolation.CancelPositionInterpolation(t);
                 t.position = entityData.position;
+            }
             if (!entityData.NoRotationSync)
+            {
+                interpolation.CancelRotationInterpolation(t);
                 t.rotation = entityData.rotation;
+            }
             if (!entityData.NoScaleSync)
+            {
+                interpolation.CancelLocalScaleInterpolation(t);
                 t.localScale = entityData.scale;
+            }
             // TODO: what to do about hidden?
             // TODO: handle parent entity
             // TODO: handle child entities
@@ -239,7 +250,7 @@ namespace JanSharp
             }
 
             timeAtLastTransformChangeIA = Time.time;
-            ulong uniqueId = entitySystem.SendTransformChangeIA();
+            entitySystem.SendTransformChangeIA();
         }
     }
 }
