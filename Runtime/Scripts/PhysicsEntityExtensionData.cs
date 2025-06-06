@@ -76,7 +76,7 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  SetResponsiblePlayerId");
 #endif
-            manager.DeregisterPhysicsExtensionData(this); // TODO: Also deregister when it gets destroyed.
+            manager.DeregisterPhysicsExtensionData(this);
             responsiblePlayerId = playerId;
             if (ext != null)
                 ext.UpdateUpdateLoopRunningState();
