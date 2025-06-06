@@ -13,6 +13,7 @@ namespace JanSharp
         public override uint LowestSupportedDataVersion => 0u;
 
         [HideInInspector][SingletonReference] public PhysicsEntityManager manager;
+        [HideInInspector][SingletonReference] public InterpolationManager interpolation;
 
         [System.NonSerialized] public PhysicsEntityExtension ext;
 

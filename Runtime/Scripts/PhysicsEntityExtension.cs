@@ -49,6 +49,7 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  ApplyExtensionData");
 #endif
+            rb.Move(data.position, data.rotation);
             ApplyDataToRigidbody();
         }
 
@@ -57,7 +58,28 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  ApplyDataToRigidbody - data.velocity: {data.velocity}");
 #endif
-            rb.Move(data.position, data.rotation);
+            // TODO: Handle already interpolating.
+            if (Vector3.Distance(rb.position, data.position) < 0.02f
+                || Vector3.Dot(rb.rotation * Vector3.forward, data.rotation * Vector3.forward) > 0.98f)
+            {
+                // It is close enough, do not change the position and rotation.
+                // rb.Move(data.position, data.rotation);
+                rb.velocity = data.velocity;
+                rb.angularVelocity = data.angularVelocity;
+                return;
+            }
+            InterpolationManager interpolation = data.interpolation;
+            interpolation.InterpolateWorldPosition(this.transform, data.position, 0.1f);
+            interpolation.InterpolateWorldRotation(this.transform, data.rotation, 0.1f, this, nameof(OnInterpolationFinished), null);
+            rb.isKinematic = true;
+        }
+
+        public void OnInterpolationFinished()
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  OnInterpolationFinished");
+#endif
+            rb.isKinematic = false;
             rb.velocity = data.velocity;
             rb.angularVelocity = data.angularVelocity;
         }
