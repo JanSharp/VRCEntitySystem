@@ -91,16 +91,11 @@ namespace JanSharp
 #endif
             if (data.isSleeping)
             {
-                if (!isSleeping)
-                {
-                    isSleeping = true;
-                    rb.isKinematic = true;
-                    SendCustomEventDelayedSeconds(nameof(UpdateUpdateLoopRunningState), PhysicsSyncInterval);
-                }
-                Vector3 position = data.entityData.position;
-                Quaternion rotation = data.entityData.rotation;
-                if (rb.position != position || rb.rotation != rotation)
-                    InterpolateToDataPositionAndRotation(position, rotation);
+                if (isSleeping)
+                    return;
+                isSleeping = true;
+                rb.isKinematic = true;
+                SendCustomEventDelayedSeconds(nameof(UpdateUpdateLoopRunningState), PhysicsSyncInterval);
                 return;
             }
 

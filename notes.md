@@ -23,3 +23,4 @@
   - [x] ~~consider using collision events to detect rigid bodies waking up~~
   - [x] ~~gradual update loop for sleeping physics entities to make sure they didn't move without it being synced at some point~~
 - [ ] use UpdateManager for EntityPooling
+- [ ] make isKinematic its own thing for physics entities, rather than repurposing it for isSleeping. Entities which have a default of isKinematic do not mean that they are sleeping by default, it means that they are not affected by physics at all by default

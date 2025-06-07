@@ -128,8 +128,26 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  WakeUp");
 #endif
             isSleeping = false;
-            entityData.NoPositionSync = true;
-            entityData.NoRotationSync = true;
+            entityData.TakeControlOfPositionSync(this, nameof(OnControlOfPositionSyncLost));
+            entityData.TakeControlOfRotationSync(this, nameof(OnControlOfRotationSyncLost));
+        }
+
+        public void OnControlOfPositionSyncLost()
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnControlOfPositionSyncLost");
+#endif
+            entityData.GiveBackControlOfRotationSync(rotation, PhysicsEntityExtension.InterpolationDuration);
+            GoToSleep();
+        }
+
+        public void OnControlOfRotationSyncLost()
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnControlOfRotationSyncLost");
+#endif
+            entityData.GiveBackControlOfPositionSync(position, PhysicsEntityExtension.InterpolationDuration);
+            GoToSleep();
         }
 
         public void SendRigidbodySleepIA()
@@ -152,14 +170,18 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnRigidbodySleepIA");
 #endif
-            entityData.position = lockstep.ReadVector3();
-            entityData.rotation = lockstep.ReadQuaternion();
-            entityData.NoPositionSync = false;
-            entityData.NoRotationSync = false;
+            entityData.GiveBackControlOfPositionSync(lockstep.ReadVector3(), PhysicsEntityExtension.InterpolationDuration);
+            entityData.GiveBackControlOfRotationSync(lockstep.ReadQuaternion(), PhysicsEntityExtension.InterpolationDuration);
+            GoToSleep();
+        }
 
+        private void GoToSleep()
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  GoToSleep");
+#endif
             isSleeping = true;
             ResetGameStateDueDoSleep();
-
             if (ext != null)
                 ext.ApplyDataToRigidbody();
         }
