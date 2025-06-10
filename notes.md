@@ -17,7 +17,7 @@
 - [x] need game state safe events on EntityExtensionData for when they get created and deleted
 - [x] raise an event on default entities to "initialize" them, similar to Start, except that order of operations is known and this initialize function actually calls OnInitialize by default
 - [x] late joiner does not destroy entities. It would seem that destroying entities doesn't actually destroy them, more like hide them
-- [ ] impl sleeping physics entities
+- [x] impl sleeping physics entities
 - [x] impl physics entities interpolation when receiving new data that doesn't match what it simulated locally
 - [x] sleeping rigidbodies get set to be kinematic, this deprecates these 2 TODOs, at least for the time being
   - [x] ~~consider using collision events to detect rigid bodies waking up~~
