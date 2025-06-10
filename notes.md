@@ -24,3 +24,4 @@
   - [x] ~~gradual update loop for sleeping physics entities to make sure they didn't move without it being synced at some point~~
 - [ ] use UpdateManager for EntityPooling
 - [ ] make isKinematic its own thing for physics entities, rather than repurposing it for isSleeping. Entities which have a default of isKinematic do not mean that they are sleeping by default, it means that they are not affected by physics at all by default
+- [ ] make the "NoPosition/Rotation/ScaleSync" api better. Just like make it better. Just do that. Not like you've spent 3 days thinking about it already and found nothing satisfying
