@@ -530,7 +530,7 @@ namespace JanSharp
         public void OnTransformChangeIA()
         {
 #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] Entity  OnTransformChangeIA");
+            Debug.Log($"[EntitySystemDebug] EntityData  OnTransformChangeIA");
 #endif
             lockstep.ReadFlags(
                 out bool positionChange, out bool discontinuousPositionChange,
@@ -560,7 +560,7 @@ namespace JanSharp
 
             if (positionChange && !noPositionSync && !entity.noPositionSync)
             {
-                if (discontinuousPositionChange)
+                if (!discontinuousPositionChange)
                     interpolation.InterpolateWorldPosition(entityTransform, position, Entity.TransformChangeInterpolationDuration);
                 else
                 {
@@ -571,7 +571,7 @@ namespace JanSharp
 
             if (rotationChange && !noRotationSync && !entity.noRotationSync)
             {
-                if (discontinuousRotationChange)
+                if (!discontinuousRotationChange)
                     interpolation.InterpolateWorldRotation(entityTransform, rotation, Entity.TransformChangeInterpolationDuration);
                 else
                 {
