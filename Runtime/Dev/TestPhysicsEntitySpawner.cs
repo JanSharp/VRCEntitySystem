@@ -63,7 +63,7 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] TestPhysicsEntitySpawner  OnCreatePhysicsEntityIA");
 #endif
             Vector3 velocity = lockstep.ReadVector3();
-            EntityData entityData = entitySystem.ReadEntityInCustomCreateEntityIA();
+            EntityData entityData = entitySystem.ReadEntityInCustomCreateEntityIA(onEntityCreatedGetsRaisedLater: true);
 
             if (lockstep.SendingPlayerId != localPlayerId) // The sending local player already performed this initialization.
             {
