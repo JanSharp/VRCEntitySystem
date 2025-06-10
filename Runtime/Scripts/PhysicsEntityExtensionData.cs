@@ -128,26 +128,50 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  WakeUp");
 #endif
             isSleeping = false;
-            entityData.TakeControlOfPositionSync(this, nameof(OnControlOfPositionSyncLost));
-            entityData.TakeControlOfRotationSync(this, nameof(OnControlOfRotationSyncLost));
+            entityData.TakeControlOfPositionSync(this, updateLatencyState: true);
+            entityData.TakeControlOfRotationSync(this, updateLatencyState: true);
         }
 
-        public void OnControlOfPositionSyncLost()
+        public void OnPositionSyncControlLost()
         {
 #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnControlOfPositionSyncLost");
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnPositionSyncControlLost");
 #endif
-            entityData.GiveBackControlOfRotationSync(rotation, PhysicsEntityExtension.InterpolationDuration);
+            entityData.GiveBackControlOfRotationSync(
+                this,
+                rotation,
+                PhysicsEntityExtension.InterpolationDuration,
+                updateLatencyState: false); // Gets updated in GoToSleep.
             GoToSleep();
         }
 
-        public void OnControlOfRotationSyncLost()
+        public void OnRotationSyncControlLost()
         {
 #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnControlOfRotationSyncLost");
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnRotationSyncControlLost");
 #endif
-            entityData.GiveBackControlOfPositionSync(position, PhysicsEntityExtension.InterpolationDuration);
+            entityData.GiveBackControlOfPositionSync(
+                this,
+                position,
+                PhysicsEntityExtension.InterpolationDuration,
+                updateLatencyState: false); // Gets updated in GoToSleep.
             GoToSleep();
+        }
+
+        public void OnLatencyPositionSyncControlLost()
+        {
+#if ItemSystemDebug
+            Debug.Log($"[ItemSystemDebug] ItemExtensionData  OnLatencyPositionSyncControlLost");
+#endif
+            ext.GoToSleep();
+        }
+
+        public void OnLatencyRotationSyncControlLost()
+        {
+#if ItemSystemDebug
+            Debug.Log($"[ItemSystemDebug] ItemExtensionData  OnLatencyRotationSyncControlLost");
+#endif
+            ext.GoToSleep();
         }
 
         public void SendRigidbodySleepIA()
@@ -160,8 +184,7 @@ namespace JanSharp
             lockstep.WriteQuaternion(rb.rotation);
             SendExtensionDataInputAction(nameof(OnRigidbodySleepIA));
             // Latency hiding.
-            ext.isSleeping = true;
-            rb.isKinematic = true;
+            ext.GoToSleep();
         }
 
         [EntityExtensionDataInputAction]
@@ -170,8 +193,16 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnRigidbodySleepIA");
 #endif
-            entityData.GiveBackControlOfPositionSync(lockstep.ReadVector3(), PhysicsEntityExtension.InterpolationDuration);
-            entityData.GiveBackControlOfRotationSync(lockstep.ReadQuaternion(), PhysicsEntityExtension.InterpolationDuration);
+            entityData.GiveBackControlOfPositionSync(
+                this,
+                lockstep.ReadVector3(),
+                PhysicsEntityExtension.InterpolationDuration,
+                updateLatencyState: false); // Gets updated in GoToSleep.
+            entityData.GiveBackControlOfRotationSync(
+                this,
+                lockstep.ReadQuaternion(),
+                PhysicsEntityExtension.InterpolationDuration,
+                updateLatencyState: false); // Gets updated in GoToSleep.
             GoToSleep();
         }
 

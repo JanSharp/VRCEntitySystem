@@ -84,6 +84,30 @@ namespace JanSharp
             ApplyDataToRigidbody();
         }
 
+        public void GoToSleep()
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  GoToSleep");
+#endif
+            isSleeping = true;
+            rb.isKinematic = true;
+            if (entity.positionSyncController == data)
+                entity.GiveBackControlOfPositionSync(data, entity.transform.position, InterpolationDuration);
+            if (entity.rotationSyncController == data)
+                entity.GiveBackControlOfRotationSync(data, entity.transform.rotation, InterpolationDuration);
+        }
+
+        public void WakeUp()
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  WakeUp");
+#endif
+            isSleeping = false;
+            rb.isKinematic = false;
+            entity.TakeControlOfPositionSync(data);
+            entity.TakeControlOfRotationSync(data);
+        }
+
         public void ApplyDataToRigidbody()
         {
 #if EntitySystemDebug
@@ -93,16 +117,14 @@ namespace JanSharp
             {
                 if (isSleeping)
                     return;
-                isSleeping = true;
-                rb.isKinematic = true;
+                GoToSleep();
                 SendCustomEventDelayedSeconds(nameof(UpdateUpdateLoopRunningState), PhysicsSyncInterval);
                 return;
             }
 
             if (isSleeping)
             {
-                isSleeping = false;
-                rb.isKinematic = false;
+                WakeUp();
                 SendCustomEventDelayedSeconds(nameof(UpdateUpdateLoopRunningState), PhysicsSyncInterval);
             }
 

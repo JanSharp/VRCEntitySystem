@@ -16,6 +16,13 @@ namespace JanSharp
         [System.NonSerialized] public EntityData entityData;
         [System.NonSerialized] public int instanceIndex;
 
+        [System.NonSerialized] public bool noPositionSync;
+        [System.NonSerialized] public bool noRotationSync;
+        [System.NonSerialized] public bool noScaleSync;
+        [System.NonSerialized] public UdonSharpBehaviour positionSyncController;
+        [System.NonSerialized] public UdonSharpBehaviour rotationSyncController;
+        [System.NonSerialized] public UdonSharpBehaviour scaleSyncController;
+
         public EntityExtension[] extensions;
 
         private bool transformChangeIAIsQueued = false;
@@ -87,17 +94,17 @@ namespace JanSharp
 #endif
             Transform t = this.transform;
             var interpolation = entityData.interpolation;
-            if (!entityData.NoPositionSync)
+            if (!noPositionSync && !entityData.NoPositionSync)
             {
                 interpolation.CancelPositionInterpolation(t);
                 t.position = entityData.position;
             }
-            if (!entityData.NoRotationSync)
+            if (!noRotationSync && !entityData.NoRotationSync)
             {
                 interpolation.CancelRotationInterpolation(t);
                 t.rotation = entityData.rotation;
             }
-            if (!entityData.NoScaleSync)
+            if (!noScaleSync && !entityData.NoScaleSync)
             {
                 interpolation.CancelLocalScaleInterpolation(t);
                 t.localScale = entityData.scale;
@@ -140,6 +147,162 @@ namespace JanSharp
 #endif
         }
 
+        public void TakeControlOfPositionSync(UdonSharpBehaviour controller)
+        {
+#if EntitySystemDebug
+            Debug.Log("[EntitySystemDebug] EntityData  TakeControlOfPositionSync");
+#endif
+            if (!noPositionSync)
+            {
+                noPositionSync = true;
+                positionSyncController = controller;
+                return;
+            }
+            if (controller == positionSyncController)
+                return;
+            UdonSharpBehaviour prevController = positionSyncController;
+            positionSyncController = controller;
+            positionSyncController.SetProgramVariable(EntityData.ControlledEntityDataField, entityData);
+            positionSyncController.SendCustomEvent(EntityData.OnLatencyPositionSyncControlLostEvent);
+        }
+
+        /// <param name="releasingController">Only give back control if this matches the current controller.
+        /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
+        public void GiveBackControlOfPositionSync(UdonSharpBehaviour releasingController, Vector3 position)
+        {
+#if EntitySystemDebug
+            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfPositionSync");
+#endif
+            GiveBackControlOfPositionSync(releasingController, position, TransformChangeInterpolationDuration);
+        }
+
+        /// <param name="releasingController">Only give back control if this matches the current controller.
+        /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
+        public void GiveBackControlOfPositionSync(UdonSharpBehaviour releasingController, Vector3 position, float interpolationDuration)
+        {
+#if EntitySystemDebug
+            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfPositionSync");
+#endif
+            if (!noPositionSync && (releasingController != null || positionSyncController != releasingController))
+                return;
+            noPositionSync = false;
+            UdonSharpBehaviour prevController = positionSyncController;
+            positionSyncController = null;
+            if (releasingController == null)
+            {
+                prevController.SetProgramVariable(EntityData.ControlledEntityDataField, entityData);
+                prevController.SendCustomEvent(EntityData.OnLatencyPositionSyncControlLostEvent);
+            }
+            if (transform.position == position)
+                entityData.interpolation.CancelPositionInterpolation(this.transform);
+            else
+                entityData.interpolation.InterpolateWorldPosition(this.transform, position, interpolationDuration);
+        }
+
+        public void TakeControlOfRotationSync(UdonSharpBehaviour controller)
+        {
+#if EntitySystemDebug
+            Debug.Log("[EntitySystemDebug] EntityData  TakeControlOfRotationSync");
+#endif
+            if (!noRotationSync)
+            {
+                noRotationSync = true;
+                rotationSyncController = controller;
+                return;
+            }
+            if (controller == rotationSyncController)
+                return;
+            UdonSharpBehaviour prevController = rotationSyncController;
+            rotationSyncController = controller;
+            rotationSyncController.SetProgramVariable(EntityData.ControlledEntityDataField, entityData);
+            rotationSyncController.SendCustomEvent(EntityData.OnLatencyRotationSyncControlLostEvent);
+        }
+
+        /// <param name="releasingController">Only give back control if this matches the current controller.
+        /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
+        public void GiveBackControlOfRotationSync(UdonSharpBehaviour releasingController, Quaternion rotation)
+        {
+#if EntitySystemDebug
+            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfRotationSync");
+#endif
+            GiveBackControlOfRotationSync(releasingController, rotation, TransformChangeInterpolationDuration);
+        }
+
+        /// <param name="releasingController">Only give back control if this matches the current controller.
+        /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
+        public void GiveBackControlOfRotationSync(UdonSharpBehaviour releasingController, Quaternion rotation, float interpolationDuration)
+        {
+#if EntitySystemDebug
+            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfRotationSync");
+#endif
+            if (!noRotationSync || (releasingController != null && rotationSyncController != releasingController))
+                return;
+            noRotationSync = false;
+            UdonSharpBehaviour prevController = rotationSyncController;
+            rotationSyncController = null;
+            if (releasingController == null)
+            {
+                prevController.SetProgramVariable(EntityData.ControlledEntityDataField, entityData);
+                prevController.SendCustomEvent(EntityData.OnLatencyRotationSyncControlLostEvent);
+            }
+            if (transform.rotation == rotation)
+                entityData.interpolation.CancelRotationInterpolation(this.transform);
+            else
+                entityData.interpolation.InterpolateWorldRotation(this.transform, rotation, interpolationDuration);
+        }
+
+        public void TakeControlOfScaleSync(UdonSharpBehaviour controller)
+        {
+#if EntitySystemDebug
+            Debug.Log("[EntitySystemDebug] EntityData  TakeControlOfScaleSync");
+#endif
+            if (!noScaleSync)
+            {
+                noScaleSync = true;
+                scaleSyncController = controller;
+                return;
+            }
+            if (controller == scaleSyncController)
+                return;
+            UdonSharpBehaviour prevController = scaleSyncController;
+            scaleSyncController = controller;
+            scaleSyncController.SetProgramVariable(EntityData.ControlledEntityDataField, entityData);
+            scaleSyncController.SendCustomEvent(EntityData.OnLatencyScaleSyncControlLostEvent);
+        }
+
+        /// <param name="releasingController">Only give back control if this matches the current controller.
+        /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
+        public void GiveBackControlOfScaleSync(UdonSharpBehaviour releasingController, Vector3 scale)
+        {
+#if EntitySystemDebug
+            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfScaleSync");
+#endif
+            GiveBackControlOfScaleSync(releasingController, scale, TransformChangeInterpolationDuration);
+        }
+
+        /// <param name="releasingController">Only give back control if this matches the current controller.
+        /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
+        public void GiveBackControlOfScaleSync(UdonSharpBehaviour releasingController, Vector3 scale, float interpolationDuration)
+        {
+#if EntitySystemDebug
+            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfScaleSync");
+#endif
+            if (!noScaleSync || (releasingController != null && scaleSyncController != releasingController))
+                return;
+            noScaleSync = false;
+            UdonSharpBehaviour prevController = scaleSyncController;
+            scaleSyncController = null;
+            if (releasingController == null)
+            {
+                prevController.SetProgramVariable(EntityData.ControlledEntityDataField, entityData);
+                prevController.SendCustomEvent(EntityData.OnLatencyScaleSyncControlLostEvent);
+            }
+            if (transform.localScale == scale)
+                entityData.interpolation.CancelLocalScaleInterpolation(this.transform);
+            else
+                entityData.interpolation.InterpolateLocalScale(this.transform, scale, interpolationDuration);
+        }
+
         private void EnqueueTransformChangeIA()
         {
 #if EntitySystemDebug
@@ -160,7 +323,7 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] Entity  FlagForPositionChange");
 #endif
-            if (entityData.NoPositionSync)
+            if (noPositionSync)
                 return;
             if (flagForDiscontinuity)
                 flaggedForDiscontinuousPositionChange = true;
@@ -173,7 +336,7 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] Entity  FlagForRotationChange");
 #endif
-            if (entityData.NoRotationSync)
+            if (noRotationSync)
                 return;
             if (flagForDiscontinuity)
                 flaggedForDiscontinuousRotationChange = true;
@@ -195,7 +358,7 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] Entity  FlagForScaleChange");
 #endif
-            if (entityData.NoScaleSync)
+            if (noScaleSync)
                 return;
             if (flagForDiscontinuity)
                 flaggedForDiscontinuousScaleChange = true;
