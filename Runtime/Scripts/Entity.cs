@@ -81,7 +81,7 @@ namespace JanSharp
             EntityExtensionData[] allExtensionData = entityData.allExtensionData;
             int length = extensions.Length;
             for (int i = 0; i < length; i++)
-                allExtensionData[i].SetExtension(extensions[i]);
+                allExtensionData[i].SetEntityAndExtension(this, extensions[i]);
             for (int i = 0; i < length; i++)
                 extensions[i].AssociateWithExtensionData();
             entityData.OnAssociatedWithEntity();
@@ -135,6 +135,7 @@ namespace JanSharp
             {
                 EntityExtension extension = extensions[i];
                 extension.DisassociateFromExtensionDataAndReset(defaultExtensions[i]);
+                extension.entityData = null;
                 extension.extensionData = null;
             }
             entityData = null;

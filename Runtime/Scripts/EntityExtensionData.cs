@@ -11,6 +11,7 @@ namespace JanSharp
         [HideInInspector][SingletonReference] public EntitySystem entitySystem;
         [System.NonSerialized] public int extensionIndex;
         [System.NonSerialized] public EntityData entityData;
+        [System.NonSerialized] public Entity entity;
         [System.NonSerialized] public EntityExtension extension;
 
         public EntityExtensionData WannaBeConstructor(int extensionIndex, EntityData entityData)
@@ -18,16 +19,19 @@ namespace JanSharp
             this.extensionIndex = extensionIndex;
             this.entityData = entityData;
             entityData.allExtensionData[extensionIndex] = this;
+            // entity = null; // Default.
             // extension = null; // Default.
             return this;
         }
 
-        public void SetExtension(EntityExtension extension)
+        public void SetEntityAndExtension(Entity entity, EntityExtension extension)
         {
 #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] EntityExtensionData  SetExtension");
+            Debug.Log($"[EntitySystemDebug] EntityExtensionData  SetEntityAndExtension");
 #endif
+            this.entity = entity;
             this.extension = extension;
+            extension.entityData = entityData;
             extension.extensionData = this;
         }
 
