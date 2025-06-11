@@ -91,10 +91,9 @@ namespace JanSharp
 #endif
             isSleeping = true;
             rb.isKinematic = true;
-            if (entity.positionSyncController == data)
-                entity.GiveBackControlOfPositionSync(data, entity.transform.position, InterpolationDuration);
-            if (entity.rotationSyncController == data)
-                entity.GiveBackControlOfRotationSync(data, entity.transform.rotation, InterpolationDuration);
+            entity.GiveBackControlOfPositionSync(data, entity.transform.position, InterpolationDuration);
+            entity.GiveBackControlOfRotationSync(data, entity.transform.rotation, InterpolationDuration);
+            UpdateUpdateLoopRunningState();
         }
 
         public void WakeUp()
@@ -106,6 +105,7 @@ namespace JanSharp
             rb.isKinematic = false;
             entity.TakeControlOfPositionSync(data);
             entity.TakeControlOfRotationSync(data);
+            SendCustomEventDelayedSeconds(nameof(UpdateUpdateLoopRunningState), PhysicsSyncInterval);
         }
 
         public void ApplyDataToRigidbody()
@@ -118,17 +118,13 @@ namespace JanSharp
                 if (isSleeping)
                     return;
                 GoToSleep();
-                SendCustomEventDelayedSeconds(nameof(UpdateUpdateLoopRunningState), PhysicsSyncInterval);
                 return;
             }
 
             if (isSleeping)
-            {
                 WakeUp();
-                SendCustomEventDelayedSeconds(nameof(UpdateUpdateLoopRunningState), PhysicsSyncInterval);
-            }
 
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  ApplyDataToRigidbody (inner) - posDiff: {Vector3.Distance(rb.position, data.position)}, rotDiff: {Vector3.Dot(rb.rotation * Vector3.forward, data.rotation * Vector3.forward)}");
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  ApplyDataToRigidbody (inner) - posDiff: {Vector3.Distance(rb.position, data.position)}, rotDot: {Vector3.Dot(rb.rotation * Vector3.forward, data.rotation * Vector3.forward)}");
 
             if (interpolationCounter == 0
                 && (Vector3.Distance(rb.position, data.position) < PositionalOffsetTolerance
@@ -172,6 +168,7 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  UpdateUpdateLoopRunningState");
 #endif
+            // TODO: there is no latency state for responsiblePlayerId
             updateLoopShouldBeRunning = !isSleeping && data.responsiblePlayerId == localPlayerId;
             StartUpdateLoop();
         }

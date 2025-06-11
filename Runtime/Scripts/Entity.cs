@@ -150,7 +150,7 @@ namespace JanSharp
         public void TakeControlOfPositionSync(UdonSharpBehaviour controller)
         {
 #if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  TakeControlOfPositionSync");
+            Debug.Log("[EntitySystemDebug] Entity  TakeControlOfPositionSync");
 #endif
             if (!noPositionSync)
             {
@@ -171,7 +171,7 @@ namespace JanSharp
         public void GiveBackControlOfPositionSync(UdonSharpBehaviour releasingController, Vector3 position)
         {
 #if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfPositionSync");
+            Debug.Log("[EntitySystemDebug] Entity  GiveBackControlOfPositionSync");
 #endif
             GiveBackControlOfPositionSync(releasingController, position, TransformChangeInterpolationDuration);
         }
@@ -181,7 +181,7 @@ namespace JanSharp
         public void GiveBackControlOfPositionSync(UdonSharpBehaviour releasingController, Vector3 position, float interpolationDuration)
         {
 #if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfPositionSync");
+            Debug.Log("[EntitySystemDebug] Entity  GiveBackControlOfPositionSync");
 #endif
             if (!noPositionSync && (releasingController != null || positionSyncController != releasingController))
                 return;
@@ -202,7 +202,7 @@ namespace JanSharp
         public void TakeControlOfRotationSync(UdonSharpBehaviour controller)
         {
 #if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  TakeControlOfRotationSync");
+            Debug.Log("[EntitySystemDebug] Entity  TakeControlOfRotationSync");
 #endif
             if (!noRotationSync)
             {
@@ -223,7 +223,7 @@ namespace JanSharp
         public void GiveBackControlOfRotationSync(UdonSharpBehaviour releasingController, Quaternion rotation)
         {
 #if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfRotationSync");
+            Debug.Log("[EntitySystemDebug] Entity  GiveBackControlOfRotationSync");
 #endif
             GiveBackControlOfRotationSync(releasingController, rotation, TransformChangeInterpolationDuration);
         }
@@ -233,7 +233,7 @@ namespace JanSharp
         public void GiveBackControlOfRotationSync(UdonSharpBehaviour releasingController, Quaternion rotation, float interpolationDuration)
         {
 #if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfRotationSync");
+            Debug.Log("[EntitySystemDebug] Entity  GiveBackControlOfRotationSync");
 #endif
             if (!noRotationSync || (releasingController != null && rotationSyncController != releasingController))
                 return;
@@ -254,7 +254,7 @@ namespace JanSharp
         public void TakeControlOfScaleSync(UdonSharpBehaviour controller)
         {
 #if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  TakeControlOfScaleSync");
+            Debug.Log("[EntitySystemDebug] Entity  TakeControlOfScaleSync");
 #endif
             if (!noScaleSync)
             {
@@ -275,7 +275,7 @@ namespace JanSharp
         public void GiveBackControlOfScaleSync(UdonSharpBehaviour releasingController, Vector3 scale)
         {
 #if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfScaleSync");
+            Debug.Log("[EntitySystemDebug] Entity  GiveBackControlOfScaleSync");
 #endif
             GiveBackControlOfScaleSync(releasingController, scale, TransformChangeInterpolationDuration);
         }
@@ -285,7 +285,7 @@ namespace JanSharp
         public void GiveBackControlOfScaleSync(UdonSharpBehaviour releasingController, Vector3 scale, float interpolationDuration)
         {
 #if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfScaleSync");
+            Debug.Log("[EntitySystemDebug] Entity  GiveBackControlOfScaleSync");
 #endif
             if (!noScaleSync || (releasingController != null && scaleSyncController != releasingController))
                 return;
