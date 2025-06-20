@@ -582,6 +582,7 @@ namespace JanSharp
                 Debug.LogError($"[EntitySystem] Attempt to SendExtensionDataInputAction with the method name "
                     + $"{methodName} on the class {className}, however no such method has the "
                     + $"[{nameof(EntityExtensionDataInputActionAttribute)}].");
+                lockstep.ResetWriteStream();
                 return 0uL;
             }
             DataStream.WriteSmall(ref sendExtensionDataInputActionBuffer, ref bufferSize, (uint)methodNameIndex);
@@ -1066,5 +1067,17 @@ namespace JanSharp
         {
             return (T)entitySystem.ReadEntityExtensionDataRefDynamic();
         }
+
+        // public static T GetExtensionData<T>(
+        //     this EntitySystem _,
+        //     EntityData entityData,
+        //     string extensionDataClassName,
+        //     int startIndex = 0)
+        //     where T : EntityExtensionData
+        // {
+        //     // Copy pasted for performance.
+        //     int extensionIndex = System.Array.IndexOf(entityData.entityPrototype.ExtensionDataClassNames, extensionDataClassName, startIndex);
+        //     return (T)(extensionIndex < 0 ? null : entityData.allExtensionData[extensionIndex]);
+        // }
     }
 }

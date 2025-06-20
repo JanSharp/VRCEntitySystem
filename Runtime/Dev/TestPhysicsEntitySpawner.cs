@@ -83,8 +83,6 @@ namespace JanSharp
 #endif
             if (!extensionData.isSleeping)
                 return;
-            extensionData.position = extensionData.entityData.position;
-            extensionData.rotation = extensionData.entityData.rotation;
             extensionData.WakeUp();
         }
 
@@ -93,9 +91,7 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] TestPhysicsEntitySpawner  GetExtensionData");
 #endif
-            // TODO: have a better way to get specific extension data from entities and or entity data.
-            int extensionIndex = System.Array.IndexOf(entityData.entityPrototype.ExtensionDataClassNames, nameof(PhysicsEntityExtensionData));
-            return (PhysicsEntityExtensionData)entityData.allExtensionData[extensionIndex];
+            return entityData.GetExtensionData<PhysicsEntityExtensionData>(nameof(PhysicsEntityExtensionData));
         }
     }
 }

@@ -1,7 +1,6 @@
 ﻿using UdonSharp;
 using UnityEngine;
-using VRC.SDKBase;
-using VRC.Udon;
+using VRC.SDK3.Data;
 
 namespace JanSharp
 {
@@ -30,15 +29,17 @@ namespace JanSharp
         [System.NonSerialized] public bool wasPreInstantiated = false;
         [System.NonSerialized] public ulong uniqueId;
         [System.NonSerialized] public uint id;
-        private bool noPositionSync;
-        private bool noRotationSync;
-        private bool noScaleSync;
-        private UdonSharpBehaviour positionSyncController;
-        private UdonSharpBehaviour rotationSyncController;
-        private UdonSharpBehaviour scaleSyncController;
+        [System.NonSerialized] public bool noTransformSync;
+        /// <summary>
+        /// <para>Could still be <see langword="null"/> even when <see cref="noTransformSync"/> is
+        /// <see langword="true"/> inside of entity extension data deserialize functions, when the entity
+        /// extension data responsible for restoring it has not run yet.</para>
+        /// </summary>
+        [System.NonSerialized] public EntityTransformController transformSyncController;
         [System.NonSerialized] public Vector3 position;
         [System.NonSerialized] public Quaternion rotation;
         [System.NonSerialized] public Vector3 scale;
+        [System.NonSerialized] public uint lastKnownTransformStateTick;
         [System.NonSerialized] public uint createdByPlayerId;
         [System.NonSerialized] public uint lastUserPlayerId;
         [System.NonSerialized] public bool hidden;
@@ -53,22 +54,24 @@ namespace JanSharp
         private bool IsDummyEntityDataForImport => entityPrototype == null;
         [System.NonSerialized] public EntityPrototypeMetadata importedMetadata;
 
-        private uint localPlayerId;
+        private DataDictionary latencyUniqueIdLut = new DataDictionary();
 
-        public const string OnPositionSyncControlLostEvent = "OnPositionSyncControlLost";
-        public const string OnRotationSyncControlLostEvent = "OnRotationSyncControlLost";
-        public const string OnScaleSyncControlLostEvent = "OnScaleSyncControlLost";
-        public const string OnLatencyPositionSyncControlLostEvent = "OnLatencyPositionSyncControlLost";
-        public const string OnLatencyRotationSyncControlLostEvent = "OnLatencyRotationSyncControlLost";
-        public const string OnLatencyScaleSyncControlLostEvent = "OnLatencyScaleSyncControlLost";
+        public const string OnTransformSyncControlLostEvent = "OnTransformSyncControlLost";
+        public const string OnLatencyTransformSyncControlLostEvent = "OnLatencyTransformSyncControlLost";
         public const string ControlledEntityDataField = "controlledEntityData";
 
-        public bool NoPositionSync => noPositionSync;
-        public bool NoRotationSync => noRotationSync;
-        public bool NoScaleSync => noScaleSync;
-        public UdonSharpBehaviour PositionSyncController => positionSyncController;
-        public UdonSharpBehaviour RotationSyncController => rotationSyncController;
-        public UdonSharpBehaviour ScaleSyncController => scaleSyncController;
+        public Vector3 LastKnownPosition
+            => transformSyncController != null && transformSyncController.TryGetGameStatePosition(this, out Vector3 position)
+                ? position
+                : this.position;
+        public Quaternion LastKnownRotation
+            => transformSyncController != null && transformSyncController.TryGetGameStateRotation(this, out Quaternion rotation)
+                ? rotation
+                : this.rotation;
+        public Vector3 LastKnownScale
+            => transformSyncController != null && transformSyncController.TryGetGameStateScale(this, out Vector3 scale)
+                ? scale
+                : this.scale;
 
         public EntityData WannaBeConstructor(EntityPrototype entityPrototype, ulong uniqueId, uint id)
         {
@@ -78,7 +81,6 @@ namespace JanSharp
             this.entityPrototype = entityPrototype;
             this.uniqueId = uniqueId;
             this.id = id;
-            localPlayerId = (uint)Networking.LocalPlayer.playerId;
 
             if (IsDummyEntityDataForImport)
                 return this;
@@ -214,206 +216,202 @@ namespace JanSharp
                 extensionData.OnEntityExtensionDataDestroyed();
         }
 
-        public void TakeControlOfPositionSync(UdonSharpBehaviour controller, bool updateLatencyState)
+        public bool RegisterLatencyHiddenUniqueId(ulong uniqueId)
         {
 #if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  TakeControlOfPositionSync");
+            Debug.Log($"[EntitySystemDebug] EntityData  RegisterLatencyHiddenUniqueId - uniqueId: 0x{uniqueId:x16}");
 #endif
-            if (!noPositionSync)
-            {
-                noPositionSync = true;
-                position = Vector3.zero;
-                positionSyncController = controller;
-            }
-            else if (controller != positionSyncController)
-            {
-                UdonSharpBehaviour prevController = positionSyncController;
-                positionSyncController = controller;
-                positionSyncController.SetProgramVariable(ControlledEntityDataField, this);
-                positionSyncController.SendCustomEvent(OnPositionSyncControlLostEvent);
-            }
-
-            if (updateLatencyState && entity != null)
-                entity.TakeControlOfPositionSync(controller);
+            if (uniqueId == 0uL)
+                return false;
+            latencyUniqueIdLut.Add(uniqueId, true);
+            return true;
         }
 
-        /// <param name="releasingController">Only give back control if this matches the current controller.
-        /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
-        public void GiveBackControlOfPositionSync(UdonSharpBehaviour releasingController, Vector3 position, bool updateLatencyState)
+        /// <summary>
+        /// <para>Make all change to the game state before calling this function, modify the latency stat
+        /// after, but only if this returned <see langword="true"/>.</para>
+        /// </summary>
+        /// <returns></returns>
+        public bool ShouldApplyReceivedIAToLatencyState()
         {
 #if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfPositionSync");
+            Debug.Log($"[EntitySystemDebug] EntityData  ShouldApplyReceivedIAToLatencyState - uniqueId: 0x{lockstep.SendingUniqueId:x16}, latencyUniqueIdLut.Count: {latencyUniqueIdLut.Count}");
 #endif
-            GiveBackControlOfPositionSync(releasingController, position, Entity.TransformChangeInterpolationDuration, updateLatencyState);
+            if (latencyUniqueIdLut.Count == 0)
+                return true;
+            if (latencyUniqueIdLut.Remove(lockstep.SendingUniqueId)) // Was already applied to latency state, stay in latency state.
+                return false;
+            // The latency state is desynced from the game state, however an input action which has not been
+            // applied to the game state has been received in between input actions which have already been
+            // applied to the latency state. Cannot just apply this IA to the latency state, because that way
+            // IAs got applied to the latency state in different order than the game state, so reset the
+            // latency state to match the game state entirely instead. This undoes some IAs which had already
+            // been applied to the latency state and they are going to get applied again whenever the
+            // associated IA gets run in the game state.
+            latencyUniqueIdLut.Clear();
+            if (entity != null)
+                entity.ApplyEntityData();
+            return false; // Already got applied by the above.
         }
 
-        /// <param name="releasingController">Only give back control if this matches the current controller.
-        /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
-        public void GiveBackControlOfPositionSync(UdonSharpBehaviour releasingController, Vector3 position, float interpolationDuration, bool updateLatencyState)
+        /// <summary>
+        /// <para>Do not modify the game state nor latency state after calling this function.</para>
+        /// </summary>
+        public void MarkLatencyHiddenUniqueIdAsProcessed()
         {
 #if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfPositionSync");
+            Debug.Log($"[EntitySystemDebug] EntityData  MarkLatencyHiddenUniqueIdAsProcessed");
 #endif
-            if (!noPositionSync || (releasingController != null && positionSyncController != releasingController))
+            ShouldApplyReceivedIAToLatencyState(); // Literally the same logic.
+        }
+
+        public void WritePotentiallyUnknownTransformValues()
+        {
+#if EntitySystemDebug
+            Debug.Log("[EntitySystemDebug] EntityData  WritePotentiallyUnknownTransformValues");
+#endif
+            if (!noTransformSync // At the time of sending the data was known, so we will have close to up to date values for sure.
+                || entity == null // May or may not be unknown by the current transform controller, but we couldn't send any transform data anyway without an entity transform.
+                || !entity.noTransformSync // Control has already been given back in the latency state, we are going to have up to date values.
+                || lockstep.CurrentTick - lastKnownTransformStateTick <= LockstepAPI.TickRate) // We knew transform values 1 second ago, that'll be good enough.
             {
-                if (updateLatencyState && entity != null)
-                    entity.GiveBackControlOfPositionSync(releasingController, position, interpolationDuration);
+                lockstep.WriteByte(0);
                 return;
             }
-            noPositionSync = false;
+
+            // Use latency state controller as it will most likely be the controller at the time of receiving data.
+            EntityTransformController controller = entity.transformSyncController;
+            bool unknownPosition = !controller.TryGetGameStatePosition(this, out var discord1); // Cannot use 'out _'.
+            bool unknownRotation = !controller.TryGetGameStateRotation(this, out var discord2); // Cannot use 'out _'.
+            bool unknownScale = !controller.TryGetGameStateScale(this, out var discord3); // Cannot use 'out _'.
+
+            lockstep.WriteFlags(unknownPosition, unknownRotation, unknownScale);
+            if (unknownPosition)
+                lockstep.WriteVector3(position);
+            if (unknownRotation)
+                lockstep.WriteQuaternion(rotation);
+            if (unknownScale)
+                lockstep.WriteVector3(scale);
+        }
+
+        public void ReadPotentiallyUnknownTransformValues()
+        {
+#if EntitySystemDebug
+            Debug.Log("[EntitySystemDebug] EntityData  ReadPotentiallyUnknownTransformValues");
+#endif
+            lockstep.ReadFlags(out bool unknownPosition, out bool unknownRotation, out bool unknownScale);
+            if (unknownPosition)
+                position = lockstep.ReadVector3();
+            if (unknownRotation)
+                rotation = lockstep.ReadQuaternion();
+            if (unknownScale)
+                scale = lockstep.ReadVector3();
+        }
+
+        public void TakeControlOfTransformSync(EntityTransformController controller)
+        {
+#if EntitySystemDebug
+            Debug.Log("[EntitySystemDebug] EntityData  TakeControlOfTransformSync");
+#endif
+            if (!noTransformSync)
+            {
+                noTransformSync = true;
+                lastKnownTransformStateTick = lockstep.CurrentTick;
+                transformSyncController = controller;
+            }
+            else if (controller != transformSyncController)
+            {
+                EntityTransformController prevController = transformSyncController;
+                transformSyncController = controller;
+                prevController.OnControlTakenOver(this, controller);
+            }
+
+            // if (latencyUniqueIdLut.Count == 0 && entity != null)
+            //     entity.TakeControlOfTransformSync(controller);
+        }
+
+        /// <param name="releasingController">Only give back control if this matches the current controller.
+        /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
+        public void GiveBackControlOfTransformSync(EntityTransformController releasingController, Vector3 position, Quaternion rotation, Vector3 scale, float interpolationDuration = Entity.TransformChangeInterpolationDuration)
+        {
+#if EntitySystemDebug
+            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfTransformSync");
+#endif
+            if (!noTransformSync || (releasingController != null && transformSyncController != releasingController))
+            {
+                // if (latencyUniqueIdLut.Count == 0 && entity != null)
+                //     entity.GiveBackControlOfTransformSync(releasingController, position, rotation, scale, interpolationDuration);
+                return;
+            }
+            noTransformSync = false;
+            lastKnownTransformStateTick = 0u;
             this.position = position;
-            UdonSharpBehaviour prevController = positionSyncController;
-            positionSyncController = null;
-            if (releasingController == null)
-            {
-                prevController.SetProgramVariable(ControlledEntityDataField, this);
-                prevController.SendCustomEvent(OnPositionSyncControlLostEvent);
-            }
-            if (updateLatencyState && entity != null)
-                entity.GiveBackControlOfPositionSync(releasingController, position, interpolationDuration);
-        }
-
-        public void TakeControlOfRotationSync(UdonSharpBehaviour controller, bool updateLatencyState)
-        {
-#if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  TakeControlOfRotationSync");
-#endif
-            if (!noRotationSync)
-            {
-                noRotationSync = true;
-                rotation = Quaternion.identity;
-                rotationSyncController = controller;
-            }
-            else if (controller != rotationSyncController)
-            {
-                UdonSharpBehaviour prevController = rotationSyncController;
-                rotationSyncController = controller;
-                rotationSyncController.SetProgramVariable(ControlledEntityDataField, this);
-                rotationSyncController.SendCustomEvent(OnRotationSyncControlLostEvent);
-            }
-
-            if (updateLatencyState && entity != null)
-                entity.TakeControlOfRotationSync(controller);
-        }
-
-        /// <param name="releasingController">Only give back control if this matches the current controller.
-        /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
-        public void GiveBackControlOfRotationSync(UdonSharpBehaviour releasingController, Quaternion rotation, bool updateLatencyState)
-        {
-#if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfRotationSync");
-#endif
-            GiveBackControlOfRotationSync(releasingController, rotation, Entity.TransformChangeInterpolationDuration, updateLatencyState);
-        }
-
-        /// <param name="releasingController">Only give back control if this matches the current controller.
-        /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
-        public void GiveBackControlOfRotationSync(UdonSharpBehaviour releasingController, Quaternion rotation, float interpolationDuration, bool updateLatencyState)
-        {
-#if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfRotationSync");
-#endif
-            if (!noRotationSync || (releasingController != null && rotationSyncController != releasingController))
-            {
-                if (updateLatencyState && entity != null)
-                    entity.GiveBackControlOfRotationSync(releasingController, rotation, interpolationDuration);
-                return;
-            }
-            noRotationSync = false;
             this.rotation = rotation;
-            UdonSharpBehaviour prevController = rotationSyncController;
-            rotationSyncController = null;
+            this.scale = scale;
+            EntityTransformController prevController = transformSyncController;
+            transformSyncController = null;
             if (releasingController == null)
-            {
-                prevController.SetProgramVariable(ControlledEntityDataField, this);
-                prevController.SendCustomEvent(OnRotationSyncControlLostEvent);
-            }
-            rotationSyncController = null;
-            if (updateLatencyState && entity != null)
-                entity.GiveBackControlOfRotationSync(releasingController, rotation, interpolationDuration);
+                prevController.OnControlLost(this);
+            // if (latencyUniqueIdLut.Count == 0 && entity != null)
+            //     entity.GiveBackControlOfTransformSync(releasingController, position, rotation, scale, interpolationDuration);
         }
 
-        public void TakeControlOfScaleSync(UdonSharpBehaviour controller, bool updateLatencyState)
+        public void SetTransformSyncControllerDueToDeserialization(EntityTransformController controller)
         {
 #if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  TakeControlOfScaleSync");
+            Debug.Log("[EntitySystemDebug] EntityData  SetTransformSyncControllerDueToDeserialization");
 #endif
-            if (!noScaleSync)
+            if (!noTransformSync)
             {
-                noScaleSync = true;
-                scale = Vector3.one;
-                scaleSyncController = controller;
-            }
-            else if (controller != scaleSyncController)
-            {
-                UdonSharpBehaviour prevController = scaleSyncController;
-                scaleSyncController = controller;
-                scaleSyncController.SetProgramVariable(ControlledEntityDataField, this);
-                scaleSyncController.SendCustomEvent(OnScaleSyncControlLostEvent);
-            }
-
-            if (updateLatencyState && entity != null)
-                entity.TakeControlOfScaleSync(controller);
-        }
-
-        /// <param name="releasingController">Only give back control if this matches the current controller.
-        /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
-        public void GiveBackControlOfScaleSync(UdonSharpBehaviour releasingController, Vector3 scale, bool updateLatencyState)
-        {
-#if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfScaleSync");
-#endif
-            GiveBackControlOfScaleSync(releasingController, scale, Entity.TransformChangeInterpolationDuration, updateLatencyState);
-        }
-
-        /// <param name="releasingController">Only give back control if this matches the current controller.
-        /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
-        public void GiveBackControlOfScaleSync(UdonSharpBehaviour releasingController, Vector3 scale, float interpolationDuration, bool updateLatencyState)
-        {
-#if EntitySystemDebug
-            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfScaleSync");
-#endif
-            if (!noScaleSync || (releasingController != null && scaleSyncController != releasingController))
-            {
-                if (updateLatencyState && entity != null)
-                    entity.GiveBackControlOfScaleSync(releasingController, scale, interpolationDuration);
+                Debug.LogError($"[EntitySystem] Attempt to SetTransformSyncControllerDueToDeserialization when "
+                    + $"noTransformSync is false, aka should not be any transform sync controller.");
                 return;
             }
-            noScaleSync = false;
-            this.scale = scale;
-            UdonSharpBehaviour prevController = scaleSyncController;
-            scaleSyncController = null;
-            if (releasingController == null)
+            if (transformSyncController != null)
             {
-                prevController.SetProgramVariable(ControlledEntityDataField, this);
-                prevController.SendCustomEvent(OnScaleSyncControlLostEvent);
+                Debug.LogError($"[EntitySystem] Attempt to SetTransformSyncControllerDueToDeserialization when "
+                    + $"a different system has already set a controller. One of these systems is misbehaving.");
+                return;
             }
-            scaleSyncController = null;
-            if (updateLatencyState && entity != null)
-                entity.GiveBackControlOfScaleSync(releasingController, scale, interpolationDuration);
+            transformSyncController = controller;
         }
 
-        private void SerializeTransformValues()
+        private void SerializeTransformValues(bool isExport)
         {
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityData  SerializeTransformValues");
 #endif
-            if (!noPositionSync)
-                lockstep.WriteVector3(position);
-            if (!noRotationSync)
-                lockstep.WriteQuaternion(rotation);
-            if (!noScaleSync)
-                lockstep.WriteVector3(scale);
+            lockstep.WriteVector3(position);
+            lockstep.WriteQuaternion(rotation);
+            lockstep.WriteVector3(scale);
+            if (!noTransformSync)
+                return;
+            if (!isExport)
+                lockstep.WriteSmallUInt(lastKnownTransformStateTick);
+            else
+                lockstep.WriteSmallUInt(lockstep.CurrentTick - lastKnownTransformStateTick);
         }
 
-        private void DeserializeTransformValue()
+        private void DeserializeTransformValue(bool isImport)
         {
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityData  DeserializeTransformValue");
 #endif
-            position = noPositionSync ? Vector3.zero : lockstep.ReadVector3();
-            rotation = noRotationSync ? Quaternion.identity : lockstep.ReadQuaternion();
-            scale = noScaleSync ? Vector3.one : lockstep.ReadVector3();
+            position = lockstep.ReadVector3();
+            rotation = lockstep.ReadQuaternion();
+            scale = lockstep.ReadVector3();
+            if (!noTransformSync)
+                lastKnownTransformStateTick = 0u;
+            else if (!isImport)
+                lastKnownTransformStateTick = lockstep.ReadSmallUInt();
+            else
+            {
+                uint ticksAgo = lockstep.ReadSmallUInt();
+                uint currentTick = lockstep.CurrentTick;
+                lastKnownTransformStateTick = ticksAgo > currentTick ? 0u : currentTick - ticksAgo;
+            }
+            transformSyncController = null; // Systems must restore and set this on deserialization.
+            // See SetTransformSyncControllerDueToDeserialization.
         }
 
         public void Serialize(bool isExport)
@@ -421,8 +419,8 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityData  Serialize");
 #endif
-            lockstep.WriteFlags(noPositionSync, noRotationSync, noScaleSync, hidden);
-            SerializeTransformValues();
+            lockstep.WriteFlags(noTransformSync, hidden);
+            SerializeTransformValues(isExport);
             lockstep.WriteSmallUInt(createdByPlayerId);
             lockstep.WriteSmallUInt(lastUserPlayerId);
             lockstep.WriteSmallUInt(parentEntity == null ? 0u : parentEntity.id);
@@ -440,8 +438,8 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityData  Deserialize");
 #endif
-            lockstep.ReadFlags(out noPositionSync, out noRotationSync, out noScaleSync, out hidden);
-            DeserializeTransformValue();
+            lockstep.ReadFlags(out noTransformSync, out hidden);
+            DeserializeTransformValue(isImport);
             createdByPlayerId = lockstep.ReadSmallUInt();
             lastUserPlayerId = lockstep.ReadSmallUInt();
             unresolvedParentEntityId = lockstep.ReadSmallUInt();
@@ -453,11 +451,23 @@ namespace JanSharp
             {
                 ResolveImportedParentEntityId();
                 ResolveImportedChildEntityIds();
-            }
-            if (isImport)
+                latencyUniqueIdLut.Clear();
                 ImportAllExtensionData();
+            }
             else
                 DeserializeAllExtensionData();
+
+            if (noTransformSync && transformSyncController == null)
+            {
+                Debug.LogError($"[EntitySystem] An EntityData had noTransformSync set to true during "
+                    + $"deserialization, however no system restored the transform sync controller which is "
+                    + $"responsible for managing this EntityData. Use SetTransformSyncControllerDueToDeserialization "
+                    + $"inside of the Deserialize function of an EntityExtensionData.");
+                // To prevent runtime errors at least, but this is not guaranteed to
+                // actually resolve this error case in a game state safe manner.
+                noTransformSync = false;
+                lastKnownTransformStateTick = 0u;
+            }
         }
 
         private void ResolveImportedParentEntityId()
@@ -532,33 +542,30 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityData  OnTransformChangeIA");
 #endif
+            if (noTransformSync)
+            {
+                MarkLatencyHiddenUniqueIdAsProcessed();
+                return;
+            }
+
             lockstep.ReadFlags(
                 out bool positionChange, out bool discontinuousPositionChange,
                 out bool rotationChange, out bool discontinuousRotationChange,
                 out bool scaleChange, out bool discontinuousScaleChange);
 
             if (positionChange)
-                if (noPositionSync)
-                    lockstep.ReadBytes(12, skip: true);
-                else
-                    position = lockstep.ReadVector3();
+                position = lockstep.ReadVector3();
             if (rotationChange)
-                if (noRotationSync)
-                    lockstep.ReadBytes(16, skip: true);
-                else
-                    rotation = lockstep.ReadQuaternion();
+                rotation = lockstep.ReadQuaternion();
             if (scaleChange)
-                if (noScaleSync)
-                    lockstep.ReadBytes(12, skip: true);
-                else
-                    scale = lockstep.ReadVector3();
+                scale = lockstep.ReadVector3();
 
-            if (entity == null || lockstep.SendingPlayerId == localPlayerId)
+            if (!ShouldApplyReceivedIAToLatencyState() || entity == null)
                 return;
 
             Transform entityTransform = entity.transform;
 
-            if (positionChange && !noPositionSync && !entity.noPositionSync)
+            if (positionChange)
             {
                 if (!discontinuousPositionChange)
                     interpolation.InterpolateWorldPosition(entityTransform, position, Entity.TransformChangeInterpolationDuration);
@@ -569,7 +576,7 @@ namespace JanSharp
                 }
             }
 
-            if (rotationChange && !noRotationSync && !entity.noRotationSync)
+            if (rotationChange)
             {
                 if (!discontinuousRotationChange)
                     interpolation.InterpolateWorldRotation(entityTransform, rotation, Entity.TransformChangeInterpolationDuration);
@@ -580,7 +587,7 @@ namespace JanSharp
                 }
             }
 
-            if (scaleChange && !noScaleSync && !entity.noScaleSync)
+            if (scaleChange)
             {
                 if (!discontinuousScaleChange)
                     interpolation.InterpolateLocalScale(entityTransform, scale, Entity.TransformChangeInterpolationDuration);
@@ -590,6 +597,32 @@ namespace JanSharp
                     entityTransform.localScale = scale;
                 }
             }
+        }
+    }
+
+    public static class EntityDataExtensions
+    {
+        public static int IndexOfExtensionData(this EntityData entityData, string extensionDataClassName, int startIndex = 0)
+            => System.Array.IndexOf(entityData.entityPrototype.ExtensionDataClassNames, extensionDataClassName, startIndex);
+
+        public static EntityExtensionData GetExtensionDataDynamic(this EntityData entityData, string extensionDataClassName, int startIndex = 0)
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntityData  GetExtensionDataDynamic");
+#endif
+            int extensionIndex = System.Array.IndexOf(entityData.entityPrototype.ExtensionDataClassNames, extensionDataClassName, startIndex);
+            return extensionIndex < 0 ? null : entityData.allExtensionData[extensionIndex];
+        }
+
+        public static T GetExtensionData<T>(this EntityData entityData, string extensionDataClassName, int startIndex = 0)
+            where T : EntityExtensionData
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] EntityData  GetExtensionData");
+#endif
+            // Same as GetExtensionDataDynamic.
+            int extensionIndex = System.Array.IndexOf(entityData.entityPrototype.ExtensionDataClassNames, extensionDataClassName, startIndex);
+            return (T)(extensionIndex < 0 ? null : entityData.allExtensionData[extensionIndex]);
         }
     }
 }

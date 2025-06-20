@@ -26,6 +26,7 @@ namespace JanSharp
         /// <para>Latency state.</para>
         /// </summary>
         [System.NonSerialized] public bool isSleeping;
+        [System.NonSerialized] public uint responsiblePlayerId;
 
         private VRCPlayerApi localPlayer;
         private uint localPlayerId;
@@ -66,9 +67,9 @@ namespace JanSharp
             data.ext = this;
             // Prevent the entity being at the wrong (prefab default) position for a frame or two.
             if (!data.isSleeping)
-                this.transform.SetPositionAndRotation(data.position, data.rotation);
+                this.transform.SetPositionAndRotation(entityData.position, entityData.rotation);
             ApplyExtensionData(); // This calls rb.Move too, hopefully that'll make the rb happier.
-            SendCustomEventDelayedSeconds(nameof(UpdateUpdateLoopRunningState), PhysicsSyncInterval);
+            UpdateUpdateLoopRunningState();
         }
 
         public override void ApplyExtensionData()
@@ -76,24 +77,22 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  ApplyExtensionData");
 #endif
-            if (!data.isSleeping)
-            {
-                rb.isKinematic = false; // Move only works on non kinematic rigidbodies.
-                rb.Move(data.position, data.rotation); // Teleport instead of interpolation.
-            }
-            ApplyDataToRigidbody();
-        }
+            SetResponsiblePlayerId(data.responsiblePlayerId);
 
-        public void GoToSleep()
-        {
-#if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  GoToSleep");
-#endif
-            isSleeping = true;
-            rb.isKinematic = true;
-            entity.GiveBackControlOfPositionSync(data, entity.transform.position, InterpolationDuration);
-            entity.GiveBackControlOfRotationSync(data, entity.transform.rotation, InterpolationDuration);
-            UpdateUpdateLoopRunningState();
+            if (data.isSleeping)
+            {
+                if (isSleeping)
+                    return;
+                GoToSleep(entityData.position, entityData.rotation);
+                return;
+            }
+
+            if (isSleeping)
+                WakeUp();
+
+            // After WakeUp() because Move() does nothing on kinematic rigidbodies.
+            rb.Move(entityData.position, entityData.rotation); // Teleport instead of interpolation.
+            RigidbodyUpdate();
         }
 
         public void WakeUp()
@@ -101,42 +100,55 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  WakeUp");
 #endif
+            if (!isSleeping)
+                return;
             isSleeping = false;
             rb.isKinematic = false;
-            entity.TakeControlOfPositionSync(data);
-            entity.TakeControlOfRotationSync(data);
-            SendCustomEventDelayedSeconds(nameof(UpdateUpdateLoopRunningState), PhysicsSyncInterval);
+            entity.TakeControlOfTransformSync(data.transformController);
+            UpdateUpdateLoopRunningState();
         }
 
-        public void ApplyDataToRigidbody()
+        public void GoToSleep(Vector3 position, Quaternion rotation)
         {
 #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  ApplyDataToRigidbody - data.velocity: {data.velocity}");
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  GoToSleep");
 #endif
-            if (data.isSleeping)
-            {
-                if (isSleeping)
-                    return;
-                GoToSleep();
-                return;
-            }
-
             if (isSleeping)
-                WakeUp();
+                return;
+            isSleeping = true;
+            rb.isKinematic = true;
+            entity.GiveBackControlOfTransformSync(
+                data.transformController,
+                position,
+                rotation,
+                entity.transform.localScale,
+                InterpolationDuration);
+            UpdateUpdateLoopRunningState();
+        }
 
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  ApplyDataToRigidbody (inner) - posDiff: {Vector3.Distance(rb.position, data.position)}, rotDot: {Vector3.Dot(rb.rotation * Vector3.forward, data.rotation * Vector3.forward)}");
+        public void RigidbodyUpdate()
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  RigidbodyUpdate");
+#endif
+            if (isSleeping)
+                return;
+
+            Vector3 position = entityData.position;
+            Quaternion rotation = entityData.rotation;
 
             if (interpolationCounter == 0
-                && (Vector3.Distance(rb.position, data.position) < PositionalOffsetTolerance
-                    || Vector3.Dot(rb.rotation * Vector3.forward, data.rotation * Vector3.forward) > RotationalOffsetTolerance))
+                && (Vector3.Distance(rb.position, position) < PositionalOffsetTolerance
+                    || Vector3.Dot(rb.rotation * Vector3.forward, rotation * Vector3.forward) > RotationalOffsetTolerance))
             {
                 // It is close enough, do not change the position and rotation.
-                // rb.Move(data.position, data.rotation);
+                // rb.Move(position, rotation);
                 rb.velocity = data.velocity;
                 rb.angularVelocity = data.angularVelocity;
                 return;
             }
-            InterpolateToDataPositionAndRotation(data.position, data.rotation);
+
+            InterpolateToDataPositionAndRotation(position, rotation);
         }
 
         private void InterpolateToDataPositionAndRotation(Vector3 position, Quaternion rotation)
@@ -163,13 +175,21 @@ namespace JanSharp
             rb.angularVelocity = data.angularVelocity;
         }
 
+        public void SetResponsiblePlayerId(uint responsiblePlayerId)
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  SetResponsiblePlayerId");
+#endif
+            this.responsiblePlayerId = responsiblePlayerId;
+            UpdateUpdateLoopRunningState();
+        }
+
         public void UpdateUpdateLoopRunningState()
         {
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  UpdateUpdateLoopRunningState");
 #endif
-            // TODO: there is no latency state for responsiblePlayerId
-            updateLoopShouldBeRunning = !isSleeping && data.responsiblePlayerId == localPlayerId;
+            updateLoopShouldBeRunning = !isSleeping && responsiblePlayerId == localPlayerId;
             StartUpdateLoop();
         }
 
@@ -181,7 +201,7 @@ namespace JanSharp
             if (updateLoopIsRunning || !updateLoopShouldBeRunning)
                 return;
             updateLoopIsRunning = true;
-            UpdateLoop();
+            SendCustomEventDelayedSeconds(nameof(UpdateLoop), PhysicsSyncInterval);
         }
 
         public void UpdateLoop()
@@ -196,7 +216,7 @@ namespace JanSharp
             }
             if (rb.IsSleeping())
             {
-                data.SendRigidbodySleepIA();
+                data.SendGoToSleepIA();
                 updateLoopIsRunning = false;
                 return;
             }

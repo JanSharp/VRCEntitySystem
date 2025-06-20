@@ -13,14 +13,13 @@ namespace JanSharp
         public override uint LowestSupportedDataVersion => 0u;
 
         [HideInInspector][SingletonReference] public PhysicsEntityManager manager;
+        [HideInInspector][SingletonReference] public PhysicsEntityTransformController transformController;
         [HideInInspector][SingletonReference] public InterpolationManager interpolation;
 
         [System.NonSerialized] public PhysicsEntityExtension ext;
 
         [System.NonSerialized] public uint responsiblePlayerId;
         [System.NonSerialized] public bool isSleeping = true;
-        [System.NonSerialized] public Vector3 position;
-        [System.NonSerialized] public Quaternion rotation;
         [System.NonSerialized] public Vector3 velocity;
         [System.NonSerialized] public Vector3 angularVelocity;
 
@@ -33,11 +32,7 @@ namespace JanSharp
 #endif
             PhysicsEntityExtension ext = (PhysicsEntityExtension)entityExtension;
             if (!ext.isSleeping)
-            {
-                position = entityData.position;
-                rotation = entityData.rotation;
                 WakeUp();
-            }
             localPlayerId = (uint)Networking.LocalPlayer.playerId;
         }
 
@@ -81,9 +76,61 @@ namespace JanSharp
 #endif
             manager.DeregisterPhysicsExtensionData(this);
             responsiblePlayerId = playerId;
-            if (ext != null)
-                ext.UpdateUpdateLoopRunningState();
             manager.RegisterPhysicsExtensionData(this);
+        }
+
+        public void SendWakeUpIA(Vector3 velocity, Vector3 angularVelocity)
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  SendWakeUpIA");
+#endif
+            entityData.WritePotentiallyUnknownTransformValues();
+            lockstep.WriteVector3(velocity);
+            lockstep.WriteVector3(angularVelocity);
+            ulong uniqueId = SendExtensionDataInputAction(nameof(OnWakeUpIA));
+            // Latency hiding.
+            if (ext == null)
+                return;
+            entityData.RegisterLatencyHiddenUniqueId(uniqueId);
+            if (ext.responsiblePlayerId != localPlayerId)
+                ext.SetResponsiblePlayerId(localPlayerId);
+            if (ext.isSleeping)
+                ext.WakeUp();
+        }
+
+        [EntityExtensionDataInputAction]
+        public void OnWakeUpIA()
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnWakeUpIA");
+#endif
+            if (!isSleeping) // Cannot be woken up while already awake.
+            {
+                entityData.MarkLatencyHiddenUniqueIdAsProcessed();
+                return;
+            }
+            SetResponsiblePlayerId(lockstep.SendingPlayerId);
+            entityData.ReadPotentiallyUnknownTransformValues();
+            velocity = lockstep.ReadVector3();
+            angularVelocity = lockstep.ReadVector3();
+            WakeUp();
+            if (!entityData.ShouldApplyReceivedIAToLatencyState())
+                return;
+            ext.SetResponsiblePlayerId(responsiblePlayerId);
+            ext.WakeUp();
+            ext.rb.velocity = velocity;
+            ext.rb.angularVelocity = angularVelocity;
+        }
+
+        public void WakeUp()
+        {
+#if EntitySystemDebug
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  WakeUp");
+#endif
+            if (!isSleeping)
+                return;
+            isSleeping = false;
+            entityData.TakeControlOfTransformSync(transformController);
         }
 
         public void SendRigidbodyUpdateIA()
@@ -91,14 +138,18 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  SendRigidbodyUpdateIA");
 #endif
-            if (ext.isSleeping) // Latency state should already be ahead of the game state, so it should be awake.
+            if (ext.isSleeping || ext.responsiblePlayerId != localPlayerId)
+            {
+                Debug.LogError("[EntitySystem] Impossible, attempt to SendRigidbodyUpdateIA on a physics "
+                    + "entity which is asleep or the local player is not the responsible player.");
                 return;
+            }
             Rigidbody rb = ext.rb;
             lockstep.WriteVector3(rb.position);
             lockstep.WriteQuaternion(rb.rotation);
             lockstep.WriteVector3(rb.velocity);
             lockstep.WriteVector3(rb.angularVelocity);
-            SendExtensionDataInputAction(nameof(OnRigidbodyUpdateIA));
+            entityData.RegisterLatencyHiddenUniqueId(SendExtensionDataInputAction(nameof(OnRigidbodyUpdateIA)));
         }
 
         [EntityExtensionDataInputAction]
@@ -107,123 +158,77 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnRigidbodyUpdateIA");
 #endif
-            if (isSleeping)
+            if (isSleeping || lockstep.SendingPlayerId != responsiblePlayerId)
             {
-                SetResponsiblePlayerId(lockstep.SendingPlayerId);
-                WakeUp();
-            }
-            else if (lockstep.SendingPlayerId != responsiblePlayerId)
+                entityData.MarkLatencyHiddenUniqueIdAsProcessed();
                 return;
-            position = lockstep.ReadVector3();
-            rotation = lockstep.ReadQuaternion();
+            }
+            entityData.lastKnownTransformStateTick = lockstep.CurrentTick;
+            entityData.position = lockstep.ReadVector3();
+            entityData.rotation = lockstep.ReadQuaternion();
             velocity = lockstep.ReadVector3();
             angularVelocity = lockstep.ReadVector3();
-            if (ext != null && responsiblePlayerId != localPlayerId)
-                ext.ApplyDataToRigidbody();
+            if (entityData.ShouldApplyReceivedIAToLatencyState() && ext != null)
+                ext.RigidbodyUpdate();
         }
 
-        public void WakeUp()
+        public void SendGoToSleepIA()
         {
 #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  WakeUp");
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  SendGoToSleepIA");
 #endif
-            isSleeping = false;
-            entityData.TakeControlOfPositionSync(this, updateLatencyState: true);
-            entityData.TakeControlOfRotationSync(this, updateLatencyState: true);
-        }
-
-        public void OnPositionSyncControlLost()
-        {
-#if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnPositionSyncControlLost");
-#endif
-            entityData.GiveBackControlOfRotationSync(
-                this,
-                rotation,
-                PhysicsEntityExtension.InterpolationDuration,
-                updateLatencyState: false); // Gets updated in GoToSleep.
-            GoToSleep();
-        }
-
-        public void OnRotationSyncControlLost()
-        {
-#if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnRotationSyncControlLost");
-#endif
-            entityData.GiveBackControlOfPositionSync(
-                this,
-                position,
-                PhysicsEntityExtension.InterpolationDuration,
-                updateLatencyState: false); // Gets updated in GoToSleep.
-            GoToSleep();
-        }
-
-        public void OnLatencyPositionSyncControlLost()
-        {
-#if ItemSystemDebug
-            Debug.Log($"[ItemSystemDebug] ItemExtensionData  OnLatencyPositionSyncControlLost");
-#endif
-            ext.GoToSleep();
-        }
-
-        public void OnLatencyRotationSyncControlLost()
-        {
-#if ItemSystemDebug
-            Debug.Log($"[ItemSystemDebug] ItemExtensionData  OnLatencyRotationSyncControlLost");
-#endif
-            ext.GoToSleep();
-        }
-
-        public void SendRigidbodySleepIA()
-        {
-#if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  SendRigidbodySleepIA");
-#endif
-            Rigidbody rb = ext.rb;
-            lockstep.WriteVector3(rb.position);
-            lockstep.WriteQuaternion(rb.rotation);
-            SendExtensionDataInputAction(nameof(OnRigidbodySleepIA));
+            Transform entityTransform = entity.transform;
+            Vector3 position = entityTransform.position;
+            Quaternion rotation = entityTransform.rotation;
+            lockstep.WriteVector3(position);
+            lockstep.WriteQuaternion(rotation);
+            entityData.RegisterLatencyHiddenUniqueId(SendExtensionDataInputAction(nameof(OnGoToSleepIA)));
             // Latency hiding.
-            ext.GoToSleep();
+            ext.GoToSleep(position, rotation);
         }
 
         [EntityExtensionDataInputAction]
-        public void OnRigidbodySleepIA()
+        public void OnGoToSleepIA()
         {
 #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnRigidbodySleepIA");
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnGoToSleepIA");
 #endif
-            entityData.GiveBackControlOfPositionSync(
-                this,
-                lockstep.ReadVector3(),
-                PhysicsEntityExtension.InterpolationDuration,
-                updateLatencyState: false); // Gets updated in GoToSleep.
-            entityData.GiveBackControlOfRotationSync(
-                this,
-                lockstep.ReadQuaternion(),
-                PhysicsEntityExtension.InterpolationDuration,
-                updateLatencyState: false); // Gets updated in GoToSleep.
+            if (isSleeping) // Cannot go to sleep while already sleeping.
+            {
+                entityData.MarkLatencyHiddenUniqueIdAsProcessed();
+                return;
+            }
+            Vector3 position = lockstep.ReadVector3();
+            Quaternion rotation = lockstep.ReadQuaternion();
+            entityData.position = position;
+            entityData.rotation = rotation;
             GoToSleep();
+            if (entityData.ShouldApplyReceivedIAToLatencyState() && ext != null)
+                ext.GoToSleep(position, rotation);
         }
 
-        private void GoToSleep()
+        public void GoToSleep()
         {
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  GoToSleep");
 #endif
+            if (isSleeping)
+                return;
             isSleeping = true;
-            ResetGameStateDueDoSleep();
-            if (ext != null)
-                ext.ApplyDataToRigidbody();
+            ResetGameStateDueToSleep();
+            entityData.GiveBackControlOfTransformSync(
+                transformController,
+                entityData.position,
+                entityData.rotation,
+                entityData.scale,
+                PhysicsEntityExtension.InterpolationDuration);
         }
 
-        private void ResetGameStateDueDoSleep()
+        private void ResetGameStateDueToSleep()
         {
 #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  ResetGameStateDueDoSleep");
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  ResetGameStateDueToSleep");
 #endif
-            position = Vector3.zero;
-            rotation = Quaternion.identity;
             velocity = Vector3.zero;
             angularVelocity = Vector3.zero;
         }
@@ -238,8 +243,6 @@ namespace JanSharp
             lockstep.WriteFlags(isSleeping);
             if (!isSleeping)
             {
-                lockstep.WriteVector3(position);
-                lockstep.WriteQuaternion(rotation);
                 lockstep.WriteVector3(velocity);
                 lockstep.WriteVector3(angularVelocity);
             }
@@ -257,13 +260,12 @@ namespace JanSharp
             }
             lockstep.ReadFlags(out isSleeping);
             if (isSleeping)
-                ResetGameStateDueDoSleep();
+                ResetGameStateDueToSleep();
             else
             {
-                position = lockstep.ReadVector3();
-                rotation = lockstep.ReadQuaternion();
                 velocity = lockstep.ReadVector3();
                 angularVelocity = lockstep.ReadVector3();
+                entityData.SetTransformSyncControllerDueToDeserialization(transformController);
             }
         }
     }

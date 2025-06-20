@@ -140,9 +140,9 @@ namespace JanSharp
                 entity.OnInstantiate(lockstep, entitySystem, wannaBeClasses, prototype, isDefaultInstance: false);
             }
             Transform t = entity.transform;
-            t.position = entityData.NoPositionSync ? (Vector3)request[1] : entityData.position;
-            t.rotation = entityData.NoRotationSync ? (Quaternion)request[2] : entityData.rotation;
-            t.localScale = entityData.NoScaleSync ? (Vector3)request[3] : entityData.scale;
+            t.position = entityData.LastKnownPosition;
+            t.rotation = entityData.LastKnownRotation;
+            t.localScale = entityData.LastKnownScale;
             entity.gameObject.SetActive(true);
             entity.AssociateWithEntityData(entityData);
         }
