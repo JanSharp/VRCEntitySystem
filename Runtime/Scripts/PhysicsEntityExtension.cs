@@ -166,7 +166,7 @@ namespace JanSharp
         public void OnInterpolationFinished()
         {
 #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  OnInterpolationFinished");
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  OnInterpolationFinished - interpolationCounter: {interpolationCounter}");
 #endif
             if ((--interpolationCounter) != 0 || isSleeping)
                 return;
