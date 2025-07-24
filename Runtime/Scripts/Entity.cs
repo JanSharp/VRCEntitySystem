@@ -163,7 +163,7 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log("[EntitySystemDebug] Entity  GiveBackControlOfTransformSync");
 #endif
-            if (!noTransformSync && (releasingController != null || transformSyncController != releasingController))
+            if (!noTransformSync || (releasingController != null && transformSyncController != releasingController))
                 return;
             noTransformSync = false;
             EntityTransformController prevController = transformSyncController;
