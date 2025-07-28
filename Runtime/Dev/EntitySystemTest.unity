@@ -11994,16 +11994,16 @@ PrefabInstance:
         type: 3}
       propertyPath: entityPrototypes.Array.data[0]
       value: 
-      objectReference: {fileID: 1927320444}
+      objectReference: {fileID: 1358972797}
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
       propertyPath: entityPrototypes.Array.data[1]
       value: 
-      objectReference: {fileID: 1358972797}
+      objectReference: {fileID: 1927320444}
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
       propertyPath: highestPreInstantiatedEntityId
-      value: 5
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
@@ -12113,7 +12113,7 @@ PrefabInstance:
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
       propertyPath: preInstantiatedEntityInstanceIds.Array.data[2]
-      value: 5
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
