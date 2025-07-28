@@ -68,6 +68,13 @@ namespace JanSharp
 
             so.ApplyModifiedProperties();
 
+            if (entityPrototype.name != prototypeDefinition.name)
+            {
+                SerializedObject goSo = new SerializedObject(entityPrototype.gameObject);
+                goSo.FindProperty("m_Name").stringValue = prototypeDefinition.name;
+                goSo.ApplyModifiedProperties();
+            }
+
             return true;
         }
     }
@@ -119,6 +126,10 @@ namespace JanSharp
                 entityPrefab = newPrototypeDefinition?.entityPrefab;
                 prototypeDefinition = entityPrefab == null ? null : newPrototypeDefinition;
                 entityPrefabProp.objectReferenceValue = entityPrefab;
+
+                SerializedObject goSo = new SerializedObject(((EntityPrototype)target).gameObject);
+                goSo.FindProperty("m_Name").stringValue = prototypeDefinition.name;
+                goSo.ApplyModifiedProperties();
             }
 
             so.ApplyModifiedProperties();
