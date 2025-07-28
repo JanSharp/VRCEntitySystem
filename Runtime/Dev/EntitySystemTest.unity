@@ -4479,8 +4479,8 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1358972799}
-  id: 1
   lockstep: {fileID: 926490372}
+  id: 0
   entityPrefab: {fileID: 4490641290949901507, guid: 99803a8f7550cd11e940c6ec12919df2,
     type: 3}
   prototypeName: physics-entity
@@ -11388,8 +11388,8 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1927320443}
-  id: 0
   lockstep: {fileID: 926490372}
+  id: 1
   entityPrefab: {fileID: 4440450832928301110, guid: 6ca92859c93d5e606a89f2e3dc93532b,
     type: 3}
   prototypeName: my-test
@@ -12003,7 +12003,7 @@ PrefabInstance:
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
       propertyPath: highestPreInstantiatedEntityId
-      value: 4
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
@@ -12113,7 +12113,7 @@ PrefabInstance:
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
       propertyPath: preInstantiatedEntityInstanceIds.Array.data[2]
-      value: 4
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}

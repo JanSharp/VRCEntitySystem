@@ -7,9 +7,18 @@ namespace JanSharp
     [InitializeOnLoad]
     public static class EditorPrototypeOnBuild
     {
+        private static uint nextId = 0u;
+
         static EditorPrototypeOnBuild()
         {
-            OnBuildUtil.RegisterType<EntityPrototype>(OnBuild);
+            OnBuildUtil.RegisterAction(OnPreBuild, order: -12);
+            OnBuildUtil.RegisterType<EntityPrototype>(OnBuild, order: -11);
+        }
+
+        private static bool OnPreBuild()
+        {
+            nextId = 0u;
+            return true;
         }
 
         private static bool OnBuild(EntityPrototype entityPrototype)
@@ -23,6 +32,8 @@ namespace JanSharp
             }
 
             SerializedObject so = new SerializedObject(entityPrototype);
+
+            so.FindProperty("id").uintValue = nextId++;
 
             // Mirroring.
             so.FindProperty("prototypeName").stringValue = prototypeDefinition.prototypeName;
@@ -65,7 +76,6 @@ namespace JanSharp
     public class EntityPrototypeEditor : Editor
     {
         private SerializedObject so;
-        private SerializedProperty idProp;
         private SerializedProperty entityPrefabProp;
         private GameObject entityPrefab;
         private EntityPrototypeDefinition prototypeDefinition;
@@ -73,7 +83,6 @@ namespace JanSharp
         private void OnEnable()
         {
             so = serializedObject;
-            idProp = so.FindProperty("id");
             entityPrefabProp = so.FindProperty("entityPrefab");
             entityPrefab = (GameObject)entityPrefabProp.objectReferenceValue;
             FetchPrototypeDefinition();
@@ -93,9 +102,6 @@ namespace JanSharp
                 return;
 
             so.Update();
-
-            // FIXME: Temp until id editor scripting exists.
-            EditorGUILayout.PropertyField(idProp);
 
             if (entityPrefabProp.objectReferenceValue != entityPrefab)
             {
