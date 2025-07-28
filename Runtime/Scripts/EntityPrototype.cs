@@ -1,7 +1,5 @@
 ﻿using UdonSharp;
 using UnityEngine;
-using VRC.SDKBase;
-using VRC.Udon;
 
 namespace JanSharp
 {
@@ -9,26 +7,29 @@ namespace JanSharp
     public class EntityPrototype : Prototype
     {
         [HideInInspector][SerializeField][SingletonReference] LockstepAPI lockstep;
+
+        [SerializeField] private GameObject entityPrefab; // Used to resolve the reference to EntityPrototypeDefinition.
+        // All of this is just a mirror of the EntityPrototypeDefinition.
         [SerializeField] private string prototypeName;
         [SerializeField] private string displayName;
         [SerializeField] private string shortDescription;
         [SerializeField] private string longDescription;
-        [SerializeField] private GameObject entityPrefab;
         [SerializeField] private Vector3 defaultScale;
-        [SerializeField] private Entity defaultEntityInst;
         // TODO: this probably needs a "highest id" field just like build time id assignment does
         [SerializeField] private uint[] localExtensionIds;
         [SerializeField] private string[] extensionDataClassNames;
+        // And this is not from EntityPrototypeDefinition.
+        [SerializeField] private Entity defaultEntityInst;
 
+        public GameObject EntityPrefab => entityPrefab;
         public override string PrototypeName => prototypeName;
         public override string DisplayName => displayName;
         public override string ShortDescription => shortDescription;
         public override string LongDescription => longDescription;
-        public GameObject EntityPrefab => entityPrefab;
         public Vector3 DefaultScale => defaultScale;
-        public Entity DefaultEntityInst => defaultEntityInst;
         public uint[] LocalExtensionIds => localExtensionIds;
         public string[] ExtensionDataClassNames => extensionDataClassNames;
+        public Entity DefaultEntityInst => defaultEntityInst;
 
         public void ExportMetadata()
         {
