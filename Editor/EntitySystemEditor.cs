@@ -54,6 +54,7 @@ namespace JanSharp
 
         public static void FindAllPrototypeDefinitions()
         {
+            // TODO: Somehow error when multiple prototypes are using the same prefab.
             string[] guids = AssetDatabase.FindAssets("t:EntityPrototypeDefinition");
             prefabToPrototypeDefLut = guids
                 .Select(guid => AssetDatabase.LoadAssetAtPath<EntityPrototypeDefinition>(AssetDatabase.GUIDToAssetPath(guid)))
