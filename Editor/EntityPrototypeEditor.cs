@@ -105,7 +105,29 @@ namespace JanSharp
         private SerializedObject so;
         private SerializedProperty entityPrefabProp;
         private GameObject entityPrefab;
+        private SerializedObject definitionSo;
+        private SerializedProperty prototypeNameProp;
+        private SerializedProperty displayNameProp;
+        private SerializedProperty shortDescriptionProp;
+        private SerializedProperty longDescriptionProp;
+        private SerializedProperty definitionEntityPrefabProp;
         private EntityPrototypeDefinition prototypeDefinition;
+        private EntityPrototypeDefinition PrototypeDefinition
+        {
+            get => prototypeDefinition;
+            set
+            {
+                prototypeDefinition = value;
+                definitionSo = value == null ? null : new SerializedObject(value);
+                if (definitionSo == null)
+                    return;
+                prototypeNameProp = definitionSo.FindProperty("prototypeName");
+                displayNameProp = definitionSo.FindProperty("displayName");
+                shortDescriptionProp = definitionSo.FindProperty("shortDescription");
+                longDescriptionProp = definitionSo.FindProperty("longDescription");
+                definitionEntityPrefabProp = definitionSo.FindProperty("entityPrefab");
+            }
+        }
 
         private void OnEnable()
         {
@@ -118,9 +140,12 @@ namespace JanSharp
         private void FetchPrototypeDefinition()
         {
             if (entityPrefab == null)
-                prototypeDefinition = null;
+                PrototypeDefinition = null;
             else
-                EntitySystemEditorUtil.TryGetPrototypeDefinition(entityPrefab, out prototypeDefinition);
+            {
+                EntitySystemEditorUtil.TryGetPrototypeDefinition(entityPrefab, out var def);
+                PrototypeDefinition = def;
+            }
         }
 
         public override void OnInspectorGUI()
@@ -138,13 +163,13 @@ namespace JanSharp
 
             EntityPrototypeDefinition newPrototypeDefinition = (EntityPrototypeDefinition)EditorGUILayout.ObjectField(
                 new GUIContent("Entity Prototype Definition"),
-                prototypeDefinition,
+                PrototypeDefinition,
                 typeof(EntityPrototypeDefinition),
                 allowSceneObjects: false);
             if (newPrototypeDefinition != prototypeDefinition)
             {
                 entityPrefab = newPrototypeDefinition?.entityPrefab;
-                prototypeDefinition = entityPrefab == null ? null : newPrototypeDefinition;
+                PrototypeDefinition = entityPrefab == null ? null : newPrototypeDefinition;
                 entityPrefabProp.objectReferenceValue = entityPrefab;
 
                 SerializedObject goSo = new SerializedObject(((EntityPrototype)target).gameObject);
@@ -153,6 +178,27 @@ namespace JanSharp
             }
 
             so.ApplyModifiedProperties();
+
+            if (definitionSo == null)
+                return;
+
+            EditorGUILayout.Space();
+            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+                GUILayout.Label("Inlining definition properties here for convenience. Note that the definitions "
+                    + "inspector does support multi editing while this here does not.", EditorStyles.wordWrappedLabel);
+
+            definitionSo.Update();
+            EditorGUILayout.PropertyField(prototypeNameProp);
+            EditorGUILayout.PropertyField(displayNameProp);
+            EditorGUILayout.PropertyField(shortDescriptionProp);
+            EditorGUILayout.PropertyField(longDescriptionProp);
+            definitionSo.ApplyModifiedProperties();
+            EditorGUILayout.PropertyField(definitionEntityPrefabProp);
+            if (definitionSo.ApplyModifiedProperties())
+            {
+                entityPrefabProp.objectReferenceValue = definitionEntityPrefabProp.objectReferenceValue;
+                so.ApplyModifiedProperties();
+            }
         }
     }
 }
