@@ -4,10 +4,11 @@ using UnityEngine;
 namespace JanSharp
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
-    public class EntityPrototype : Prototype
+    public class EntityPrototype : UdonSharpBehaviour
     {
         [HideInInspector][SerializeField][SingletonReference] LockstepAPI lockstep;
 
+        [SerializeField] private uint id;
         [SerializeField] private GameObject entityPrefab; // Used to resolve the reference to EntityPrototypeDefinition.
         // All of this is just a mirror of the EntityPrototypeDefinition.
         [SerializeField] private string prototypeName;
@@ -21,11 +22,12 @@ namespace JanSharp
         // And this is not from EntityPrototypeDefinition.
         [SerializeField] private Entity defaultEntityInst;
 
+        public uint Id => id;
         public GameObject EntityPrefab => entityPrefab;
-        public override string PrototypeName => prototypeName;
-        public override string DisplayName => displayName;
-        public override string ShortDescription => shortDescription;
-        public override string LongDescription => longDescription;
+        public string PrototypeName => prototypeName;
+        public string DisplayName => displayName;
+        public string ShortDescription => shortDescription;
+        public string LongDescription => longDescription;
         public Vector3 DefaultScale => defaultScale;
         public uint[] LocalExtensionIds => localExtensionIds;
         public string[] ExtensionDataClassNames => extensionDataClassNames;
