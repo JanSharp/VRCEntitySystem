@@ -184,20 +184,23 @@ namespace JanSharp
 
             EditorGUILayout.Space();
             using (new GUILayout.VerticalScope(EditorStyles.helpBox))
-                GUILayout.Label("Inlining definition properties here for convenience. Note that the definitions "
-                    + "inspector does support multi editing while this here does not.", EditorStyles.wordWrappedLabel);
-
-            definitionSo.Update();
-            EditorGUILayout.PropertyField(prototypeNameProp);
-            EditorGUILayout.PropertyField(displayNameProp);
-            EditorGUILayout.PropertyField(shortDescriptionProp);
-            EditorGUILayout.PropertyField(longDescriptionProp);
-            definitionSo.ApplyModifiedProperties();
-            EditorGUILayout.PropertyField(definitionEntityPrefabProp);
-            if (definitionSo.ApplyModifiedProperties())
             {
-                entityPrefabProp.objectReferenceValue = definitionEntityPrefabProp.objectReferenceValue;
-                so.ApplyModifiedProperties();
+                GUILayout.Label("Inlining definition properties here for convenience. Note that the definition "
+                    + "inspector does support multi editing while this here does not.", EditorStyles.wordWrappedLabel);
+                EditorGUILayout.Space();
+
+                definitionSo.Update();
+                EditorGUILayout.PropertyField(prototypeNameProp);
+                EditorGUILayout.PropertyField(displayNameProp);
+                EditorGUILayout.PropertyField(shortDescriptionProp);
+                EditorGUILayout.PropertyField(longDescriptionProp);
+                definitionSo.ApplyModifiedProperties();
+                EditorGUILayout.PropertyField(definitionEntityPrefabProp);
+                if (definitionSo.ApplyModifiedProperties())
+                {
+                    entityPrefabProp.objectReferenceValue = definitionEntityPrefabProp.objectReferenceValue;
+                    so.ApplyModifiedProperties();
+                }
             }
         }
     }

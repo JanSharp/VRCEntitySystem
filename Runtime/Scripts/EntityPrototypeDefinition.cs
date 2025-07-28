@@ -9,6 +9,8 @@ namespace JanSharp
         public string displayName;
         public string shortDescription;
         public string longDescription;
+        [Header("Important: Changing this will cause EntityPrototypes in scenes\n"
+            + "referencing this prototype definition to lose that reference.")]
         public GameObject entityPrefab;
         public Vector3 defaultScale;
         // public Entity defaultEntityInst;
