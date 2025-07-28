@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UdonSharpEditor;
 using UnityEditor;
 using UnityEngine;
@@ -8,16 +9,26 @@ namespace JanSharp
     public static class EditorPrototypeOnBuild
     {
         private static uint nextId = 0u;
+        private static HashSet<string> internalNamesLut = new();
 
         static EditorPrototypeOnBuild()
         {
             OnBuildUtil.RegisterAction(OnPreBuild, order: -12);
             OnBuildUtil.RegisterType<EntityPrototype>(OnBuild, order: -11);
+            OnBuildUtil.RegisterAction(OnPostBuild, order: -10);
         }
 
         private static bool OnPreBuild()
         {
             nextId = 0u;
+            internalNamesLut.Clear();
+            return true;
+        }
+
+        private static bool OnPostBuild()
+        {
+            // Cleanup.
+            internalNamesLut.Clear();
             return true;
         }
 
@@ -30,6 +41,15 @@ namespace JanSharp
                 Debug.LogError($"[EntitySystem] Invalid entity prototype, missing Entity Prototype Definition.", entityPrototype);
                 return false;
             }
+
+            if (internalNamesLut.Contains(prototypeDefinition.prototypeName))
+            {
+                Debug.LogError($"[EntitySystem] There are multiple prototypes with the internal prototype "
+                    + $"name '{prototypeDefinition.prototypeName}'. A prototype can only be used once in a "
+                    + $"scene, and every prototype must have a unique prototype name.", entityPrototype);
+                return false;
+            }
+            internalNamesLut.Add(prototypeDefinition.prototypeName);
 
             SerializedObject so = new SerializedObject(entityPrototype);
 
