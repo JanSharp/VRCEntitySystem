@@ -1,8 +1,6 @@
 ﻿using UdonSharp;
 using UnityEngine;
 using VRC.SDK3.Data;
-using VRC.SDKBase;
-using VRC.Udon;
 
 namespace JanSharp
 {
@@ -13,6 +11,10 @@ namespace JanSharp
         [HideInInspector][SerializeField][SingletonReference] private LockstepAPI lockstep;
         [HideInInspector][SerializeField][SingletonReference] private EntitySystem entitySystem;
         [HideInInspector][SerializeField][SingletonReference] private WannaBeClassesManager wannaBeClasses;
+        [HideInInspector][SerializeField][SingletonReference] private UpdateManager updateManager;
+        /// <summary>Required by the <see cref="UpdateManager"/>.</summary>
+        [System.NonSerialized] public int customUpdateInternalIndex;
+
         // private DataDictionary defaultEntities = new DataDictionary();
 
         private object[][] requestQueue = new object[ArrQueue.MinCapacity][];
@@ -59,6 +61,8 @@ namespace JanSharp
                 ArrQueue.EnqueueAtFront(ref requestQueue, ref rqStartIndex, ref rqCount, request);
             else
                 ArrQueue.Enqueue(ref requestQueue, ref rqStartIndex, ref rqCount, request);
+            // Never instantly process a request. Makes it more consistent. Though the argument for having
+            // instant instantiation of an entity being better for the user can be made so this may change.
             StartRequestLoop();
         }
 
@@ -92,28 +96,18 @@ namespace JanSharp
 #if EntitySystemDebug
             Debug.Log($"[EntitySystemDebug] EntityPooling  StartRequestLoop");
 #endif
-            if (requestLoopRunning)
-                return;
-            requestLoopRunning = true;
-            // Never instant. Makes it more consistent. Though the argument for having instant instantiation
-            // of an entity being better for the user can be made so this may change.
-            SendCustomEventDelayedFrames(nameof(RequestLoop), 1);
+            updateManager.Register(this);
         }
 
-        private bool requestLoopRunning = false;
-        public void RequestLoop()
+        public void CustomUpdate()
         {
 #if EntitySystemDebug
-            Debug.Log($"[EntitySystemDebug] EntityPooling  RequestLoop");
+            Debug.Log($"[EntitySystemDebug] EntityPooling  CustomUpdate");
 #endif
             object[] request = ArrQueue.Dequeue(ref requestQueue, ref rqStartIndex, ref rqCount);
             ProcessRequest(request);
             if (rqCount == 0)
-            {
-                requestLoopRunning = false;
-                return;
-            }
-            SendCustomEventDelayedFrames(nameof(RequestLoop), 1);
+                updateManager.Deregister(this);
         }
 
         private void ProcessRequest(object[] request)
