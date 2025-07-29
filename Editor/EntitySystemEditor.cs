@@ -65,8 +65,61 @@ namespace JanSharp
                 so.FindProperty("entityPrototypes"),
                 prototypes,
                 (p, v) => p.objectReferenceValue = v);
-            prototypes = null; // Cleanup.
 
+            Dictionary<string, EntityPrototype> prefabAssetPathToPrototypeLut
+                = prototypes.ToDictionary(p => AssetDatabase.GetAssetPath(p.EntityPrefab), p => p);
+
+            bool invalid = false;
+            List<Entity> preInstantiatedEntityInstances = EditorUtil.EnumerateArrayProperty(so.FindProperty("preInstantiatedEntityInstances"))
+                .Select(p => (Entity)p.objectReferenceValue)
+                .ToList();
+
+            EntityPrototype[] preInstantiatedEntityInstancePrototypes = new EntityPrototype[preInstantiatedEntityInstances.Count];
+            for (int i = 0; i < preInstantiatedEntityInstances.Count; i++)
+            {
+                Entity entity = preInstantiatedEntityInstances[i];
+                if (!PrefabUtility.IsAnyPrefabInstanceRoot(entity.gameObject))
+                {
+                    Debug.LogError($"[EntitySystem] Invalid pre instantiated entity: '{entity.name}'. "
+                        + $"Every pre instantiated entity must be a prefab instance. Also note that "
+                        + $"said prefab must be referenced by an {nameof(EntityPrototypeDefinition)} asset "
+                        + $"and said prototype definition must be referenced by an {nameof(EntityPrototype)} "
+                        + $"in the scene", entity);
+                    invalid = true;
+                    continue;
+                }
+                string prefabAssetPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(entity);
+                if (!prefabAssetPathToPrototypeLut.TryGetValue(prefabAssetPath, out EntityPrototype prototype))
+                {
+                    GameObject prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(prefabAssetPath);
+                    if (EntitySystemEditorUtil.TryGetPrototypeDefinition(prefabAsset, out var prototypeDefinition))
+                        Debug.LogError($"[EntitySystem] Invalid pre instantiated entity: '{entity.name}'. "
+                            + $"The '{prototypeDefinition.name}' (prototype name '{prototypeDefinition.prototypeName}') "
+                            + $"can only be used in a scene where there is an {nameof(EntityPrototype)} which "
+                            + $"is referencing the '{prototypeDefinition.name}' "
+                            + $"{nameof(EntityPrototypeDefinition)} asset.", entity); // TODO: Maybe mention inspector buttons that resolve this.
+                    else
+                        Debug.LogError($"[EntitySystem] Invalid pre instantiated entity: '{entity.name}'. "
+                            + $"Every pre instantiated entity must be a prefab instance where "
+                            + $"said prefab is referenced by an {nameof(EntityPrototypeDefinition)} asset "
+                            + $"and said prototype definition is referenced by an {nameof(EntityPrototype)} "
+                            + $"in the scene.", entity);
+                    invalid = true;
+                    continue;
+                }
+                if (invalid)
+                    continue;
+                preInstantiatedEntityInstancePrototypes[i] = prototype;
+            }
+            if (invalid)
+                return false;
+
+            EditorUtil.SetArrayProperty(
+                so.FindProperty("preInstantiatedEntityInstancePrototypes"),
+                preInstantiatedEntityInstancePrototypes,
+                (p, v) => p.objectReferenceValue = v);
+
+            prototypes = null; // Cleanup.
             so.ApplyModifiedProperties();
             return true;
         }
