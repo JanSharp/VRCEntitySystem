@@ -9,6 +9,9 @@ namespace JanSharp
         [HideInInspector][SerializeField][SingletonReference] LockstepAPI lockstep;
 
         [SerializeField] private uint id;
+        // TODO: replace this with a string that is a guid of an EntityPrototypeDefinition asset
+        // TODO: instantiate a second instance of the prefab and use that to instantiate entities at runtime. [...]
+        // This avoids having to do prefab modifications and works around broken ui text field popups too
         [SerializeField] private GameObject entityPrefab; // Used to resolve the reference to EntityPrototypeDefinition.
         // All of this is just a mirror of the EntityPrototypeDefinition.
         [SerializeField] private string prototypeName;
