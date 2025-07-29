@@ -245,4 +245,30 @@ namespace JanSharp
                 (p, v) => p.objectReferenceValue = v);
         }
     }
+
+    [CustomEditor(typeof(EntitySystem))]
+    public class EntitySystemEditor : Editor
+    {
+#if EntitySystemDebug
+        private SerializedObject so;
+        private SerializedProperty preInstantiatedEntityDataContainerProp;
+
+        private void OnEnable()
+        {
+            so = serializedObject;
+            preInstantiatedEntityDataContainerProp = so.FindProperty("preInstantiatedEntityDataContainer");
+        }
+#endif
+
+        public override void OnInspectorGUI()
+        {
+            if (UdonSharpGUI.DrawDefaultUdonSharpBehaviourHeader(target))
+                return;
+#if EntitySystemDebug
+            so.Update();
+            EditorGUILayout.PropertyField(preInstantiatedEntityDataContainerProp);
+            so.ApplyModifiedProperties();
+#endif
+        }
+    }
 }

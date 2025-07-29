@@ -26,7 +26,6 @@ namespace JanSharp
 
         /// <summary>
         /// <para>Used purely by editor scripting.</para>
-        /// TODO: do show this field in the inspector if the debug define is active
         /// </summary>
         [SerializeField] private Transform preInstantiatedEntityDataContainer;
 
