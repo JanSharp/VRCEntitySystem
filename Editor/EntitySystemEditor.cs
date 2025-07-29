@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UdonSharp;
+using UdonSharpEditor;
 using UnityEditor;
 using UnityEngine;
 
@@ -24,20 +25,22 @@ namespace JanSharp
             return true;
         }
 
+        private static System.Type GetAssociatedEntityExtensionDataType(EntityExtension extension)
+        {
+            if (EntitySystemEditorUtil.IsEntityExtension(extension.GetType(), out System.Type extensionDataType))
+                return extensionDataType;
+            Debug.LogError($"[EntitySystem] Impossible, an entity prototype's default entity has "
+                + $"an extension that is not in the extension types lut.", extension);
+            return null;
+        }
+
         private static bool OnBuild(EntitySystem entitySystem)
         {
             SerializedObject so = new SerializedObject(entitySystem);
 
             List<string> rawExtensionMethodNamesLut = prototypes
                 .SelectMany(p => p.DefaultEntityInst.extensions)
-                .Select(e =>
-                {
-                    if (EntitySystemEditorUtil.IsEntityExtension(e.GetType(), out System.Type extensionDataType))
-                        return extensionDataType;
-                    Debug.LogError($"[EntitySystem] Impossible, an entity prototype's default entity has "
-                        + $"an extension that is not in the extension types lut.", e);
-                    return null;
-                })
+                .Select(GetAssociatedEntityExtensionDataType)
                 .Where(t => t != null)
                 .Distinct()
                 .OrderBy(t => t.Name)
@@ -48,7 +51,7 @@ namespace JanSharp
                         .Select(m => m.Name)
                         .OrderBy(n => n)
                         .ToList()
-                    ))
+                ))
                 .Aggregate(new List<string>(), (list, e) =>
                 {
                     list.Add(e.className);
@@ -118,9 +121,128 @@ namespace JanSharp
                 preInstantiatedEntityInstancePrototypes,
                 (p, v) => p.objectReferenceValue = v);
 
+            GeneratePreInstantiatedEntityData(so, preInstantiatedEntityInstancePrototypes);
+
             prototypes = null; // Cleanup.
             so.ApplyModifiedProperties();
             return true;
+        }
+
+        private static void GeneratePreInstantiatedEntityData(SerializedObject so, EntityPrototype[] preInstantiatedEntityInstancePrototypes)
+        {
+            Transform container = (Transform)so.FindProperty("preInstantiatedEntityDataContainer").objectReferenceValue;
+            List<Transform> toDestroy = new();
+            List<WannaBeClass> existing = new();
+            foreach (Transform child in container)
+            {
+                WannaBeClass wannaBeClass = child.GetComponent<WannaBeClass>();
+                if (wannaBeClass == null)
+                    toDestroy.Add(child);
+                else
+                    existing.Add(wannaBeClass);
+            }
+            foreach (Transform child in toDestroy)
+                OnBuildUtil.UndoDestroyObjectImmediate(child.gameObject);
+            Dictionary<System.Type, List<WannaBeClass>> existingByType = existing
+                .GroupBy(c => c.GetType())
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            List<System.Type> requiredWannaBeTypes = new();
+            Dictionary<EntityPrototype, List<System.Type>> extensionDataTypesByPrototype
+                = preInstantiatedEntityInstancePrototypes
+                    .Distinct()
+                    .ToDictionary(
+                        p => p,
+                        p => p.DefaultEntityInst.extensions
+                            .Select(GetAssociatedEntityExtensionDataType)
+                            .Where(t => t != null)
+                            .ToList());
+            // We are building slopes instead of mountains now!
+            foreach (EntityPrototype prototype in preInstantiatedEntityInstancePrototypes)
+            {
+                requiredWannaBeTypes.Add(typeof(EntityData));
+                requiredWannaBeTypes.AddRange(extensionDataTypesByPrototype[prototype]);
+            }
+
+            int index = 0;
+            HashSet<System.Type> requiredClassTypes = new();
+            List<EntityData> entityDataInsts = null;
+            foreach (var group in requiredWannaBeTypes
+                .GroupBy(t => t)
+                .OrderBy(g => g.Key.Name))
+            {
+                requiredClassTypes.Add(group.Key);
+                int requiredCount = group.Count();
+                if (existingByType.TryGetValue(group.Key, out List<WannaBeClass> insts))
+                {
+                    int canUseCount = System.Math.Min(requiredCount, insts.Count);
+                    requiredCount -= canUseCount;
+                    WannaBeClass[] reused = new WannaBeClass[canUseCount];
+                    for (int i = 0; i < canUseCount; i++)
+                    {
+                        WannaBeClass inst = insts[i];
+                        Undo.SetSiblingIndex(inst.transform, index++, "Generate Pre Instantiated Entity Data");
+                        reused[i] = inst;
+                    }
+                    SerializedObject instsSo = new SerializedObject(reused);
+                    instsSo.FindProperty("m_Name").stringValue = group.Key.Name;
+                    instsSo.ApplyModifiedProperties();
+                    for (int i = canUseCount; i < insts.Count; i++)
+                        OnBuildUtil.UndoDestroyObjectImmediate(insts[i].gameObject);
+                    insts.RemoveRange(canUseCount, insts.Count - canUseCount);
+                }
+                else
+                {
+                    insts = new();
+                    existingByType.Add(group.Key, insts);
+                }
+
+                for (int i = 0; i < requiredCount; i++)
+                {
+                    GameObject inst = new GameObject(group.Key.Name);
+                    Undo.RegisterCreatedObjectUndo(inst, "Generate Pre Instantiated Entity Data");
+                    inst.transform.SetParent(container, worldPositionStays: false);
+                    inst.transform.SetSiblingIndex(index++);
+                    insts.Add((WannaBeClass)UdonSharpUndo.AddComponent(inst, group.Key));
+                    OnBuildUtil.MarkForRerunDueToScriptInstantiation();
+                }
+
+                if (group.Key == typeof(EntityData))
+                    entityDataInsts = insts.Cast<EntityData>().ToList();
+            }
+
+            foreach (var kvp in existingByType)
+            {
+                if (requiredClassTypes.Contains(kvp.Key))
+                    continue;
+                foreach (WannaBeClass inst in kvp.Value)
+                    OnBuildUtil.UndoDestroyObjectImmediate(inst.gameObject);
+            }
+
+            for (int i = 0; i < entityDataInsts.Count; i++)
+            {
+                EntityData entityData = entityDataInsts[i];
+                EntityPrototype prototype = preInstantiatedEntityInstancePrototypes[i];
+                List<System.Type> extensionDataTypes = extensionDataTypesByPrototype[prototype];
+                EntityExtensionData[] allExtensionData = new EntityExtensionData[extensionDataTypes.Count];
+                for (int j = 0; j < extensionDataTypes.Count; j++)
+                {
+                    List<WannaBeClass> insts = existingByType[extensionDataTypes[j]];
+                    allExtensionData[j] = (EntityExtensionData)insts[^1];
+                    insts.RemoveAt(insts.Count - 1);
+                }
+                SerializedObject entityDataSo = new SerializedObject(entityData);
+                EditorUtil.SetArrayProperty(
+                    entityDataSo.FindProperty("allExtensionData"),
+                    allExtensionData,
+                    (p, v) => p.objectReferenceValue = v);
+                entityDataSo.ApplyModifiedProperties();
+            }
+
+            EditorUtil.SetArrayProperty(
+                so.FindProperty("preInstantiatedEntityData"),
+                entityDataInsts,
+                (p, v) => p.objectReferenceValue = v);
         }
     }
 }

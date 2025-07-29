@@ -2,7 +2,6 @@
 using UnityEngine;
 using VRC.SDK3.Data;
 using VRC.SDKBase;
-using VRC.Udon;
 
 namespace JanSharp
 {
@@ -25,6 +24,12 @@ namespace JanSharp
         [HideInInspector][SerializeField][SingletonReference] private EntityPooling pooling;
         [HideInInspector][SerializeField][SingletonReference] private WannaBeClassesManager wannaBeClasses;
 
+        /// <summary>
+        /// <para>Used purely by editor scripting.</para>
+        /// TODO: do show this field in the inspector if the debug define is active
+        /// </summary>
+        [SerializeField] private Transform preInstantiatedEntityDataContainer;
+
         [SerializeField] private EntityPrototype[] entityPrototypes;
         public EntityPrototype[] EntityPrototypes => entityPrototypes;
         private DataDictionary entityPrototypesById = new DataDictionary();
@@ -40,7 +45,11 @@ namespace JanSharp
         [SerializeField] private Entity[] preInstantiatedEntityInstances;
         [SerializeField] private uint[] preInstantiatedEntityInstanceIds;
         [SerializeField] private EntityPrototype[] preInstantiatedEntityInstancePrototypes;
-        [SerializeField] private EntityData[] preInstantiatedEntityData; // TODO: populate (including EntityExtensionData)
+        /// <summary>
+        /// <para>These also already have their <see cref="EntityData.allExtensionData"/> populated at build
+        /// time.</para>
+        /// </summary>
+        [SerializeField] private EntityData[] preInstantiatedEntityData;
         /// <summary>
         /// <para>Only used for late joiner game state deserialization.</para>
         /// </summary>

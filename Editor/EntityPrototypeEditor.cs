@@ -78,7 +78,7 @@ namespace JanSharp
                 || PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(defaultEntityInst) != AssetDatabase.GetAssetPath(entityPrefab))
             {
                 if (defaultEntityInst != null)
-                    Undo.DestroyObjectImmediate(defaultEntityInst.gameObject);
+                    OnBuildUtil.UndoDestroyObjectImmediate(defaultEntityInst.gameObject);
                 GameObject inst = (GameObject)PrefabUtility.InstantiatePrefab(entityPrefab, entityPrototype.transform);
                 inst.SetActive(false);
                 Undo.RegisterCreatedObjectUndo(inst, "Instantiate Default Entity Inst");

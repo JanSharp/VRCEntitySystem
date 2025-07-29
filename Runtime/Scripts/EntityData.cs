@@ -45,8 +45,10 @@ namespace JanSharp
         [System.NonSerialized] public bool hidden;
         [System.NonSerialized] public EntityData parentEntity;
         [System.NonSerialized] public EntityData[] childEntities = new EntityData[0];
-        /*[HideInInspector]*/
-        public EntityExtensionData[] allExtensionData;
+        // Having serialized fields in WannaBeClasses is a very bad idea, as they could end up having stale
+        // previous default values. It's fine in this case as the value gets overwritten for newly created
+        // entity data, and the pre instantiated ones get populated through editor scripting.
+        [HideInInspector] public EntityExtensionData[] allExtensionData;
 
         [System.NonSerialized] public uint unresolvedParentEntityId;
         [System.NonSerialized] public uint[] unresolvedChildEntitiesIds;
