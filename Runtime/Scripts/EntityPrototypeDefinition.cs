@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace JanSharp
 {
-    [CreateAssetMenu(fileName = "Entity", menuName = "EntityPrototype", order = 202)] // Right above Prefab.
+    [CreateAssetMenu(fileName = "Entity", menuName = "EntityPrototypeDefinition", order = 202)] // Right above Prefab.
     public class EntityPrototypeDefinition : ScriptableObject
     {
         public string prototypeName;
