@@ -16,6 +16,6 @@ namespace JanSharp
         // public Entity defaultEntityInst;
         // TODO: this probably needs a "highest id" field just like build time id assignment does
         public uint[] localExtensionIds;
-        public string[] extensionDataClassNames;
+        public string[] extensionDataClassNames; // TODO: Could probably change this to a different type now.
     }
 }
