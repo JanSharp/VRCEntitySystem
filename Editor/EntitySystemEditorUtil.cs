@@ -28,7 +28,7 @@ namespace JanSharp
         private static bool hasInvalidAssociationAttributes = false;
         public static bool HasInvalidAssociationAttributes => hasInvalidAssociationAttributes;
 
-        private static Dictionary<GameObject, EntityPrototypeDefinition> prefabToPrototypeDefLut = new();
+        private static Dictionary<string, EntityPrototypeDefinition> prefabGuidToPrototypeDefLut = new();
 
         static EntitySystemEditorUtil()
         {
@@ -146,24 +146,31 @@ namespace JanSharp
         }
 
         public static bool TryGetPrototypeDefinition(GameObject prefabAsset, out EntityPrototypeDefinition prototypeDefinition)
+            => TryGetPrototypeDefinition(GetAssetGuid(prefabAsset), out prototypeDefinition);
+        public static bool TryGetPrototypeDefinition(string prefabAssetGuid, out EntityPrototypeDefinition prototypeDefinition)
         {
-            if (prefabToPrototypeDefLut.TryGetValue(prefabAsset, out prototypeDefinition)
-                && prototypeDefinition != null && prototypeDefinition.entityPrefab == prefabAsset)
+            if (prefabGuidToPrototypeDefLut.TryGetValue(prefabAssetGuid, out prototypeDefinition)
+                && prototypeDefinition != null && GetAssetGuid(prototypeDefinition.entityPrefab) == prefabAssetGuid)
             {
                 return true;
             }
             FindAllPrototypeDefinitions();
-            return prefabToPrototypeDefLut.TryGetValue(prefabAsset, out prototypeDefinition);
+            return prefabGuidToPrototypeDefLut.TryGetValue(prefabAssetGuid, out prototypeDefinition);
         }
 
         public static void FindAllPrototypeDefinitions()
         {
             // TODO: Somehow error when multiple prototypes are using the same prefab.
             string[] guids = AssetDatabase.FindAssets("t:EntityPrototypeDefinition");
-            prefabToPrototypeDefLut = guids
+            prefabGuidToPrototypeDefLut = guids
                 .Select(guid => AssetDatabase.LoadAssetAtPath<EntityPrototypeDefinition>(AssetDatabase.GUIDToAssetPath(guid)))
                 .Where(p => p.entityPrefab != null)
-                .ToDictionary(p => p.entityPrefab, p => p);
+                .ToDictionary(p => GetAssetGuid(p.entityPrefab), p => p);
         }
+
+        public static string GetAssetGuid(Object obj)
+            => obj != null && AssetDatabase.TryGetGUIDAndLocalFileIdentifier(obj, out string guid, out long _)
+                ? guid
+                : "";
     }
 }

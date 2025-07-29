@@ -91,8 +91,7 @@ namespace JanSharp
                 string prefabAssetPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(entity);
                 if (!prefabAssetPathToPrototypeLut.TryGetValue(prefabAssetPath, out EntityPrototype prototype))
                 {
-                    GameObject prefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(prefabAssetPath);
-                    if (EntitySystemEditorUtil.TryGetPrototypeDefinition(prefabAsset, out var prototypeDefinition))
+                    if (EntitySystemEditorUtil.TryGetPrototypeDefinition(AssetDatabase.AssetPathToGUID(prefabAssetPath), out var prototypeDefinition))
                         Debug.LogError($"[EntitySystem] Invalid pre instantiated entity: '{entity.name}'. "
                             + $"The '{prototypeDefinition.name}' (prototype name '{prototypeDefinition.prototypeName}') "
                             + $"can only be used in a scene where there is an {nameof(EntityPrototype)} which "
