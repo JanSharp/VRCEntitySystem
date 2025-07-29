@@ -23,7 +23,7 @@ namespace JanSharp
         }
 
         private static Dictionary<System.Type, ExtensionTypePair> extensionTypeToPairLut = new();
-        private static Dictionary<System.Type, ExtensionTypePair> extensionDataTypeToPairLut = new();
+        private static Dictionary<string, ExtensionTypePair> extensionDataClassNameToPairLut = new();
 
         private static bool hasInvalidAssociationAttributes = false;
         public static bool HasInvalidAssociationAttributes => hasInvalidAssociationAttributes;
@@ -45,7 +45,7 @@ namespace JanSharp
         private static bool FindAndValidateEntityDataAssociations()
         {
             extensionTypeToPairLut.Clear();
-            extensionDataTypeToPairLut.Clear();
+            extensionDataClassNameToPairLut.Clear();
             hasInvalidAssociationAttributes = false;
 
             List<System.Type> extensionDataTypes = new List<System.Type>();
@@ -79,7 +79,7 @@ namespace JanSharp
 
             foreach (System.Type extensionDataType in extensionDataTypes)
             {
-                if (extensionDataTypeToPairLut.ContainsKey(extensionDataType))
+                if (extensionDataClassNameToPairLut.ContainsKey(extensionDataType.Name))
                     continue;
                 Debug.LogError($"[EntitySystem] The '{extensionDataType.Name}' class is missing an "
                     + $"{nameof(EntityExtension)} referencing it through an [AssociatedEntityExtensionData] attribute. "
@@ -108,8 +108,10 @@ namespace JanSharp
                 hasInvalidAssociationAttributes = true;
                 return;
             }
-            if (extensionDataTypeToPairLut.TryGetValue(extensionDataType, out var existingPair))
+            if (extensionDataClassNameToPairLut.TryGetValue(extensionDataType.Name, out var existingPair))
             {
+                if (existingPair.extensionDataType != extensionDataType)
+                    return; // Silent return because the WannaBeClass editor scripting generates errors for duplicate class names.
                 Debug.LogError($"[EntitySystem] Multiple entity extension classes are attempting to use the "
                     + $"'{extensionDataType.Name}' class through the [AssociatedEntityExtensionData] attribute. "
                     + $"Entity extension class names: '{existingPair.extensionType.Name}' and '{extensionType.Name}'.");
@@ -118,7 +120,7 @@ namespace JanSharp
             }
             ExtensionTypePair pair = new ExtensionTypePair(extensionType, extensionDataType);
             extensionTypeToPairLut.Add(extensionType, pair);
-            extensionDataTypeToPairLut.Add(extensionDataType, pair);
+            extensionDataClassNameToPairLut.Add(extensionDataType.Name, pair);
         }
 
         public static bool IsEntityExtension(System.Type ubType, out System.Type extensionDataType)
@@ -132,9 +134,9 @@ namespace JanSharp
             return false;
         }
 
-        public static bool IsEntityExtensionData(System.Type ubType, out System.Type extensionType)
+        public static bool IsEntityExtensionData(string ubClassName, out System.Type extensionType)
         {
-            if (extensionDataTypeToPairLut.TryGetValue(ubType, out var pair))
+            if (extensionDataClassNameToPairLut.TryGetValue(ubClassName, out var pair))
             {
                 extensionType = pair.extensionType;
                 return true;
