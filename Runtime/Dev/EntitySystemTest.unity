@@ -12028,27 +12028,27 @@ PrefabInstance:
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
       propertyPath: rawExtensionMethodNamesLut.Array.data[0]
-      value: MyCounterEntityExtensionData
-      objectReference: {fileID: 0}
-    - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
-        type: 3}
-      propertyPath: rawExtensionMethodNamesLut.Array.data[1]
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
-        type: 3}
-      propertyPath: rawExtensionMethodNamesLut.Array.data[2]
-      value: OnModifyValueIA
-      objectReference: {fileID: 0}
-    - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
-        type: 3}
-      propertyPath: rawExtensionMethodNamesLut.Array.data[3]
       value: EntityGizmoExtensionData
       objectReference: {fileID: 0}
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
-      propertyPath: rawExtensionMethodNamesLut.Array.data[4]
+      propertyPath: rawExtensionMethodNamesLut.Array.data[1]
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
+        type: 3}
+      propertyPath: rawExtensionMethodNamesLut.Array.data[2]
+      value: MyCounterEntityExtensionData
+      objectReference: {fileID: 0}
+    - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
+        type: 3}
+      propertyPath: rawExtensionMethodNamesLut.Array.data[3]
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
+        type: 3}
+      propertyPath: rawExtensionMethodNamesLut.Array.data[4]
+      value: OnModifyValueIA
       objectReference: {fileID: 0}
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
@@ -12063,7 +12063,7 @@ PrefabInstance:
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
       propertyPath: rawExtensionMethodNamesLut.Array.data[7]
-      value: OnWakeUpIA
+      value: OnGoToSleepIA
       objectReference: {fileID: 0}
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
@@ -12073,7 +12073,7 @@ PrefabInstance:
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
       propertyPath: rawExtensionMethodNamesLut.Array.data[9]
-      value: OnGoToSleepIA
+      value: OnWakeUpIA
       objectReference: {fileID: 0}
     - target: {fileID: 3323032307758558537, guid: d627f7fa95da90f1f87280f822155c9d,
         type: 3}
