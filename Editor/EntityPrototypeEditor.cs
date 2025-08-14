@@ -99,6 +99,9 @@ namespace JanSharp
         }
     }
 
+    // TODO: add the multi edit attribute and when multiple are selected instead of inlining the definition
+    // properties, show a button which when pressed selects all the definitions for the currently selected
+    // entity prototypes.
     [CustomEditor(typeof(EntityPrototype))]
     public class EntityPrototypeEditor : Editor
     {
