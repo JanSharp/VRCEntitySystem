@@ -18,7 +18,7 @@ namespace JanSharp
 
         private void Start()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] TestPhysicsEntitySpawner  Start");
 #endif
             localPlayer = Networking.LocalPlayer;
@@ -33,7 +33,7 @@ namespace JanSharp
 
         private void SpawnAndThrowEntity()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] TestPhysicsEntitySpawner  SpawnAndThrowEntity");
 #endif
             if (!lockstep.IsInitialized)
@@ -59,7 +59,7 @@ namespace JanSharp
         [LockstepInputAction(nameof(onCreatePhysicsEntityIAId))]
         public void OnCreatePhysicsEntityIA()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] TestPhysicsEntitySpawner  OnCreatePhysicsEntityIA");
 #endif
             Vector3 velocity = lockstep.ReadVector3();
@@ -78,7 +78,7 @@ namespace JanSharp
 
         private void EnsureIsAwake(PhysicsEntityExtensionData extensionData)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] TestPhysicsEntitySpawner  EnsureIsAwake");
 #endif
             if (!extensionData.isSleeping)
@@ -88,7 +88,7 @@ namespace JanSharp
 
         private PhysicsEntityExtensionData GetExtensionData(EntityData entityData)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] TestPhysicsEntitySpawner  GetExtensionData");
 #endif
             return entityData.GetExtensionData<PhysicsEntityExtensionData>(nameof(PhysicsEntityExtensionData));

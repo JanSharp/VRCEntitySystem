@@ -18,7 +18,7 @@ namespace JanSharp
 
         public override void WannaBeConstructor()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  InitFromDefault");
 #endif
             localPlayerId = (uint)Networking.LocalPlayer.playerId;
@@ -26,7 +26,7 @@ namespace JanSharp
 
         public override void InitFromDefault(EntityExtension entityExtension)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  InitFromDefault");
 #endif
             MyCounterEntityExtension extension = (MyCounterEntityExtension)entityExtension;
@@ -35,7 +35,7 @@ namespace JanSharp
 
         public override void InitFromPreInstantiated(EntityExtension entityExtension)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  InitFromPreInstantiated");
 #endif
             MyCounterEntityExtension extension = (MyCounterEntityExtension)entityExtension;
@@ -44,14 +44,14 @@ namespace JanSharp
 
         public override void OnAssociatedWithExtension()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  OnAssociatedWithExtension");
 #endif
         }
 
         public void SendModifyValueIA(int delta)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  SendModifyValueIA");
 #endif
             lockstep.WriteSmallInt(delta);
@@ -65,7 +65,7 @@ namespace JanSharp
         [EntityExtensionDataInputAction]
         public void OnModifyValueIA()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  OnModifyValueIA");
 #endif
             int delta = lockstep.ReadSmallInt();
@@ -78,7 +78,7 @@ namespace JanSharp
 
         public override void Serialize(bool isExport)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  Serialize");
 #endif
             lockstep.WriteSmallInt(counterValue);
@@ -86,7 +86,7 @@ namespace JanSharp
 
         public override void Deserialize(bool isImport, uint importedDataVersion)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  Deserialize");
 #endif
             counterValue = lockstep.ReadSmallInt();

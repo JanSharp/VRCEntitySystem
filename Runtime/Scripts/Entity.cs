@@ -39,7 +39,7 @@ namespace JanSharp
             EntityPrototype prototype,
             bool isDefaultInstance)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  OnInstantiate");
 #endif
             this.lockstep = lockstep;
@@ -59,7 +59,7 @@ namespace JanSharp
 
         public void SendDestroyEntityIA()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  SendDestroyEntityIA");
 #endif
             entitySystem.SendDestroyEntityIA(entityData);
@@ -67,7 +67,7 @@ namespace JanSharp
 
         public void AssociateWithEntityData(EntityData entityData)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  AssociateWithEntityData");
             if (this.entityData != null)
                 Debug.LogError($"[EntitySystemDebug] Attempt to InitFromEntityData an Entity multiple times.");
@@ -85,7 +85,7 @@ namespace JanSharp
 
         private void ApplyEntityDataWithoutExtensions()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityDataWithoutExtensions");
 #endif
             Transform t = this.transform;
@@ -106,7 +106,7 @@ namespace JanSharp
 
         public void ApplyEntityData()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityData");
 #endif
             ApplyEntityDataWithoutExtensions();
@@ -116,7 +116,7 @@ namespace JanSharp
 
         public void DisassociateFromEntityDataAndReset(Entity defaultEntityInst)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  DisassociateFromEntityDataAndReset");
 #endif
             // TODO: this probably needs to do more
@@ -133,14 +133,14 @@ namespace JanSharp
 
         public void OnDestroyEntity()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  OnDestroyEntity");
 #endif
         }
 
         public void TakeControlOfTransformSync(EntityTransformController controller)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log("[EntitySystemDebug] Entity  TakeControlOfTransformSync");
 #endif
             if (!noTransformSync)
@@ -160,7 +160,7 @@ namespace JanSharp
         /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
         public void GiveBackControlOfTransformSync(EntityTransformController releasingController, Vector3 position, Quaternion rotation, Vector3 scale, float interpolationDuration = TransformChangeInterpolationDuration)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log("[EntitySystemDebug] Entity  GiveBackControlOfTransformSync");
 #endif
             if (!noTransformSync || (releasingController != null && transformSyncController != releasingController))
@@ -191,7 +191,7 @@ namespace JanSharp
 
         private void EnqueueTransformChangeIA()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  EnqueueTransformChangeIA");
 #endif
             if (transformChangeIAIsQueued)
@@ -206,7 +206,7 @@ namespace JanSharp
 
         public void FlagForPositionChange(bool flagForDiscontinuity = false)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  FlagForPositionChange");
 #endif
             if (noTransformSync)
@@ -219,7 +219,7 @@ namespace JanSharp
 
         public void FlagForRotationChange(bool flagForDiscontinuity = false)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  FlagForRotationChange");
 #endif
             if (noTransformSync)
@@ -232,7 +232,7 @@ namespace JanSharp
 
         public void FlagForPositionAndRotationChange(bool flagForDiscontinuity = false)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  FlagForPositionAndRotationChange");
 #endif
             FlagForPositionChange(flagForDiscontinuity);
@@ -241,7 +241,7 @@ namespace JanSharp
 
         public void FlagForScaleChange(bool flagForDiscontinuity = false)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  FlagForScaleChange");
 #endif
             if (noTransformSync)
@@ -256,7 +256,7 @@ namespace JanSharp
 
         private void ResetTransformChangeFlags()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  ResetTransformChangeFlags");
 #endif
             transformChangeIAIsQueued = false;
@@ -273,7 +273,7 @@ namespace JanSharp
         /// </summary>
         public void SendTransformChangeIA()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  SendTransformChangeIA");
 #endif
             entitySystem.WriteEntityDataRef(entityData);
@@ -310,7 +310,7 @@ namespace JanSharp
 
         public static EntityExtension GetExtensionDynamic(this Entity entity, string extensionDataClassName, int startIndex = 0)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  GetExtensionDynamic");
 #endif
             int extensionIndex = System.Array.IndexOf(entity.prototype.ExtensionDataClassNames, extensionDataClassName, startIndex);
@@ -320,7 +320,7 @@ namespace JanSharp
         public static T GetExtension<T>(this Entity entity, string extensionDataClassName, int startIndex = 0)
             where T : EntityExtension
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  GetExtension");
 #endif
             // Same as GetExtensionDynamic.

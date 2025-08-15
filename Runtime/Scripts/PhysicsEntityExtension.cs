@@ -36,7 +36,7 @@ namespace JanSharp
 
         public override void OnInstantiate()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  OnInstantiate");
 #endif
             rb = GetComponent<Rigidbody>();
@@ -47,7 +47,7 @@ namespace JanSharp
 
         public override void DisassociateFromExtensionDataAndReset(EntityExtension defaultExtension)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  DisassociateFromExtensionDataAndReset");
 #endif
             PhysicsEntityExtension ext = (PhysicsEntityExtension)defaultExtension;
@@ -60,7 +60,7 @@ namespace JanSharp
 
         public override void AssociateWithExtensionData()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  AssociateWithExtensionData");
 #endif
             data = (PhysicsEntityExtensionData)extensionData;
@@ -74,7 +74,7 @@ namespace JanSharp
 
         public override void ApplyExtensionData()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  ApplyExtensionData");
 #endif
             SetResponsiblePlayerId(data.responsiblePlayerId);
@@ -97,7 +97,7 @@ namespace JanSharp
 
         public void WakeUp()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  WakeUp");
 #endif
             if (!isSleeping)
@@ -110,7 +110,7 @@ namespace JanSharp
 
         public void GoToSleep(Vector3 position, Quaternion rotation)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  GoToSleep");
 #endif
             if (isSleeping)
@@ -128,7 +128,7 @@ namespace JanSharp
 
         public void RigidbodyUpdate()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  RigidbodyUpdate");
 #endif
             if (isSleeping)
@@ -153,7 +153,7 @@ namespace JanSharp
 
         private void InterpolateToDataPositionAndRotation(Vector3 position, Quaternion rotation)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  InterpolateToDataPositionAndRotation");
 #endif
             InterpolationManager interpolation = data.interpolation;
@@ -165,7 +165,7 @@ namespace JanSharp
 
         public void OnInterpolationFinished()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  OnInterpolationFinished - interpolationCounter: {interpolationCounter}");
 #endif
             if ((--interpolationCounter) != 0 || isSleeping)
@@ -177,7 +177,7 @@ namespace JanSharp
 
         public void SetResponsiblePlayerId(uint responsiblePlayerId)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  SetResponsiblePlayerId");
 #endif
             this.responsiblePlayerId = responsiblePlayerId;
@@ -186,7 +186,7 @@ namespace JanSharp
 
         public void UpdateUpdateLoopRunningState()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  UpdateUpdateLoopRunningState");
 #endif
             updateLoopShouldBeRunning = !isSleeping && responsiblePlayerId == localPlayerId;
@@ -195,7 +195,7 @@ namespace JanSharp
 
         private void StartUpdateLoop()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  StartUpdateLoop - updateLoopShouldBeRunning: {updateLoopShouldBeRunning}");
 #endif
             if (updateLoopIsRunning || !updateLoopShouldBeRunning)
@@ -206,7 +206,7 @@ namespace JanSharp
 
         public void UpdateLoop()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  UpdateLoop");
 #endif
             if (!updateLoopShouldBeRunning)

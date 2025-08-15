@@ -49,7 +49,7 @@ namespace JanSharp
 
         public void ExportMetadata()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPrototype  ExportMetadata");
 #endif
             lockstep.WriteSmallUInt(Id);
@@ -65,7 +65,7 @@ namespace JanSharp
     {
         public static EntityPrototypeMetadata ImportMetadata(WannaBeClassesManager wannaBeClasses, LockstepAPI lockstep, EntitySystem entitySystem)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPrototype  ImportMetadata");
 #endif
             EntityPrototypeMetadata metadata = wannaBeClasses.New<EntityPrototypeMetadata>(nameof(EntityPrototypeMetadata));

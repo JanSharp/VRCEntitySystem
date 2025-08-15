@@ -15,7 +15,7 @@ namespace JanSharp
 
         public override void Interact()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] TestEntitySpawner  Interact");
 #endif
             if (!entitySystem.TryGetEntityPrototype(entityPrototypeName, out EntityPrototype prototype))

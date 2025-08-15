@@ -19,7 +19,7 @@ namespace JanSharp
 
         public override void ApplyExtensionData()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  ApplyExtensionData");
 #endif
             counterValue = Data.counterValue;
@@ -28,7 +28,7 @@ namespace JanSharp
 
         public override void DisassociateFromExtensionDataAndReset(EntityExtension defaultExtension)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  DisassociateFromExtensionDataAndReset");
 #endif
             MyCounterEntityExtension extension = (MyCounterEntityExtension)defaultExtension;
@@ -38,7 +38,7 @@ namespace JanSharp
 
         public void UpdateText()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  UpdateText");
 #endif
             text.text = counterValue.ToString();
@@ -46,7 +46,7 @@ namespace JanSharp
 
         public void OnDecrementClick()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  OnDecrementClick");
 #endif
             Data.SendModifyValueIA(-1);
@@ -54,7 +54,7 @@ namespace JanSharp
 
         public void OnIncrementClick()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtension  OnIncrementClick");
 #endif
             Data.SendModifyValueIA(1);

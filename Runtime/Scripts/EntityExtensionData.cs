@@ -26,7 +26,7 @@ namespace JanSharp
 
         public void SetEntityAndExtension(Entity entity, EntityExtension extension)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityExtensionData  SetEntityAndExtension");
 #endif
             this.entity = entity;
@@ -58,7 +58,7 @@ namespace JanSharp
             int extensionIndex,
             EntityData entityData)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityExtensionDataStatics  New - extensionDataClassName: {extensionDataClassName}, extensionIndex: {extensionIndex}");
 #endif
             return ((EntityExtensionData)wannaBeClasses.NewDynamic(extensionDataClassName))

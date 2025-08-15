@@ -262,7 +262,7 @@ namespace JanSharp
     [CustomEditor(typeof(EntitySystem))]
     public class EntitySystemEditor : Editor
     {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
         private SerializedObject so;
         private SerializedProperty preInstantiatedEntityDataContainerProp;
         private SerializedProperty entityPrefabInstsContainerProp;
@@ -284,7 +284,7 @@ namespace JanSharp
             // TODO: add button to reset all entity prefab and default entities to defaults - undoing all prefab overrides.
             // Mostly important for stupid things like UI automatically creating prefab overrides.
             // TODO: add button to reset pre instantiated entity ids
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             so.Update();
             EditorGUILayout.PropertyField(preInstantiatedEntityDataContainerProp);
             EditorGUILayout.PropertyField(entityPrefabInstsContainerProp);

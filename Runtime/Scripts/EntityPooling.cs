@@ -25,7 +25,7 @@ namespace JanSharp
 
         private void Start()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  Start");
 #endif
             foreach (EntityPrototype prototype in entitySystem.EntityPrototypes)
@@ -47,7 +47,7 @@ namespace JanSharp
             Vector3 scale,
             bool highPriority = false)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  RequestEntity");
 #endif
             object[] request = new object[]
@@ -68,7 +68,7 @@ namespace JanSharp
 
         public void ReturnEntity(EntityData entityData)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  ReturnEntity - entityData");
 #endif
             entityData.entityIsDestroyed = true;
@@ -83,7 +83,7 @@ namespace JanSharp
 
         public void ReturnEntity(Entity entity)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  ReturnEntity - entity");
 #endif
             entity.gameObject.SetActive(false);
@@ -93,7 +93,7 @@ namespace JanSharp
 
         private void StartRequestLoop()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  StartRequestLoop");
 #endif
             updateManager.Register(this);
@@ -101,7 +101,7 @@ namespace JanSharp
 
         public void CustomUpdate()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  CustomUpdate");
 #endif
             object[] request = ArrQueue.Dequeue(ref requestQueue, ref rqStartIndex, ref rqCount);
@@ -112,7 +112,7 @@ namespace JanSharp
 
         private void ProcessRequest(object[] request)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  ProcessRequest");
 #endif
             EntityData entityData = (EntityData)request[0];

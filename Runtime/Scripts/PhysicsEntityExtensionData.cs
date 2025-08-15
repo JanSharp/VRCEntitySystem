@@ -27,7 +27,7 @@ namespace JanSharp
 
         public override void InitFromDefault(EntityExtension entityExtension)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  InitFromDefault");
 #endif
             PhysicsEntityExtension ext = (PhysicsEntityExtension)entityExtension;
@@ -38,7 +38,7 @@ namespace JanSharp
 
         public override void InitFromPreInstantiated(EntityExtension entityExtension)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  InitFromPreInstantiated");
 #endif
             InitFromDefault(entityExtension);
@@ -46,7 +46,7 @@ namespace JanSharp
 
         public override void OnEntityExtensionDataCreated()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnEntityExtensionDataCreated");
 #endif
             if (responsiblePlayerId == 0u)
@@ -56,14 +56,14 @@ namespace JanSharp
 
         public override void OnAssociatedWithExtension()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnAssociatedWithExtension");
 #endif
         }
 
         public override void OnEntityExtensionDataDestroyed()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnEntityExtensionDataDestroyed");
 #endif
             manager.DeregisterPhysicsExtensionData(this);
@@ -71,7 +71,7 @@ namespace JanSharp
 
         public void SetResponsiblePlayerId(uint playerId)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  SetResponsiblePlayerId");
 #endif
             manager.DeregisterPhysicsExtensionData(this);
@@ -81,7 +81,7 @@ namespace JanSharp
 
         public void SendWakeUpIA(Vector3 velocity, Vector3 angularVelocity)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  SendWakeUpIA");
 #endif
             entityData.WritePotentiallyUnknownTransformValues();
@@ -101,7 +101,7 @@ namespace JanSharp
         [EntityExtensionDataInputAction]
         public void OnWakeUpIA()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnWakeUpIA");
 #endif
             if (!isSleeping) // Cannot be woken up while already awake.
@@ -124,7 +124,7 @@ namespace JanSharp
 
         public void WakeUp()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  WakeUp");
 #endif
             if (!isSleeping)
@@ -135,7 +135,7 @@ namespace JanSharp
 
         public void SendRigidbodyUpdateIA()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  SendRigidbodyUpdateIA");
 #endif
             if (ext.isSleeping || ext.responsiblePlayerId != localPlayerId)
@@ -155,7 +155,7 @@ namespace JanSharp
         [EntityExtensionDataInputAction]
         public void OnRigidbodyUpdateIA()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnRigidbodyUpdateIA");
 #endif
             if (isSleeping || lockstep.SendingPlayerId != responsiblePlayerId)
@@ -174,7 +174,7 @@ namespace JanSharp
 
         public void SendGoToSleepIA()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  SendGoToSleepIA");
 #endif
             Transform entityTransform = entity.transform;
@@ -190,7 +190,7 @@ namespace JanSharp
         [EntityExtensionDataInputAction]
         public void OnGoToSleepIA()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnGoToSleepIA");
 #endif
             if (isSleeping) // Cannot go to sleep while already sleeping.
@@ -209,7 +209,7 @@ namespace JanSharp
 
         public void GoToSleep()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  GoToSleep");
 #endif
             if (isSleeping)
@@ -226,7 +226,7 @@ namespace JanSharp
 
         private void ResetGameStateDueToSleep()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  ResetGameStateDueToSleep");
 #endif
             velocity = Vector3.zero;
@@ -235,7 +235,7 @@ namespace JanSharp
 
         public override void Serialize(bool isExport)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  Serialize");
 #endif
             if (!isExport)
@@ -250,7 +250,7 @@ namespace JanSharp
 
         public override void Deserialize(bool isImport, uint importedDataVersion)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  Deserialize");
 #endif
             if (!isImport)

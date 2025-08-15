@@ -77,7 +77,7 @@ namespace JanSharp
 
         public EntityData WannaBeConstructor(EntityPrototype entityPrototype, ulong uniqueId, uint id)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  WannaBeConstructor - entityPrototype.PrototypeName: {(entityPrototype == null ? "<null>" : entityPrototype.PrototypeName)}, uniqueId: 0x{uniqueId:x16}, id: {id}");
 #endif
             this.entityPrototype = entityPrototype;
@@ -104,7 +104,7 @@ namespace JanSharp
 
         public override void WannaBeDestructor()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  WannaBeDestructor");
 #endif
             if (allExtensionData == null)
@@ -115,7 +115,7 @@ namespace JanSharp
 
         public void SendDestroyEntityIA()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  SendDestroyEntityIA");
 #endif
             entitySystem.SendDestroyEntityIA(this);
@@ -123,7 +123,7 @@ namespace JanSharp
 
         public void SetEntity(Entity entity)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  SetEntity");
 #endif
             this.entity = entity;
@@ -132,7 +132,7 @@ namespace JanSharp
 
         public void InitFromDefault(Vector3 position, Quaternion rotation, Vector3 scale)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  InitFromDefault");
 #endif
             this.position = position;
@@ -147,7 +147,7 @@ namespace JanSharp
 
         private void InitAllExtensionDataFromDefault()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  InitAllExtensionDataFromDefault");
 #endif
             int length = allExtensionData.Length;
@@ -158,7 +158,7 @@ namespace JanSharp
 
         internal void InitFromPreInstantiated(Entity entity)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  InitFromPreInstantiated");
 #endif
             Transform t = entity.transform;
@@ -174,7 +174,7 @@ namespace JanSharp
 
         private void InitAllExtensionDataFromPreInstantiated(EntityExtension[] extensions)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  InitAllExtensionDataFromPreInstantiated");
 #endif
             int length = allExtensionData.Length;
@@ -184,7 +184,7 @@ namespace JanSharp
 
         public void OnEntityDataCreated()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  OnEntityDataCreated");
 #endif
             foreach (EntityExtensionData extensionData in allExtensionData)
@@ -193,7 +193,7 @@ namespace JanSharp
 
         public void OnAssociatedWithEntity()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  OnAssociatedWithEntity");
 #endif
             foreach (EntityExtensionData extensionData in allExtensionData)
@@ -202,7 +202,7 @@ namespace JanSharp
 
         public void OnDisassociateFromEntity()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  OnDisassociateFromEntity");
 #endif
             foreach (EntityExtensionData extensionData in allExtensionData)
@@ -211,7 +211,7 @@ namespace JanSharp
 
         public void OnEntityDataDestroyed()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  OnEntityDataDestroyed");
 #endif
             foreach (EntityExtensionData extensionData in allExtensionData)
@@ -220,7 +220,7 @@ namespace JanSharp
 
         public bool RegisterLatencyHiddenUniqueId(ulong uniqueId)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  RegisterLatencyHiddenUniqueId - uniqueId: 0x{uniqueId:x16}");
 #endif
             if (uniqueId == 0uL)
@@ -236,7 +236,7 @@ namespace JanSharp
         /// <returns></returns>
         public bool ShouldApplyReceivedIAToLatencyState()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  ShouldApplyReceivedIAToLatencyState - uniqueId: 0x{lockstep.SendingUniqueId:x16}, latencyUniqueIdLut.Count: {latencyUniqueIdLut.Count}");
 #endif
             if (latencyUniqueIdLut.Count == 0)
@@ -261,7 +261,7 @@ namespace JanSharp
         /// </summary>
         public void MarkLatencyHiddenUniqueIdAsProcessed()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  MarkLatencyHiddenUniqueIdAsProcessed");
 #endif
             ShouldApplyReceivedIAToLatencyState(); // Literally the same logic.
@@ -269,7 +269,7 @@ namespace JanSharp
 
         public void WritePotentiallyUnknownTransformValues()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log("[EntitySystemDebug] EntityData  WritePotentiallyUnknownTransformValues");
 #endif
             if (!noTransformSync // At the time of sending the data was known, so we will have close to up to date values for sure.
@@ -298,7 +298,7 @@ namespace JanSharp
 
         public void ReadPotentiallyUnknownTransformValues()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log("[EntitySystemDebug] EntityData  ReadPotentiallyUnknownTransformValues");
 #endif
             lockstep.ReadFlags(out bool unknownPosition, out bool unknownRotation, out bool unknownScale);
@@ -312,7 +312,7 @@ namespace JanSharp
 
         public void TakeControlOfTransformSync(EntityTransformController controller)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log("[EntitySystemDebug] EntityData  TakeControlOfTransformSync");
 #endif
             if (!noTransformSync)
@@ -336,7 +336,7 @@ namespace JanSharp
         /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
         public void GiveBackControlOfTransformSync(EntityTransformController releasingController, Vector3 position, Quaternion rotation, Vector3 scale, float interpolationDuration = Entity.TransformChangeInterpolationDuration)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfTransformSync");
 #endif
             if (!noTransformSync || (releasingController != null && transformSyncController != releasingController))
@@ -360,7 +360,7 @@ namespace JanSharp
 
         public void SetTransformSyncControllerDueToDeserialization(EntityTransformController controller)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log("[EntitySystemDebug] EntityData  SetTransformSyncControllerDueToDeserialization");
 #endif
             if (!noTransformSync)
@@ -380,7 +380,7 @@ namespace JanSharp
 
         private void SerializeTransformValues(bool isExport)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  SerializeTransformValues");
 #endif
             lockstep.WriteVector3(position);
@@ -396,7 +396,7 @@ namespace JanSharp
 
         private void DeserializeTransformValue(bool isImport)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  DeserializeTransformValue");
 #endif
             position = lockstep.ReadVector3();
@@ -418,7 +418,7 @@ namespace JanSharp
 
         public void Serialize(bool isExport)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  Serialize");
 #endif
             lockstep.WriteFlags(noTransformSync, hidden);
@@ -437,7 +437,7 @@ namespace JanSharp
 
         public void Deserialize(bool isImport, uint importedDataVersion)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  Deserialize");
 #endif
             lockstep.ReadFlags(out noTransformSync, out hidden);
@@ -474,7 +474,7 @@ namespace JanSharp
 
         private void ResolveImportedParentEntityId()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  ResolveImportedParentEntityId");
 #endif
             entitySystem.TryGetRemappedImportedEntityData(unresolvedParentEntityId, out parentEntity);
@@ -483,7 +483,7 @@ namespace JanSharp
 
         private void ResolveImportedChildEntityIds()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  ResolveImportedChildEntityIds");
 #endif
             EntityData[] childEntities = new EntityData[unresolvedChildEntitiesIds.Length];
@@ -502,7 +502,7 @@ namespace JanSharp
 
         private void DeserializeAllExtensionData()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  DeserializeAllExtensionData");
 #endif
             foreach (EntityExtensionData extensionData in allExtensionData)
@@ -511,7 +511,7 @@ namespace JanSharp
 
         private void ImportAllExtensionData()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  ImportAllExtensionData");
 #endif
             int length = (int)lockstep.ReadSmallUInt();
@@ -541,7 +541,7 @@ namespace JanSharp
         /// </summary>
         public void OnTransformChangeIA()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  OnTransformChangeIA");
 #endif
             if (noTransformSync)
@@ -609,7 +609,7 @@ namespace JanSharp
 
         public static EntityExtensionData GetExtensionDataDynamic(this EntityData entityData, string extensionDataClassName, int startIndex = 0)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  GetExtensionDataDynamic");
 #endif
             int extensionIndex = System.Array.IndexOf(entityData.entityPrototype.ExtensionDataClassNames, extensionDataClassName, startIndex);
@@ -619,7 +619,7 @@ namespace JanSharp
         public static T GetExtensionData<T>(this EntityData entityData, string extensionDataClassName, int startIndex = 0)
             where T : EntityExtensionData
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  GetExtensionData");
 #endif
             // Same as GetExtensionDataDynamic.

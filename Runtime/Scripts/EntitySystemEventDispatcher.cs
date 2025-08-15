@@ -14,7 +14,7 @@ namespace JanSharp
         public EntityData DeserializedEntityData => deserializedEntityData;
         private void RaiseOnEntityDeserialized(EntityData deserializedEntityData)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  RaiseOnEntityDeserialized");
 #endif
             this.deserializedEntityData = deserializedEntityData;
@@ -26,7 +26,7 @@ namespace JanSharp
         public EntityData CreatedEntityData => createdEntityData;
         private void RaiseOnEntityCreated(EntityData createdEntityData)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  RaiseOnEntityCreated");
 #endif
             this.createdEntityData = createdEntityData;
@@ -38,7 +38,7 @@ namespace JanSharp
         public EntityData DestroyedEntityData => destroyedEntityData;
         private void RaiseOnEntityDestroyed(EntityData destroyedEntityData)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  RaiseOnEntityDestroyed");
 #endif
             this.destroyedEntityData = destroyedEntityData;

@@ -17,7 +17,7 @@ namespace JanSharp
 
         public void InternalSetup(int extensionIndex, LockstepAPI lockstep, EntitySystem entitySystem, Entity entity)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityExtension  InternalSetup");
 #endif
             this.extensionIndex = extensionIndex;

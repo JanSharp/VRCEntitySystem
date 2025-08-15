@@ -19,7 +19,7 @@ namespace JanSharp
 
         private DataList GetExtensionsListForPlayerId(uint playerId)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityManager  GetExtensionsListForPlayerId");
 #endif
             if (associatedEntitiesLut.TryGetValue(playerId, out DataToken listToken))
@@ -32,7 +32,7 @@ namespace JanSharp
         [LockstepEvent(LockstepEventType.OnClientLeft)]
         public void OnClientLeft()
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityManager  OnClientLeft");
 #endif
             if (!associatedEntitiesLut.Remove(lockstep.LeftPlayerId, out DataToken listToken))
@@ -53,7 +53,7 @@ namespace JanSharp
 
         public void RegisterPhysicsExtensionData(PhysicsEntityExtensionData extensionData)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityManager  RegisterPhysicsExtensionData");
 #endif
             GetExtensionsListForPlayerId(extensionData.responsiblePlayerId).Add(extensionData);
@@ -61,7 +61,7 @@ namespace JanSharp
 
         public void DeregisterPhysicsExtensionData(PhysicsEntityExtensionData extensionData)
         {
-#if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityManager  DeregisterPhysicsExtensionData");
 #endif
             GetExtensionsListForPlayerId(extensionData.responsiblePlayerId).Remove(extensionData);

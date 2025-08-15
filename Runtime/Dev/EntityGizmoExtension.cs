@@ -13,24 +13,24 @@ namespace JanSharp
 
         private void Start()
         {
-            #if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityGizmoExtension  Start");
-            #endif
+#endif
             gizmoBridge = GameObject.Find("EntityGizmoExtensionBridge").GetComponent<EntityGizmoExtensionBridge>();
         }
 
         public override void ApplyExtensionData()
         {
-            #if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityGizmoExtension  ApplyExtensionData");
-            #endif
+#endif
         }
 
         public override void Interact()
         {
-            #if EntitySystemDebug
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityGizmoExtension  Interact");
-            #endif
+#endif
             if (entity.entityData == null)
                 return;
             gizmoBridge.CurrentEntity = gizmoBridge.CurrentEntity == entity ? null : entity;
