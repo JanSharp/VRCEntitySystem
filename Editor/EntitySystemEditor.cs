@@ -201,8 +201,10 @@ namespace JanSharp
                     for (int i = 0; i < canUseCount; i++)
                     {
                         WannaBeClass inst = insts[i];
-                        // FIXME: This causes the scene to be flagged as modified every time even when nothing changed.
-                        Undo.SetSiblingIndex(inst.transform, index++, "Generate Pre Instantiated Entity Data");
+                        int targetIndex = index++;
+                        // SetSiblingIndex marks the scene as modified even when it didn't actually move an object.
+                        if (inst.transform.GetSiblingIndex() != targetIndex)
+                            Undo.SetSiblingIndex(inst.transform, targetIndex, "Generate Pre Instantiated Entity Data");
                         reused[i] = inst;
                     }
                     SerializedObject instsSo = new SerializedObject(reused);
