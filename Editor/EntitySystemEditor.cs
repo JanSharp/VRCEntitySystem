@@ -70,7 +70,7 @@ namespace JanSharp
                 (p, v) => p.objectReferenceValue = v);
 
             Dictionary<string, EntityPrototype> prefabAssetPathToPrototypeLut
-                = prototypes.ToDictionary(p => AssetDatabase.GetAssetPath(p.EntityPrefab), p => p);
+                = prototypes.ToDictionary(p => AssetDatabase.GetAssetPath(p.EntityPrefabTemp), p => p);
 
             bool invalid = false;
             List<Entity> preInstantiatedEntityInstances = EditorUtil.EnumerateArrayProperty(so.FindProperty("preInstantiatedEntityInstances"))
@@ -121,19 +121,31 @@ namespace JanSharp
                 preInstantiatedEntityInstancePrototypes,
                 (p, v) => p.objectReferenceValue = v);
 
-            GeneratePreInstantiatedEntityData(so, preInstantiatedEntityInstancePrototypes);
+            CleanupOldEntityPrefabInsts(entitySystem.EntityPrefabInstsContainer, p => p.EntityPrefabInst.transform);
+            CleanupOldEntityPrefabInsts(entitySystem.DefaultEntityInstsContainer, p => p.DefaultEntityInst.transform);
+
+            GeneratePreInstantiatedEntityData(entitySystem, so, preInstantiatedEntityInstancePrototypes);
 
             prototypes = null; // Cleanup.
             so.ApplyModifiedProperties();
             return true;
         }
 
-        private static void GeneratePreInstantiatedEntityData(SerializedObject so, EntityPrototype[] preInstantiatedEntityInstancePrototypes)
+        private static void CleanupOldEntityPrefabInsts(Transform container, System.Func<EntityPrototype, Transform> toKeepSelector)
         {
-            Transform container = (Transform)so.FindProperty("preInstantiatedEntityDataContainer").objectReferenceValue;
+            // ToList in order to not delete during iteration, as that would result in skipping some children.
+            foreach (var toDestroy in container.Cast<Transform>().Except(prototypes.Select(toKeepSelector)).ToList())
+                OnBuildUtil.UndoDestroyObjectImmediate(toDestroy.gameObject);
+        }
+
+        private static void GeneratePreInstantiatedEntityData(
+            EntitySystem entitySystem,
+            SerializedObject so,
+            EntityPrototype[] preInstantiatedEntityInstancePrototypes)
+        {
             List<Transform> toDestroy = new();
             List<WannaBeClass> existing = new();
-            foreach (Transform child in container)
+            foreach (Transform child in entitySystem.PreInstantiatedEntityDataContainer)
             {
                 WannaBeClass wannaBeClass = child.GetComponent<WannaBeClass>();
                 if (wannaBeClass == null)
@@ -181,6 +193,7 @@ namespace JanSharp
                     for (int i = 0; i < canUseCount; i++)
                     {
                         WannaBeClass inst = insts[i];
+                        // FIXME: This causes the scene to be flagged as modified every time even when nothing changed.
                         Undo.SetSiblingIndex(inst.transform, index++, "Generate Pre Instantiated Entity Data");
                         reused[i] = inst;
                     }
@@ -201,7 +214,7 @@ namespace JanSharp
                 {
                     GameObject inst = new GameObject(group.Key.Name);
                     Undo.RegisterCreatedObjectUndo(inst, "Generate Pre Instantiated Entity Data");
-                    inst.transform.SetParent(container, worldPositionStays: false);
+                    inst.transform.SetParent(entitySystem.PreInstantiatedEntityDataContainer, worldPositionStays: false);
                     inst.transform.SetSiblingIndex(index++);
                     insts.Add((WannaBeClass)UdonSharpUndo.AddComponent(inst, group.Key));
                     OnBuildUtil.MarkForRerunDueToScriptInstantiation();
@@ -252,11 +265,15 @@ namespace JanSharp
 #if EntitySystemDebug
         private SerializedObject so;
         private SerializedProperty preInstantiatedEntityDataContainerProp;
+        private SerializedProperty entityPrefabInstsContainerProp;
+        private SerializedProperty defaultEntityInstsContainerProp;
 
         private void OnEnable()
         {
             so = serializedObject;
             preInstantiatedEntityDataContainerProp = so.FindProperty("preInstantiatedEntityDataContainer");
+            entityPrefabInstsContainerProp = so.FindProperty("entityPrefabInstsContainer");
+            defaultEntityInstsContainerProp = so.FindProperty("defaultEntityInstsContainer");
         }
 #endif
 
@@ -264,9 +281,14 @@ namespace JanSharp
         {
             if (UdonSharpGUI.DrawDefaultUdonSharpBehaviourHeader(target))
                 return;
+            // TODO: add button to reset all entity prefab and default entities to defaults - undoing all prefab overrides.
+            // Mostly important for stupid things like UI automatically creating prefab overrides.
+            // TODO: add button to reset pre instantiated entity ids
 #if EntitySystemDebug
             so.Update();
             EditorGUILayout.PropertyField(preInstantiatedEntityDataContainerProp);
+            EditorGUILayout.PropertyField(entityPrefabInstsContainerProp);
+            EditorGUILayout.PropertyField(defaultEntityInstsContainerProp);
             so.ApplyModifiedProperties();
 #endif
         }

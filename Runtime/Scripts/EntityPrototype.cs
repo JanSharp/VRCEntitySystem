@@ -10,8 +10,6 @@ namespace JanSharp
 
         [SerializeField] private uint id;
         // TODO: replace this with a string that is a guid of an EntityPrototypeDefinition asset
-        // TODO: instantiate a second instance of the prefab and use that to instantiate entities at runtime. [...]
-        // This avoids having to do prefab modifications and works around broken ui text field popups too
         [SerializeField] private GameObject entityPrefab; // Used to resolve the reference to EntityPrototypeDefinition.
         // All of this is just a mirror of the EntityPrototypeDefinition.
         [SerializeField] private string prototypeName;
@@ -23,10 +21,23 @@ namespace JanSharp
         [SerializeField] private uint[] localExtensionIds;
         [SerializeField] private string[] extensionDataClassNames;
         // And this is not from EntityPrototypeDefinition.
+        /// <summary>
+        /// <para>Using this instead of a reference to an actual prefab asset avoids having to do prefab
+        /// modifications in editor scripting and works around broken ui text field popups too.</para>
+        /// <para>See this canny: https://feedback.vrchat.com/bug-reports/p/instantiated-input-fields-dont-open-the-vrc-keyboard</para>
+        /// </summary>
+        [SerializeField] private GameObject entityPrefabInst;
+        /// <summary>
+        /// <para>Once initialized this instance shall be immutable.</para>
+        /// <para>It is used to reset any and all other instances of the same entity prototype to "factory
+        /// defaults", which is required for entity pooling to work in a predictable fashion.</para>
+        /// </summary>
         [SerializeField] private Entity defaultEntityInst;
 
+        public GameObject EntityPrefabTemp => entityPrefab;
+
         public uint Id => id;
-        public GameObject EntityPrefab => entityPrefab;
+        public GameObject EntityPrefabInst => entityPrefabInst;
         public string PrototypeName => prototypeName;
         public string DisplayName => displayName;
         public string ShortDescription => shortDescription;

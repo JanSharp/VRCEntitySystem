@@ -24,10 +24,14 @@ namespace JanSharp
         [HideInInspector][SerializeField][SingletonReference] private EntityPooling pooling;
         [HideInInspector][SerializeField][SingletonReference] private WannaBeClassesManager wannaBeClasses;
 
-        /// <summary>
-        /// <para>Used purely by editor scripting.</para>
-        /// </summary>
         [SerializeField] private Transform preInstantiatedEntityDataContainer;
+        [SerializeField] private Transform entityPrefabInstsContainer;
+        [SerializeField] private Transform defaultEntityInstsContainer;
+#if UNITY_EDITOR && !COMPILER_UDONSHARP
+        public Transform PreInstantiatedEntityDataContainer => preInstantiatedEntityDataContainer;
+        public Transform EntityPrefabInstsContainer => entityPrefabInstsContainer;
+        public Transform DefaultEntityInstsContainer => defaultEntityInstsContainer;
+#endif
 
         [SerializeField] private EntityPrototype[] entityPrototypes;
         public EntityPrototype[] EntityPrototypes => entityPrototypes;

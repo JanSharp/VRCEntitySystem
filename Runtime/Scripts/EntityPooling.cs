@@ -129,7 +129,7 @@ namespace JanSharp
             }
             else
             {
-                GameObject entityGo = Instantiate(prototype.EntityPrefab);
+                GameObject entityGo = Instantiate(prototype.EntityPrefabInst);
                 entity = entityGo.GetComponent<Entity>();
                 entity.OnInstantiate(lockstep, entitySystem, wannaBeClasses, prototype, isDefaultInstance: false);
             }

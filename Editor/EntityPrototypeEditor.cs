@@ -6,15 +6,17 @@ using UnityEngine;
 namespace JanSharp
 {
     [InitializeOnLoad]
-    public static class EditorPrototypeOnBuild
+    public static class EntityPrototypeOnBuild
     {
         private static uint nextId = 0u;
         private static HashSet<string> internalNamesLut = new();
+        private static EntitySystem entitySystem;
 
-        static EditorPrototypeOnBuild()
+        static EntityPrototypeOnBuild()
         {
-            OnBuildUtil.RegisterAction(OnPreBuild, order: -12);
-            OnBuildUtil.RegisterType<EntityPrototype>(OnBuild, order: -11);
+            OnBuildUtil.RegisterAction(OnPreBuild, order: -13);
+            OnBuildUtil.RegisterType<EntitySystem>(OnFetchEntitySystem, order: -12);
+            OnBuildUtil.RegisterType<EntityPrototype>(OnBuild, order: -11); // TODO: change this to be cumulative due to MarkForRerunDueToScriptInstantiation
             OnBuildUtil.RegisterAction(OnPostBuild, order: -10);
         }
 
@@ -32,11 +34,17 @@ namespace JanSharp
             return true;
         }
 
+        private static bool OnFetchEntitySystem(EntitySystem entitySystem)
+        {
+            EntityPrototypeOnBuild.entitySystem = entitySystem;
+            return true;
+        }
+
         private static bool OnBuild(EntityPrototype entityPrototype)
         {
-            GameObject entityPrefab = entityPrototype.EntityPrefab;
-            if (entityPrefab == null
-                || !EntitySystemEditorUtil.TryGetPrototypeDefinition(entityPrefab, out EntityPrototypeDefinition prototypeDefinition))
+            GameObject entityPrefabTemp = entityPrototype.EntityPrefabTemp;
+            if (entityPrefabTemp == null
+                || !EntitySystemEditorUtil.TryGetPrototypeDefinition(entityPrefabTemp, out EntityPrototypeDefinition prototypeDefinition))
             {
                 Debug.LogError($"[EntitySystem] Invalid entity prototype, missing Entity Prototype Definition.", entityPrototype);
                 return false;
@@ -72,19 +80,38 @@ namespace JanSharp
 
             // TODO: Validate entity prefab. Does it have an Entity component, etc (?)
 
+            GameObject entityPrefab = entityPrototype.EntityPrefabInst;
+            if (entityPrefab == null
+                || !PrefabUtility.IsAnyPrefabInstanceRoot(entityPrefab)
+                || PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(entityPrefab) != AssetDatabase.GetAssetPath(entityPrefabTemp))
+            {
+                if (entityPrefab != null)
+                    OnBuildUtil.UndoDestroyObjectImmediate(entityPrefab);
+                entityPrefab = (GameObject)PrefabUtility.InstantiatePrefab(entityPrefabTemp, entitySystem.EntityPrefabInstsContainer);
+                entityPrefab.SetActive(true);
+                Undo.RegisterCreatedObjectUndo(entityPrefab, "Instantiate Entity Prefab");
+                so.FindProperty("entityPrefabInst").objectReferenceValue = entityPrefab;
+                OnBuildUtil.MarkForRerunDueToScriptInstantiation();
+            }
+            EnsureActiveState(entityPrefab, true); // TODO: maybe allow disabled entity prefabs.
+            EnsureParent(entityPrefab.transform, entitySystem.EntityPrefabInstsContainer);
+
             Entity defaultEntityInst = entityPrototype.DefaultEntityInst;
             if (defaultEntityInst == null
                 || !PrefabUtility.IsAnyPrefabInstanceRoot(defaultEntityInst.gameObject)
-                || PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(defaultEntityInst) != AssetDatabase.GetAssetPath(entityPrefab))
+                || PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(defaultEntityInst) != AssetDatabase.GetAssetPath(entityPrefabTemp))
             {
                 if (defaultEntityInst != null)
                     OnBuildUtil.UndoDestroyObjectImmediate(defaultEntityInst.gameObject);
-                GameObject inst = (GameObject)PrefabUtility.InstantiatePrefab(entityPrefab, entityPrototype.transform);
+                GameObject inst = (GameObject)PrefabUtility.InstantiatePrefab(entityPrefabTemp, entitySystem.DefaultEntityInstsContainer);
                 inst.SetActive(false);
                 Undo.RegisterCreatedObjectUndo(inst, "Instantiate Default Entity Inst");
-                so.FindProperty("defaultEntityInst").objectReferenceValue = inst.GetComponent<Entity>();
+                defaultEntityInst = inst.GetComponent<Entity>();
+                so.FindProperty("defaultEntityInst").objectReferenceValue = defaultEntityInst;
                 OnBuildUtil.MarkForRerunDueToScriptInstantiation();
             }
+            EnsureActiveState(defaultEntityInst.gameObject, false); // The parent is disabled anyway, this shouldn't really matter...
+            EnsureParent(defaultEntityInst.transform, entitySystem.DefaultEntityInstsContainer);
 
             so.ApplyModifiedProperties();
 
@@ -96,6 +123,22 @@ namespace JanSharp
             }
 
             return true;
+        }
+
+        private static void EnsureActiveState(GameObject go, bool active)
+        {
+            if (go.activeSelf == active)
+                return;
+            SerializedObject so = new SerializedObject(go);
+            so.FindProperty("m_IsActive").boolValue = active;
+            so.ApplyModifiedProperties();
+        }
+
+        private static void EnsureParent(Transform child, Transform parent)
+        {
+            if (child.parent == parent)
+                return;
+            Undo.SetTransformParent(child, parent, worldPositionStays: false, "Move Entity Prefab Inst");
         }
     }
 
