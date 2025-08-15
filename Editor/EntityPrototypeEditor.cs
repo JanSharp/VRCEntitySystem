@@ -16,7 +16,7 @@ namespace JanSharp
         {
             OnBuildUtil.RegisterAction(OnPreBuild, order: -13);
             OnBuildUtil.RegisterType<EntitySystem>(OnFetchEntitySystem, order: -12);
-            OnBuildUtil.RegisterType<EntityPrototype>(OnBuild, order: -11); // TODO: change this to be cumulative due to MarkForRerunDueToScriptInstantiation
+            OnBuildUtil.RegisterTypeCumulative<EntityPrototype>(OnBuildCumulative, order: -11);
             OnBuildUtil.RegisterAction(OnPostBuild, order: -10);
         }
 
@@ -38,6 +38,19 @@ namespace JanSharp
         {
             EntityPrototypeOnBuild.entitySystem = entitySystem;
             return true;
+        }
+
+        private static bool OnBuildCumulative(IEnumerable<EntityPrototype> entityPrototypes)
+        {
+            // Using Cumulative and just doing our own loop here due to
+            // usage of OnBuildUtil.MarkForRerunDueToScriptInstantiation()
+            // In the worst case scenario when not using cumulative it would trigger a rerun for every entity
+            // prototype, which could quickly run into the max rerun limit that is in place to prevent
+            // recursion. Plus it would just be a waste of performance rerunning so many times.
+            bool result = true;
+            foreach (EntityPrototype entityPrototype in entityPrototypes)
+                result &= OnBuild(entityPrototype);
+            return result;
         }
 
         private static bool OnBuild(EntityPrototype entityPrototype)
