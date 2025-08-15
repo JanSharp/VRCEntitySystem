@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UdonSharpEditor;
 using UnityEditor;
 using UnityEngine;
@@ -160,56 +161,80 @@ namespace JanSharp
         }
     }
 
-    // TODO: add the multi edit attribute and when multiple are selected instead of inlining the definition
-    // properties, show a button which when pressed selects all the definitions for the currently selected
-    // entity prototypes.
+    [CanEditMultipleObjects]
     [CustomEditor(typeof(EntityPrototype))]
     public class EntityPrototypeEditor : Editor
     {
         private SerializedObject so;
         private SerializedProperty prototypeDefinitionGuidProp;
-        private string entityPrefabGuid;
-        private SerializedObject definitionSo;
+        private string[] prototypeDefinitionGuids;
+        private SerializedObject definitionsSo;
         private SerializedProperty prototypeNameProp;
         private SerializedProperty displayNameProp;
         private SerializedProperty shortDescriptionProp;
         private SerializedProperty longDescriptionProp;
         private SerializedProperty definitionEntityPrefabProp;
-        private EntityPrototypeDefinition prototypeDefinition;
-        private EntityPrototypeDefinition PrototypeDefinition
-        {
-            get => prototypeDefinition;
-            set
-            {
-                prototypeDefinition = value;
-                definitionSo = value == null ? null : new SerializedObject(value);
-                if (definitionSo == null)
-                    return;
-                prototypeNameProp = definitionSo.FindProperty("prototypeName");
-                displayNameProp = definitionSo.FindProperty("displayName");
-                shortDescriptionProp = definitionSo.FindProperty("shortDescription");
-                longDescriptionProp = definitionSo.FindProperty("longDescription");
-                definitionEntityPrefabProp = definitionSo.FindProperty("entityPrefab");
-            }
-        }
+        private EntityPrototypeDefinition shownPrototypeDefinition;
 
         private void OnEnable()
         {
             so = serializedObject;
             prototypeDefinitionGuidProp = so.FindProperty("prototypeDefinitionGuid");
-            entityPrefabGuid = prototypeDefinitionGuidProp.stringValue;
+            prototypeDefinitionGuids = GetCurrentPrototypeDefinitionGuids();
             FetchPrototypeDefinition();
+        }
+
+        private string[] GetCurrentPrototypeDefinitionGuids()
+        {
+            return targets.Select(t => ((EntityPrototype)t).PrototypeDefinitionGuid).ToArray();
         }
 
         private void FetchPrototypeDefinition()
         {
-            if (entityPrefabGuid == "")
-                PrototypeDefinition = null;
-            else
-            {
-                EntitySystemEditorUtil.TryGetPrototypeDefinition(entityPrefabGuid, out var def);
-                PrototypeDefinition = def;
-            }
+            SetPrototypeDefinitions(prototypeDefinitionGuids
+                .Where(g => g != "")
+                .Select(g => EntitySystemEditorUtil.TryGetPrototypeDefinition(g, out var def) ? def : null)
+                .Where(d => d != null)
+                .Distinct()
+                .ToArray());
+        }
+
+        private void SetPrototypeDefinitions(EntityPrototypeDefinition[] prototypeDefinitions)
+        {
+            shownPrototypeDefinition = prototypeDefinitions.FirstOrDefault();
+            definitionsSo = prototypeDefinitions.Length == 0
+                ? null
+                : new SerializedObject(prototypeDefinitions);
+            prototypeNameProp = definitionsSo == null ? null : definitionsSo.FindProperty("prototypeName");
+            displayNameProp = definitionsSo == null ? null : definitionsSo.FindProperty("displayName");
+            shortDescriptionProp = definitionsSo == null ? null : definitionsSo.FindProperty("shortDescription");
+            longDescriptionProp = definitionsSo == null ? null : definitionsSo.FindProperty("longDescription");
+            definitionEntityPrefabProp = definitionsSo == null ? null : definitionsSo.FindProperty("entityPrefab");
+        }
+
+        private bool CompareStringArrays(string[] left, string[] right)
+        {
+            if (left.Length != right.Length)
+                return false;
+            for (int i = 0; i < left.Length; i++)
+                if (left[i] != right[i])
+                    return false;
+            return true;
+        }
+
+        private void SetPrototypeDefinition(EntityPrototypeDefinition prototypeDefinition)
+        {
+            string prototypeDefinitionGuid = EntitySystemEditorUtil.GetAssetGuid(prototypeDefinition);
+            SetPrototypeDefinitions(prototypeDefinitionGuid == ""
+                ? new EntityPrototypeDefinition[0]
+                : new EntityPrototypeDefinition[1] { prototypeDefinition });
+            prototypeDefinitionGuidProp.stringValue = prototypeDefinitionGuid;
+
+            if (shownPrototypeDefinition == null)
+                return;
+            SerializedObject goSo = new SerializedObject(targets.Select(t => ((EntityPrototype)t).gameObject).ToArray());
+            goSo.FindProperty("m_Name").stringValue = shownPrototypeDefinition.name;
+            goSo.ApplyModifiedProperties();
         }
 
         public override void OnInspectorGUI()
@@ -219,47 +244,42 @@ namespace JanSharp
 
             so.Update();
 
-            if (prototypeDefinitionGuidProp.stringValue != entityPrefabGuid)
+            string[] newEntityPrefabGuids = GetCurrentPrototypeDefinitionGuids();
+            if (!CompareStringArrays(prototypeDefinitionGuids, newEntityPrefabGuids))
             {
-                entityPrefabGuid = prototypeDefinitionGuidProp.stringValue;
+                prototypeDefinitionGuids = newEntityPrefabGuids;
                 FetchPrototypeDefinition();
             }
 
+            EditorGUI.showMixedValue = prototypeDefinitionGuidProp.hasMultipleDifferentValues;
             EntityPrototypeDefinition newPrototypeDefinition = (EntityPrototypeDefinition)EditorGUILayout.ObjectField(
                 new GUIContent("Entity Prototype Definition"),
-                PrototypeDefinition,
+                shownPrototypeDefinition,
                 typeof(EntityPrototypeDefinition),
                 allowSceneObjects: false);
-            if (newPrototypeDefinition != prototypeDefinition)
-            {
-                entityPrefabGuid = EntitySystemEditorUtil.GetAssetGuid(newPrototypeDefinition);
-                PrototypeDefinition = entityPrefabGuid == "" ? null : newPrototypeDefinition;
-                prototypeDefinitionGuidProp.stringValue = entityPrefabGuid;
-
-                SerializedObject goSo = new SerializedObject(((EntityPrototype)target).gameObject);
-                goSo.FindProperty("m_Name").stringValue = prototypeDefinition.name;
-                goSo.ApplyModifiedProperties();
-            }
+            EditorGUI.showMixedValue = false;
+            if (newPrototypeDefinition != shownPrototypeDefinition)
+                SetPrototypeDefinition(newPrototypeDefinition);
 
             so.ApplyModifiedProperties();
 
-            if (definitionSo == null)
+            if (definitionsSo == null)
                 return;
 
             EditorGUILayout.Space();
+            if (prototypeDefinitionGuids.Any(g => g == ""))
+                using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+                    GUILayout.Label("Some of the selected Entity Prototypes do not have a definition set.", EditorStyles.wordWrappedLabel);
             using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                GUILayout.Label("Inlining definition properties here for convenience. Note that the definition "
-                    + "inspector does support multi editing while this here does not.", EditorStyles.wordWrappedLabel);
-                EditorGUILayout.Space();
-
-                definitionSo.Update();
+                GUILayout.Label("Inlined Prototype Definition", EditorStyles.boldLabel);
+                definitionsSo.Update();
                 EditorGUILayout.PropertyField(prototypeNameProp);
                 EditorGUILayout.PropertyField(displayNameProp);
                 EditorGUILayout.PropertyField(shortDescriptionProp);
                 EditorGUILayout.PropertyField(longDescriptionProp);
                 EditorGUILayout.PropertyField(definitionEntityPrefabProp);
-                definitionSo.ApplyModifiedProperties();
+                definitionsSo.ApplyModifiedProperties();
             }
         }
     }
