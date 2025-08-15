@@ -42,11 +42,16 @@ namespace JanSharp
 
         private static bool OnBuild(EntityPrototype entityPrototype)
         {
-            GameObject entityPrefabTemp = entityPrototype.EntityPrefabTemp;
-            if (entityPrefabTemp == null
-                || !EntitySystemEditorUtil.TryGetPrototypeDefinition(entityPrefabTemp, out EntityPrototypeDefinition prototypeDefinition))
+            string prototypeDefinitionGuid = entityPrototype.PrototypeDefinitionGuid;
+            if (prototypeDefinitionGuid == ""
+                || !EntitySystemEditorUtil.TryGetPrototypeDefinition(prototypeDefinitionGuid, out EntityPrototypeDefinition prototypeDefinition))
             {
                 Debug.LogError($"[EntitySystem] Invalid entity prototype, missing Entity Prototype Definition.", entityPrototype);
+                return false;
+            }
+            if (prototypeDefinition.entityPrefab == null)
+            {
+                Debug.LogError($"[EntitySystem] Invalid entity prototype, Prototype Definition is missing an Entity Prefab.", entityPrototype);
                 return false;
             }
 
@@ -83,11 +88,11 @@ namespace JanSharp
             GameObject entityPrefab = entityPrototype.EntityPrefabInst;
             if (entityPrefab == null
                 || !PrefabUtility.IsAnyPrefabInstanceRoot(entityPrefab)
-                || PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(entityPrefab) != AssetDatabase.GetAssetPath(entityPrefabTemp))
+                || PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(entityPrefab) != AssetDatabase.GetAssetPath(prototypeDefinition.entityPrefab))
             {
                 if (entityPrefab != null)
                     OnBuildUtil.UndoDestroyObjectImmediate(entityPrefab);
-                entityPrefab = (GameObject)PrefabUtility.InstantiatePrefab(entityPrefabTemp, entitySystem.EntityPrefabInstsContainer);
+                entityPrefab = (GameObject)PrefabUtility.InstantiatePrefab(prototypeDefinition.entityPrefab, entitySystem.EntityPrefabInstsContainer);
                 entityPrefab.SetActive(true);
                 Undo.RegisterCreatedObjectUndo(entityPrefab, "Instantiate Entity Prefab");
                 so.FindProperty("entityPrefabInst").objectReferenceValue = entityPrefab;
@@ -99,11 +104,11 @@ namespace JanSharp
             Entity defaultEntityInst = entityPrototype.DefaultEntityInst;
             if (defaultEntityInst == null
                 || !PrefabUtility.IsAnyPrefabInstanceRoot(defaultEntityInst.gameObject)
-                || PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(defaultEntityInst) != AssetDatabase.GetAssetPath(entityPrefabTemp))
+                || PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(defaultEntityInst) != AssetDatabase.GetAssetPath(prototypeDefinition.entityPrefab))
             {
                 if (defaultEntityInst != null)
                     OnBuildUtil.UndoDestroyObjectImmediate(defaultEntityInst.gameObject);
-                GameObject inst = (GameObject)PrefabUtility.InstantiatePrefab(entityPrefabTemp, entitySystem.DefaultEntityInstsContainer);
+                GameObject inst = (GameObject)PrefabUtility.InstantiatePrefab(prototypeDefinition.entityPrefab, entitySystem.DefaultEntityInstsContainer);
                 inst.SetActive(false);
                 Undo.RegisterCreatedObjectUndo(inst, "Instantiate Default Entity Inst");
                 defaultEntityInst = inst.GetComponent<Entity>();
@@ -149,8 +154,8 @@ namespace JanSharp
     public class EntityPrototypeEditor : Editor
     {
         private SerializedObject so;
-        private SerializedProperty entityPrefabProp;
-        private GameObject entityPrefab;
+        private SerializedProperty prototypeDefinitionGuidProp;
+        private string entityPrefabGuid;
         private SerializedObject definitionSo;
         private SerializedProperty prototypeNameProp;
         private SerializedProperty displayNameProp;
@@ -178,18 +183,18 @@ namespace JanSharp
         private void OnEnable()
         {
             so = serializedObject;
-            entityPrefabProp = so.FindProperty("entityPrefab");
-            entityPrefab = (GameObject)entityPrefabProp.objectReferenceValue;
+            prototypeDefinitionGuidProp = so.FindProperty("prototypeDefinitionGuid");
+            entityPrefabGuid = prototypeDefinitionGuidProp.stringValue;
             FetchPrototypeDefinition();
         }
 
         private void FetchPrototypeDefinition()
         {
-            if (entityPrefab == null)
+            if (entityPrefabGuid == "")
                 PrototypeDefinition = null;
             else
             {
-                EntitySystemEditorUtil.TryGetPrototypeDefinition(entityPrefab, out var def);
+                EntitySystemEditorUtil.TryGetPrototypeDefinition(entityPrefabGuid, out var def);
                 PrototypeDefinition = def;
             }
         }
@@ -201,9 +206,9 @@ namespace JanSharp
 
             so.Update();
 
-            if (entityPrefabProp.objectReferenceValue != entityPrefab)
+            if (prototypeDefinitionGuidProp.stringValue != entityPrefabGuid)
             {
-                entityPrefab = (GameObject)entityPrefabProp.objectReferenceValue;
+                entityPrefabGuid = prototypeDefinitionGuidProp.stringValue;
                 FetchPrototypeDefinition();
             }
 
@@ -214,9 +219,9 @@ namespace JanSharp
                 allowSceneObjects: false);
             if (newPrototypeDefinition != prototypeDefinition)
             {
-                entityPrefab = newPrototypeDefinition?.entityPrefab;
-                PrototypeDefinition = entityPrefab == null ? null : newPrototypeDefinition;
-                entityPrefabProp.objectReferenceValue = entityPrefab;
+                entityPrefabGuid = EntitySystemEditorUtil.GetAssetGuid(newPrototypeDefinition);
+                PrototypeDefinition = entityPrefabGuid == "" ? null : newPrototypeDefinition;
+                prototypeDefinitionGuidProp.stringValue = entityPrefabGuid;
 
                 SerializedObject goSo = new SerializedObject(((EntityPrototype)target).gameObject);
                 goSo.FindProperty("m_Name").stringValue = prototypeDefinition.name;
@@ -240,13 +245,8 @@ namespace JanSharp
                 EditorGUILayout.PropertyField(displayNameProp);
                 EditorGUILayout.PropertyField(shortDescriptionProp);
                 EditorGUILayout.PropertyField(longDescriptionProp);
-                definitionSo.ApplyModifiedProperties();
                 EditorGUILayout.PropertyField(definitionEntityPrefabProp);
-                if (definitionSo.ApplyModifiedProperties())
-                {
-                    entityPrefabProp.objectReferenceValue = definitionEntityPrefabProp.objectReferenceValue;
-                    so.ApplyModifiedProperties();
-                }
+                definitionSo.ApplyModifiedProperties();
             }
         }
     }

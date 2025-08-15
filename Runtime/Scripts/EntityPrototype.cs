@@ -9,8 +9,13 @@ namespace JanSharp
         [HideInInspector][SerializeField][SingletonReference] LockstepAPI lockstep;
 
         [SerializeField] private uint id;
-        // TODO: replace this with a string that is a guid of an EntityPrototypeDefinition asset
-        [SerializeField] private GameObject entityPrefab; // Used to resolve the reference to EntityPrototypeDefinition.
+        /// <summary>
+        /// <para>Used to resolve the reference to <see cref="EntityPrototypeDefinition"/>.</para>
+        /// </summary>
+        [SerializeField] private string prototypeDefinitionGuid;
+#if UNITY_EDITOR && !COMPILER_UDONSHARP
+        public string PrototypeDefinitionGuid => prototypeDefinitionGuid;
+#endif
         // All of this is just a mirror of the EntityPrototypeDefinition.
         [SerializeField] private string prototypeName;
         [SerializeField] private string displayName;
@@ -33,8 +38,6 @@ namespace JanSharp
         /// defaults", which is required for entity pooling to work in a predictable fashion.</para>
         /// </summary>
         [SerializeField] private Entity defaultEntityInst;
-
-        public GameObject EntityPrefabTemp => entityPrefab;
 
         public uint Id => id;
         public GameObject EntityPrefabInst => entityPrefabInst;

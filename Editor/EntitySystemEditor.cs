@@ -69,8 +69,16 @@ namespace JanSharp
                 prototypes,
                 (p, v) => p.objectReferenceValue = v);
 
-            Dictionary<string, EntityPrototype> prefabAssetPathToPrototypeLut
-                = prototypes.ToDictionary(p => AssetDatabase.GetAssetPath(p.EntityPrefabTemp), p => p);
+            // TODO: Detect and properly error when multiple definitions use the same entity prefab.
+
+            Dictionary<string, EntityPrototype> prefabAssetPathToPrototypeLut = prototypes
+                .Select(p =>
+                {
+                    bool success = EntitySystemEditorUtil.TryGetPrototypeDefinition(p.PrototypeDefinitionGuid, out var prototypeDefinition);
+                    return (success, prototype: p, definition: prototypeDefinition);
+                })
+                .Where(d => d.success && d.definition.entityPrefab != null)
+                .ToDictionary(d => AssetDatabase.GetAssetPath(d.definition.entityPrefab), d => d.prototype);
 
             bool invalid = false;
             List<Entity> preInstantiatedEntityInstances = EditorUtil.EnumerateArrayProperty(so.FindProperty("preInstantiatedEntityInstances"))
