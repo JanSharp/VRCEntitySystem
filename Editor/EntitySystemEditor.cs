@@ -295,6 +295,7 @@ namespace JanSharp
             // Mostly important for stupid things like UI automatically creating prefab overrides.
             // TODO: add button to reset pre instantiated entity ids
 #if ENTITY_SYSTEM_DEBUG
+            GUILayout.Label("Debug / Internal", EditorStyles.boldLabel);
             so.Update();
             EditorGUILayout.PropertyField(preInstantiatedEntityDataContainerProp);
             EditorGUILayout.PropertyField(entityPrefabInstsContainerProp);
