@@ -69,16 +69,30 @@ namespace JanSharp
                 prototypes,
                 (p, v) => p.objectReferenceValue = v);
 
-            // TODO: Detect and properly error when multiple definitions use the same entity prefab.
-
-            Dictionary<string, EntityPrototype> prefabAssetPathToPrototypeLut = prototypes
+            var prototypesGroupedByPrefab = prototypes
                 .Select(p =>
                 {
                     bool success = EntitySystemEditorUtil.TryGetPrototypeDefinition(p.PrototypeDefinitionGuid, out var prototypeDefinition);
                     return (success, prototype: p, definition: prototypeDefinition);
                 })
                 .Where(d => d.success && d.definition.entityPrefab != null)
-                .ToDictionary(d => AssetDatabase.GetAssetPath(d.definition.entityPrefab), d => d.prototype);
+                .GroupBy(d => d.definition.entityPrefab)
+                .ToList();
+
+            var problematicPrefabs = prototypesGroupedByPrefab.Where(g => g.Count() > 1).ToList();
+            if (problematicPrefabs.Count != 0)
+            {
+                foreach (var problematicGroup in problematicPrefabs)
+                    Debug.LogError($"[EntitySystem] The entity prefab '{AssetDatabase.GetAssetPath(problematicGroup.Key)}' "
+                        + $"is used by multiple Entity Prototype Definitions that are referenced in this scene, "
+                        + $"which is invalid (as it makes it impossible to resolve entity prototype references "
+                        + $"for pre instantiated entities). Entity Prototype Definitions:\n"
+                        + string.Join('\n', problematicGroup.Select(d => AssetDatabase.GetAssetPath(d.definition))), problematicGroup.Key);
+                return false;
+            }
+
+            Dictionary<string, EntityPrototype> prefabAssetPathToPrototypeLut = prototypesGroupedByPrefab
+                .ToDictionary(g => AssetDatabase.GetAssetPath(g.Single().definition.entityPrefab), g => g.Single().prototype);
 
             bool invalid = false;
             List<Entity> preInstantiatedEntityInstances = EditorUtil.EnumerateArrayProperty(so.FindProperty("preInstantiatedEntityInstances"))
