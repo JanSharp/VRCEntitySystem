@@ -14,8 +14,16 @@ namespace JanSharp
             + "in a scene belong to.")]
         public GameObject entityPrefab;
         public Vector3 defaultScale;
-        // public Entity defaultEntityInst;
-        // TODO: this probably needs a "highest id" field just like build time id assignment does
+        /// <summary>
+        /// <para>Used by editor scripting to prevent ids getting reused when an extension got removed and
+        /// another got added.</para>
+        /// <para>Id <c>0u</c> is invalid. It must be invalid, in fact, because the default value for
+        /// <see cref="highestExtensionId"/> is <c>0u</c>, which tells the system that this is the highest
+        /// id that must not be reused - even though there is nothing using it.</para>
+        /// <para>But this is good anyway, having a simple way to declare an id being invalid is
+        /// useful.</para>
+        /// </summary>
+        public uint highestExtensionId;
         public uint[] localExtensionIds;
         public string[] extensionDataClassNames; // TODO: Could probably change this to a different type now.
     }

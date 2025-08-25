@@ -26,7 +26,6 @@ namespace JanSharp
         [SerializeField] private string shortDescription;
         [SerializeField] private string longDescription;
         [SerializeField] private Vector3 defaultScale;
-        // TODO: this probably needs a "highest id" field just like build time id assignment does
         [SerializeField] private uint[] localExtensionIds;
         [SerializeField] private string[] extensionDataClassNames;
         // And this is not from EntityPrototypeDefinition.

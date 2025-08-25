@@ -19,6 +19,7 @@ MonoBehaviour:
   entityPrefab: {fileID: 4440450832928301110, guid: 6ca92859c93d5e606a89f2e3dc93532b,
     type: 3}
   defaultScale: {x: 1, y: 1, z: 1}
+  highestExtensionId: 2
   localExtensionIds: 0100000002000000
   extensionDataClassNames:
   - MyCounterEntityExtensionData
