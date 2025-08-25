@@ -25,7 +25,7 @@
 - [x] use UpdateManager for EntityPooling
 - [ ] make isKinematic its own thing for physics entities, rather than repurposing it for isSleeping. Entities which have a default of isKinematic do not mean that they are sleeping by default, it means that they are not affected by physics at all by default
 - [ ] make the "NoPosition/Rotation/ScaleSync" api better. Just like make it better. Just do that. Not like you've spent 3 days thinking about it already and found nothing satisfying
-- [ ] probably make prototype id 1 be the first one, 0 be invalid
+- [x] probably make prototype id 1 be the first one, 0 be invalid
 - [ ] make physics entities keep track of the amount of time passed in between rigid body update input actions in order to reduce the amount of times objects interpolate "back in time"
 - [ ] custom inspector for entities which shows
   - [ ] the entity prototype definition, if it exists

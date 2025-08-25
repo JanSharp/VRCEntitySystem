@@ -9,7 +9,7 @@ namespace JanSharp
     [InitializeOnLoad]
     public static class EntityPrototypeOnBuild
     {
-        private static uint nextId = 0u;
+        private static uint nextId = 1u;
         private static HashSet<string> internalNamesLut = new();
         private static EntitySystem entitySystem;
 
@@ -23,7 +23,7 @@ namespace JanSharp
 
         private static bool OnPreBuild()
         {
-            nextId = 0u;
+            nextId = 1u; // Id 0 indicates invalid.
             internalNamesLut.Clear();
             return true;
         }

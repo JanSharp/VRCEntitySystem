@@ -8,6 +8,10 @@ namespace JanSharp
     {
         [HideInInspector][SerializeField][SingletonReference] LockstepAPI lockstep;
 
+        /// <summary>
+        /// <para>Id <c>0u</c> indicates invalid.</para>
+        /// <para>Note that at this time nothing is using the invalid id for anything.</para>
+        /// </summary>
         [SerializeField] private uint id;
         /// <summary>
         /// <para>Used to resolve the reference to <see cref="EntityPrototypeDefinition"/>.</para>

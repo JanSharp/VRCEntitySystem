@@ -3705,12 +3705,18 @@ MonoBehaviour:
     type: 3}
   m_PrefabInstance: {fileID: 872616468}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 879451829}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c1045f4a586029803b530e84e12d40f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &879451829 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4490641290949901507, guid: 99803a8f7550cd11e940c6ec12919df2,
+    type: 3}
+  m_PrefabInstance: {fileID: 872616468}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &887992590
 GameObject:
   m_ObjectHideFlags: 0
@@ -4987,7 +4993,7 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1358972799}
   lockstep: {fileID: 926490372}
-  id: 0
+  id: 1
   prototypeDefinitionGuid: 85effddc56478929b81722da5450f52f
   prototypeName: physics-entity
   displayName: Physics Entity
@@ -6881,12 +6887,12 @@ PrefabInstance:
         type: 3}
       propertyPath: NetworkIDs.Array.data[79].gameObject
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 879451829}
     - target: {fileID: 6759095419728963412, guid: 8894fa7e4588a5c4fab98453e558847d,
         type: 3}
       propertyPath: NetworkIDs.Array.data[80].gameObject
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 269888974}
     - target: {fileID: 6759095419728963412, guid: 8894fa7e4588a5c4fab98453e558847d,
         type: 3}
       propertyPath: NetworkIDs.Array.data[81].gameObject
@@ -11945,7 +11951,7 @@ MonoBehaviour:
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 1927320443}
   lockstep: {fileID: 926490372}
-  id: 1
+  id: 2
   prototypeDefinitionGuid: e0b0fd28ee222ff34b349c0fb82c8565
   prototypeName: my-test
   displayName: My Test
