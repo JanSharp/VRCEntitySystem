@@ -72,7 +72,7 @@ namespace JanSharp
             var prototypesGroupedByPrefab = prototypes
                 .Select(p =>
                 {
-                    bool success = EntitySystemEditorUtil.TryGetPrototypeDefinition(p.PrototypeDefinitionGuid, out var prototypeDefinition);
+                    bool success = EntitySystemEditorUtil.TryGetPrototypeDefinition(p.PrototypeDefinitionGuid ?? "", out var prototypeDefinition);
                     return (success, prototype: p, definition: prototypeDefinition);
                 })
                 .Where(d => d.success && d.definition.entityPrefab != null)

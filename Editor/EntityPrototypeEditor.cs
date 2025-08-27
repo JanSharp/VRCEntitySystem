@@ -75,7 +75,7 @@ namespace JanSharp
             out EntityPrototypeDefinition prototypeDefinition)
         {
             string prototypeDefinitionGuid = entityPrototype.PrototypeDefinitionGuid;
-            if (prototypeDefinitionGuid == ""
+            if (string.IsNullOrEmpty(prototypeDefinitionGuid)
                 || !EntitySystemEditorUtil.TryGetPrototypeDefinition(prototypeDefinitionGuid, out prototypeDefinition))
             {
                 Debug.LogError($"[EntitySystem] Invalid entity prototype, missing Entity Prototype Definition.", entityPrototype);
@@ -285,7 +285,7 @@ namespace JanSharp
         private void FetchPrototypeDefinition()
         {
             SetPrototypeDefinitions(prototypeDefinitionGuids
-                .Where(g => g != "")
+                .Where(g => !string.IsNullOrEmpty(g))
                 .Select(g => EntitySystemEditorUtil.TryGetPrototypeDefinition(g, out var def) ? def : null)
                 .Where(d => d != null)
                 .Distinct()
