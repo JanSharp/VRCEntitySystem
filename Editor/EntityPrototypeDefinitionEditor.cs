@@ -11,7 +11,8 @@ namespace JanSharp
     public class EntityPrototypeDefinitionEditor : Editor
     {
         private EntityPrototype[] prototypesInScene;
-        private EntityPrototypeDefinition[] definitionsNotInScene;
+        private List<(EntityPrototype prototype, EntityPrototypeDefinition definition)> definitionsInScene = new();
+        private List<EntityPrototypeDefinition> definitionsNotInScene = new();
 
         public void OnEnable()
         {
@@ -34,14 +35,16 @@ namespace JanSharp
         private void FindPrototypes()
         {
             prototypesInScene = FindObjectsByType<EntityPrototype>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            HashSet<string> guidsInScene = prototypesInScene
-                .Select(p => p.PrototypeDefinitionGuid)
-                .Where(g => !string.IsNullOrEmpty(g))
-                .ToHashSet();
-            definitionsNotInScene = targets
-                .Cast<EntityPrototypeDefinition>()
-                .Where(d => !guidsInScene.Contains(EntitySystemEditorUtil.GetAssetGuid(d)))
-                .ToArray();
+            Dictionary<string, EntityPrototype> prototypesInSceneByGuid = prototypesInScene
+                .Where(p => !string.IsNullOrEmpty(p.PrototypeDefinitionGuid))
+                .ToDictionary(p => p.PrototypeDefinitionGuid, p => p);
+            definitionsInScene.Clear();
+            definitionsNotInScene.Clear();
+            foreach (var definition in targets.Cast<EntityPrototypeDefinition>())
+                if (prototypesInSceneByGuid.TryGetValue(EntitySystemEditorUtil.GetAssetGuid(definition), out var prototype))
+                    definitionsInScene.Add((prototype, definition));
+                else
+                    definitionsNotInScene.Add(definition);
         }
 
         private static int GetHierarchyDepth(Transform transform)
@@ -94,7 +97,7 @@ namespace JanSharp
             // TODO: If a single one is selected show whether or not it is in the active scene.
             // TODO: when multiple are selected, list which ones are and are not in the active scene.
 
-            if (definitionsNotInScene.Length != 0 && GUILayout.Button(new GUIContent("Add To Active Scene")))
+            if (definitionsNotInScene.Count != 0 && GUILayout.Button(new GUIContent("Add To Active Scene")))
             {
                 Transform parent = FindCommonParent();
                 foreach (var definition in definitionsNotInScene)
@@ -108,10 +111,9 @@ namespace JanSharp
                 }
             }
 
-            // if (GUILayout.Button(new GUIContent("Remove From Active Scene")))
-            // {
-            //     // TODO: impl
-            // }
+            if (definitionsInScene.Count != 0 && GUILayout.Button(new GUIContent("Remove From Active Scene")))
+                foreach (var def in definitionsInScene)
+                    Undo.DestroyObjectImmediate(def.prototype.gameObject);
         }
     }
 }
