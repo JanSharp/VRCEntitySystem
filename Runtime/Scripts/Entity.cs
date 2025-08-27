@@ -19,7 +19,7 @@ namespace JanSharp
         [System.NonSerialized] public bool noTransformSync;
         [System.NonSerialized] public EntityTransformController transformSyncController;
 
-        public EntityExtension[] extensions;
+        [HideInInspector] public EntityExtension[] extensions;
 
         private bool transformChangeIAIsQueued = false;
         private bool flaggedForPositionChange = false;

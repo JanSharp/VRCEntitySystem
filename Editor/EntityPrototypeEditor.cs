@@ -58,11 +58,11 @@ namespace JanSharp
         {
             if (!Validate(entityPrototype, out EntityPrototypeDefinition prototypeDefinition))
                 return false;
+            if (!ValidateAndUpdatePrototypeDefinition(prototypeDefinition))
+                return false;
             SerializedObject so = new SerializedObject(entityPrototype);
             so.FindProperty("id").uintValue = nextId++;
             MirrorTheDefinition(prototypeDefinition, so);
-            // TODO: Validate entity prefab. Does it have an Entity component, etc (?)
-            // TODO: Must modify the prefab as the extension ids must be consistent across scenes. Cannot just modify the instances in the scene.
             EnsureEntityPrefabInstExists(entityPrototype, prototypeDefinition, so);
             EnsureDefaultEntityInstExists(entityPrototype, prototypeDefinition, so);
             so.ApplyModifiedProperties();
@@ -97,6 +97,66 @@ namespace JanSharp
                 return false;
             }
             internalNamesLut.Add(prototypeDefinition.prototypeName);
+
+            return true;
+        }
+
+        private static bool ValidateAndUpdatePrototypeDefinition(EntityPrototypeDefinition prototypeDefinition)
+        {
+            // Must modify the prefab and the prototype definition as the extension ids must be consistent across scenes.
+
+            GameObject prefabGo = prototypeDefinition.entityPrefab;
+            if (!prefabGo.TryGetComponent(out Entity entity))
+            {
+                Debug.LogError($"[EntitySystem] Entity prefab '{AssetDatabase.GetAssetPath(prefabGo)}' "
+                    + $"is missing the Entity component. Must be on the root of the prefab.", prefabGo);
+                return false;
+            }
+
+            uint[] knownIds = prototypeDefinition.localExtensionIds;
+            bool canUseKnownIds = entity.extensions.Length == knownIds.Length;
+            uint highestId = prototypeDefinition.highestExtensionId;
+
+            List<(EntityExtension extension, int index, uint id)> knownExtensions = entity.extensions
+                .Select((extension, index) => (extension, index, id: canUseKnownIds ? knownIds[index] : 0u))
+                .Where(e => e.extension != null)
+                .ToList();
+            Dictionary<EntityExtension, uint> knownExtensionIdLut = knownExtensions
+                .ToDictionary(e => e.extension, e => e.id);
+
+            var resolvedExtensions = prefabGo.GetComponentsInChildren<EntityExtension>(includeInactive: true)
+                .Select(extension =>
+                {
+                    uint knownId = knownExtensionIdLut.TryGetValue(extension, out uint id) ? id : 0u;
+                    id = knownId != 0u ? knownId : ++highestId;
+                    if (!EntitySystemEditorUtil.IsEntityExtension(extension.GetType(), out System.Type extensionDataType))
+                        throw new System.Exception("[EntitySystem] Impossible because at this point entity "
+                            + "extension data association attributes have been validated and every "
+                            + "EntityExtension class must have an associated EntityExtensionData class.");
+                    return (extension, id, extensionDataClassName: extensionDataType.Name);
+                })
+                .OrderBy(e => e.id)
+                .ToList();
+
+            SerializedObject entitySo = new SerializedObject(entity);
+            EditorUtil.SetArrayProperty(
+                entitySo.FindProperty(nameof(Entity.extensions)),
+                resolvedExtensions,
+                (p, v) => p.objectReferenceValue = v.extension);
+            entitySo.ApplyModifiedProperties();
+
+            SerializedObject definitionSo = new SerializedObject(prototypeDefinition);
+            definitionSo.FindProperty(nameof(EntityPrototypeDefinition.defaultScale)).vector3Value = prefabGo.transform.localScale;
+            definitionSo.FindProperty(nameof(EntityPrototypeDefinition.highestExtensionId)).uintValue = highestId;
+            EditorUtil.SetArrayProperty(
+                definitionSo.FindProperty(nameof(EntityPrototypeDefinition.localExtensionIds)),
+                resolvedExtensions,
+                (p, v) => p.uintValue = v.id);
+            EditorUtil.SetArrayProperty(
+                definitionSo.FindProperty(nameof(EntityPrototypeDefinition.extensionDataClassNames)),
+                resolvedExtensions,
+                (p, v) => p.stringValue = v.extensionDataClassName);
+            definitionSo.ApplyModifiedProperties();
 
             return true;
         }

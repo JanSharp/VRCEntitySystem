@@ -13,7 +13,7 @@ namespace JanSharp
             + "This is required to be able to figure out which prototype pre instantiated prefab instances "
             + "in a scene belong to.")]
         public GameObject entityPrefab;
-        public Vector3 defaultScale;
+        [HideInInspector] public Vector3 defaultScale;
         /// <summary>
         /// <para>Used by editor scripting to prevent ids getting reused when an extension got removed and
         /// another got added.</para>
@@ -23,8 +23,8 @@ namespace JanSharp
         /// <para>But this is good anyway, having a simple way to declare an id being invalid is
         /// useful.</para>
         /// </summary>
-        public uint highestExtensionId;
-        public uint[] localExtensionIds;
-        public string[] extensionDataClassNames; // TODO: Could probably change this to a different type now.
+        [HideInInspector] public uint highestExtensionId;
+        [HideInInspector] public uint[] localExtensionIds;
+        [HideInInspector] public string[] extensionDataClassNames; // TODO: Could probably change this to a different type now.
     }
 }
