@@ -94,26 +94,39 @@ namespace JanSharp
         {
             base.OnInspectorGUI();
 
-            // TODO: If a single one is selected show whether or not it is in the active scene.
-            // TODO: when multiple are selected, list which ones are and are not in the active scene.
-
-            if (definitionsNotInScene.Count != 0 && GUILayout.Button(new GUIContent("Add To Active Scene")))
+            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                Transform parent = FindCommonParent();
+                GUILayout.Label($"Selected definitions not in the "
+                    + $"active scene: {definitionsNotInScene.Count}", EditorStyles.wordWrappedLabel);
                 foreach (var definition in definitionsNotInScene)
-                {
-                    GameObject prototypeGo = new GameObject(definition.name);
-                    Undo.RegisterCreatedObjectUndo(prototypeGo, "Add Entity Prototype To Active Scene");
-                    if (parent != null)
-                        prototypeGo.transform.SetParent(parent, worldPositionStays: false);
-                    EntityPrototype prototype = UdonSharpUndo.AddComponent<EntityPrototype>(prototypeGo);
-                    prototype.PrototypeDefinitionGuid = EntitySystemEditorUtil.GetAssetGuid(definition);
-                }
+                    EditorGUILayout.ObjectField(definition.name, definition, typeof(EntityPrototypeDefinition), allowSceneObjects: false);
+                using (new EditorGUI.DisabledGroupScope(disabled: definitionsNotInScene.Count == 0))
+                    if (GUILayout.Button(new GUIContent("Add To Active Scene")))
+                    {
+                        Transform parent = FindCommonParent();
+                        foreach (var definition in definitionsNotInScene)
+                        {
+                            GameObject prototypeGo = new GameObject(definition.name);
+                            Undo.RegisterCreatedObjectUndo(prototypeGo, "Add Entity Prototype To Active Scene");
+                            if (parent != null)
+                                prototypeGo.transform.SetParent(parent, worldPositionStays: false);
+                            EntityPrototype prototype = UdonSharpUndo.AddComponent<EntityPrototype>(prototypeGo);
+                            prototype.PrototypeDefinitionGuid = EntitySystemEditorUtil.GetAssetGuid(definition);
+                        }
+                    }
             }
 
-            if (definitionsInScene.Count != 0 && GUILayout.Button(new GUIContent("Remove From Active Scene")))
+            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                GUILayout.Label($"Selected definitions in the "
+                    + $"active scene: {definitionsInScene.Count}", EditorStyles.wordWrappedLabel);
                 foreach (var def in definitionsInScene)
-                    Undo.DestroyObjectImmediate(def.prototype.gameObject);
+                    EditorGUILayout.ObjectField(def.definition.name, def.definition, typeof(EntityPrototypeDefinition), allowSceneObjects: false);
+                using (new EditorGUI.DisabledGroupScope(disabled: definitionsInScene.Count == 0))
+                    if (GUILayout.Button(new GUIContent("Remove From Active Scene")))
+                        foreach (var def in definitionsInScene)
+                            Undo.DestroyObjectImmediate(def.prototype.gameObject);
+            }
         }
     }
 }
