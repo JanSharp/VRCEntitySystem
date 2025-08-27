@@ -18,7 +18,11 @@ namespace JanSharp
         /// </summary>
         [SerializeField] private string prototypeDefinitionGuid;
 #if UNITY_EDITOR && !COMPILER_UDONSHARP
-        public string PrototypeDefinitionGuid => prototypeDefinitionGuid;
+        public string PrototypeDefinitionGuid
+        {
+            get => prototypeDefinitionGuid;
+            set => prototypeDefinitionGuid = value;
+        }
 #endif
         // All of this is just a mirror of the EntityPrototypeDefinition.
         [SerializeField] private string prototypeName;
