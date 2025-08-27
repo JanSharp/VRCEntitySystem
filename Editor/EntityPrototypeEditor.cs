@@ -98,6 +98,7 @@ namespace JanSharp
                 (p, v) => p.stringValue = v);
 
             // TODO: Validate entity prefab. Does it have an Entity component, etc (?)
+            // TODO: Must modify the prefab as the extension ids must be consistent across scenes. Cannot just modify the instances in the scene.
 
             GameObject entityPrefab = entityPrototype.EntityPrefabInst;
             if (entityPrefab == null
