@@ -31,3 +31,4 @@
   - [ ] the entity prototype definition, if it exists
   - [ ] the entity prototype, if present in the scene
   - [ ] a read only list of entity extensions
+- [ ] maybe make pre instantiated entities export a flag indicating whether they've been moved from their original location to give the option to not import their locations. This enables moving pre instantiated entities in the scene and then importing old data while retaining the change in default location.
