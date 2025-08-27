@@ -56,13 +56,33 @@ namespace JanSharp
 
         private static bool OnBuild(EntityPrototype entityPrototype)
         {
+            if (!Validate(entityPrototype, out EntityPrototypeDefinition prototypeDefinition))
+                return false;
+            SerializedObject so = new SerializedObject(entityPrototype);
+            so.FindProperty("id").uintValue = nextId++;
+            MirrorTheDefinition(prototypeDefinition, so);
+            // TODO: Validate entity prefab. Does it have an Entity component, etc (?)
+            // TODO: Must modify the prefab as the extension ids must be consistent across scenes. Cannot just modify the instances in the scene.
+            EnsureEntityPrefabInstExists(entityPrototype, prototypeDefinition, so);
+            EnsureDefaultEntityInstExists(entityPrototype, prototypeDefinition, so);
+            so.ApplyModifiedProperties();
+            EnsureGameObjectNameMatchesDefinitionName(entityPrototype, prototypeDefinition);
+            return true;
+        }
+
+        private static bool Validate(
+            EntityPrototype entityPrototype,
+            out EntityPrototypeDefinition prototypeDefinition)
+        {
             string prototypeDefinitionGuid = entityPrototype.PrototypeDefinitionGuid;
             if (prototypeDefinitionGuid == ""
-                || !EntitySystemEditorUtil.TryGetPrototypeDefinition(prototypeDefinitionGuid, out EntityPrototypeDefinition prototypeDefinition))
+                || !EntitySystemEditorUtil.TryGetPrototypeDefinition(prototypeDefinitionGuid, out prototypeDefinition))
             {
                 Debug.LogError($"[EntitySystem] Invalid entity prototype, missing Entity Prototype Definition.", entityPrototype);
+                prototypeDefinition = null;
                 return false;
             }
+
             if (prototypeDefinition.entityPrefab == null)
             {
                 Debug.LogError($"[EntitySystem] Invalid entity prototype, Prototype Definition is missing an Entity Prefab.", entityPrototype);
@@ -78,11 +98,13 @@ namespace JanSharp
             }
             internalNamesLut.Add(prototypeDefinition.prototypeName);
 
-            SerializedObject so = new SerializedObject(entityPrototype);
+            return true;
+        }
 
-            so.FindProperty("id").uintValue = nextId++;
-
-            // Mirroring.
+        private static void MirrorTheDefinition(
+            EntityPrototypeDefinition prototypeDefinition,
+            SerializedObject so)
+        {
             so.FindProperty("prototypeName").stringValue = prototypeDefinition.prototypeName;
             so.FindProperty("displayName").stringValue = prototypeDefinition.displayName;
             so.FindProperty("shortDescription").stringValue = prototypeDefinition.shortDescription;
@@ -96,10 +118,13 @@ namespace JanSharp
                 so.FindProperty("extensionDataClassNames"),
                 prototypeDefinition.extensionDataClassNames,
                 (p, v) => p.stringValue = v);
+        }
 
-            // TODO: Validate entity prefab. Does it have an Entity component, etc (?)
-            // TODO: Must modify the prefab as the extension ids must be consistent across scenes. Cannot just modify the instances in the scene.
-
+        private static void EnsureEntityPrefabInstExists(
+            EntityPrototype entityPrototype,
+            EntityPrototypeDefinition prototypeDefinition,
+            SerializedObject so)
+        {
             GameObject entityPrefab = entityPrototype.EntityPrefabInst;
             if (entityPrefab == null
                 || !PrefabUtility.IsAnyPrefabInstanceRoot(entityPrefab)
@@ -115,7 +140,13 @@ namespace JanSharp
             }
             EnsureActiveState(entityPrefab, true); // TODO: maybe allow disabled entity prefabs.
             EnsureParent(entityPrefab.transform, entitySystem.EntityPrefabInstsContainer);
+        }
 
+        private static void EnsureDefaultEntityInstExists(
+            EntityPrototype entityPrototype,
+            EntityPrototypeDefinition prototypeDefinition,
+            SerializedObject so)
+        {
             Entity defaultEntityInst = entityPrototype.DefaultEntityInst;
             if (defaultEntityInst == null
                 || !PrefabUtility.IsAnyPrefabInstanceRoot(defaultEntityInst.gameObject)
@@ -132,17 +163,18 @@ namespace JanSharp
             }
             EnsureActiveState(defaultEntityInst.gameObject, false); // The parent is disabled anyway, this shouldn't really matter...
             EnsureParent(defaultEntityInst.transform, entitySystem.DefaultEntityInstsContainer);
+        }
 
-            so.ApplyModifiedProperties();
-
+        private static void EnsureGameObjectNameMatchesDefinitionName(
+            EntityPrototype entityPrototype,
+            EntityPrototypeDefinition prototypeDefinition)
+        {
             if (entityPrototype.name != prototypeDefinition.name)
             {
                 SerializedObject goSo = new SerializedObject(entityPrototype.gameObject);
                 goSo.FindProperty("m_Name").stringValue = prototypeDefinition.name;
                 goSo.ApplyModifiedProperties();
             }
-
-            return true;
         }
 
         private static void EnsureActiveState(GameObject go, bool active)
