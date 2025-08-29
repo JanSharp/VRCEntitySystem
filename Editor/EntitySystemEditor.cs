@@ -306,9 +306,23 @@ namespace JanSharp
         {
             if (UdonSharpGUI.DrawDefaultUdonSharpBehaviourHeader(target))
                 return;
-            // TODO: add button to reset all entity prefab and default entities to defaults - undoing all prefab overrides.
-            // Mostly important for stupid things like UI automatically creating prefab overrides.
-            // TODO: add button to reset pre instantiated entity ids
+
+            if (GUILayout.Button(new GUIContent(
+                "Reset Internal Entity Prefab Instances",
+                "Mostly important for things like UI potentially automatically creating prefab overrides which then "
+                    + "prevent changes in the prefab from actually taking effect when an entity gets created.")))
+            {
+                foreach (EntityPrototype prototype in FindObjectsByType<EntityPrototype>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    if (prototype.EntityPrefabInst != null)
+                        PrefabUtility.RevertPrefabInstance(prototype.EntityPrefabInst, InteractionMode.UserAction);
+                    if (prototype.DefaultEntityInst != null)
+                        PrefabUtility.RevertPrefabInstance(prototype.DefaultEntityInst.gameObject, InteractionMode.UserAction);
+                }
+            }
+
+            // TODO: maybe add button to reset pre instantiated entity ids
+
 #if ENTITY_SYSTEM_DEBUG
             GUILayout.Label("Debug / Internal", EditorStyles.boldLabel);
             so.Update();
