@@ -230,7 +230,7 @@ namespace JanSharp
         }
 
         /// <summary>
-        /// <para>Make all change to the game state before calling this function, modify the latency stat
+        /// <para>Make all changes to the game state before calling this function, modify the latency state
         /// after, but only if this returned <see langword="true"/>.</para>
         /// </summary>
         /// <returns></returns>
