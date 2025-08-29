@@ -16,10 +16,10 @@ namespace JanSharp
         [System.NonSerialized] public int counterValue;
         private uint localPlayerId;
 
-        public override void WannaBeConstructor()
+        private void Init()
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  InitFromDefault");
+            Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  Init");
 #endif
             localPlayerId = (uint)Networking.LocalPlayer.playerId;
         }
@@ -29,6 +29,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  InitFromDefault");
 #endif
+            Init();
             MyCounterEntityExtension extension = (MyCounterEntityExtension)entityExtension;
             counterValue = extension.counterValue;
         }
@@ -38,8 +39,17 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  InitFromPreInstantiated");
 #endif
+            Init();
             MyCounterEntityExtension extension = (MyCounterEntityExtension)entityExtension;
             counterValue = extension.counterValue;
+        }
+
+        public override void InitBeforeDeserialization()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  InitBeforeDeserialization");
+#endif
+            Init();
         }
 
         public override void OnAssociatedWithExtension()

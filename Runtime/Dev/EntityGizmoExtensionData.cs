@@ -20,6 +20,10 @@ namespace JanSharp
         {
         }
 
+        public override void InitBeforeDeserialization()
+        {
+        }
+
         public override void OnAssociatedWithExtension()
         {
         }

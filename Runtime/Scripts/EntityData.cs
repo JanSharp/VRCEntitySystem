@@ -27,6 +27,7 @@ namespace JanSharp
         /// </summary>
         [System.NonSerialized] public bool entityIsDestroyed;
         [System.NonSerialized] public bool wasPreInstantiated = false;
+        [System.NonSerialized] public bool isInitialized = false;
         [System.NonSerialized] public ulong uniqueId;
         [System.NonSerialized] public uint id;
         [System.NonSerialized] public bool noTransformSync;
@@ -134,7 +135,11 @@ namespace JanSharp
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  InitFromDefault");
+            if (isInitialized)
+                Debug.LogError($"[EntitySystemDebug] Attempt to InitFromDefault "
+                    + $"EntityData which has already been initialized.");
 #endif
+            isInitialized = true;
             this.position = position;
             this.rotation = rotation;
             this.scale = scale;
@@ -145,7 +150,7 @@ namespace JanSharp
             InitAllExtensionDataFromDefault();
         }
 
-        private void InitAllExtensionDataFromDefault()
+        private void InitAllExtensionDataFromDefault() // TODO: inline
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  InitAllExtensionDataFromDefault");
@@ -156,11 +161,15 @@ namespace JanSharp
                 allExtensionData[i].InitFromDefault(defaultExtensions[i]);
         }
 
-        internal void InitFromPreInstantiated(Entity entity)
+        public void InitFromPreInstantiated(Entity entity)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  InitFromPreInstantiated");
+            if (isInitialized)
+                Debug.LogError($"[EntitySystemDebug] Attempt to InitFromPreInstantiated "
+                    + $"EntityData which has already been initialized.");
 #endif
+            isInitialized = true;
             Transform t = entity.transform;
             position = t.position;
             rotation = t.rotation;
@@ -172,7 +181,7 @@ namespace JanSharp
             InitAllExtensionDataFromPreInstantiated(entity.extensions);
         }
 
-        private void InitAllExtensionDataFromPreInstantiated(EntityExtension[] extensions)
+        private void InitAllExtensionDataFromPreInstantiated(EntityExtension[] extensions) // TODO: inline
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  InitAllExtensionDataFromPreInstantiated");
@@ -180,6 +189,19 @@ namespace JanSharp
             int length = allExtensionData.Length;
             for (int i = 0; i < length; i++)
                 allExtensionData[i].InitFromPreInstantiated(extensions[i]);
+        }
+
+        private void InitAllExtensionDataBeforeDeserialization()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityData  InitAllExtensionDataBeforeDeserialization");
+            if (isInitialized)
+                Debug.LogError($"[EntitySystemDebug] Attempt to InitAllExtensionDataBeforeDeserialization "
+                    + $"EntityData which has already been initialized.");
+#endif
+            isInitialized = true;
+            foreach (EntityExtensionData extensionData in allExtensionData)
+                extensionData.InitBeforeDeserialization();
         }
 
         public void OnEntityDataCreated()
@@ -454,10 +476,16 @@ namespace JanSharp
                 ResolveImportedParentEntityId();
                 ResolveImportedChildEntityIds();
                 latencyUniqueIdLut.Clear();
+                if (!isInitialized)
+                    InitAllExtensionDataBeforeDeserialization();
                 ImportAllExtensionData();
             }
             else
+            {
+                if (!isInitialized)
+                    InitAllExtensionDataBeforeDeserialization();
                 DeserializeAllExtensionData();
+            }
 
             if (noTransformSync && transformSyncController == null)
             {

@@ -41,6 +41,7 @@ namespace JanSharp
         /// <param name="entityExtension"></param>
         public abstract void InitFromDefault(EntityExtension entityExtension);
         public abstract void InitFromPreInstantiated(EntityExtension entityExtension);
+        public abstract void InitBeforeDeserialization();
         public virtual void OnEntityExtensionDataCreated() { }
         public abstract void OnAssociatedWithExtension();
         public virtual void OnDisassociateFromExtension() { }

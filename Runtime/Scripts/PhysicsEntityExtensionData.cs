@@ -25,6 +25,14 @@ namespace JanSharp
 
         private uint localPlayerId;
 
+        public override void InitBeforeDeserialization()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  InitBeforeDeserialization");
+#endif
+            localPlayerId = (uint)Networking.LocalPlayer.playerId;
+        }
+
         public override void InitFromDefault(EntityExtension entityExtension)
         {
 #if ENTITY_SYSTEM_DEBUG
@@ -33,7 +41,7 @@ namespace JanSharp
             PhysicsEntityExtension ext = (PhysicsEntityExtension)entityExtension;
             if (!ext.isSleeping)
                 WakeUp();
-            localPlayerId = (uint)Networking.LocalPlayer.playerId;
+            InitBeforeDeserialization();
         }
 
         public override void InitFromPreInstantiated(EntityExtension entityExtension)
