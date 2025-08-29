@@ -140,8 +140,10 @@ namespace JanSharp
 #endif
             if (ext.isSleeping || ext.responsiblePlayerId != localPlayerId)
             {
-                Debug.LogError("[EntitySystem] Impossible, attempt to SendRigidbodyUpdateIA on a physics "
-                    + "entity which is asleep or the local player is not the responsible player.");
+                Debug.LogError($"[EntitySystem] Impossible, attempt to SendRigidbodyUpdateIA on a physics "
+                    + $"entity which is asleep or the local player is not the responsible player. "
+                    + $"ext.isSleeping: {ext.isSleeping}, ext.responsiblePlayerId: {ext.responsiblePlayerId}, "
+                    + $"localPlayerId: {localPlayerId}");
                 return;
             }
             Rigidbody rb = ext.rb;
