@@ -247,6 +247,7 @@ namespace JanSharp
                 if (group.Key == typeof(EntityData))
                     entityDataInsts = insts.Cast<EntityData>().ToList();
             }
+            entityDataInsts ??= new();
 
             foreach (var kvp in existingByType)
             {
