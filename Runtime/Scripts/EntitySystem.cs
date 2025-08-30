@@ -390,7 +390,7 @@ namespace JanSharp
             ulong uniqueId = entityData.uniqueId;
             if (uniqueId == InvalidUniqueId)
             {
-                Debug.LogError($"[EntitySystem] Attempt to WriteEntityDataReference where both id and uniqueId are invalid.");
+                Debug.LogError($"[EntitySystem] Attempt to WriteEntityDataRef where both id and uniqueId are invalid.");
                 return;
             }
             lockstep.WriteByte(0xff); // WriteSmall never writes 0xff as its first byte.
@@ -562,7 +562,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  WriteEntityExtensionDataRef");
 #endif
-            lockstep.WriteSmallUInt(extensionData.entityData.id);
+            WriteEntityDataRef(extensionData.entityData);
             lockstep.WriteSmallUInt((uint)extensionData.extensionIndex);
         }
 
@@ -571,11 +571,12 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityExtensionDataRefDynamic");
 #endif
-            uint entityId = lockstep.ReadSmallUInt();
+            bool foundEntityData = TryReadEntityDataRef(out EntityData entityData);
+            // Must read the extensionIndex even if the entityData was not found otherwise the read stream position ends up being wrong.
             int extensionIndex = (int)lockstep.ReadSmallUInt();
-            if (!TryGetEntityData(entityId, out EntityData entityData))
-                return null;
-            return entityData.allExtensionData[extensionIndex];
+            return foundEntityData
+                ? entityData.allExtensionData[extensionIndex]
+                : null;
         }
 
         private byte[] sendExtensionDataInputActionBuffer = new byte[5 * 3]; // Max size of 3 SmallUInt.
