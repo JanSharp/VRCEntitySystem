@@ -32,3 +32,7 @@
   - [ ] the entity prototype, if present in the scene
   - [ ] a read only list of entity extensions
 - [ ] maybe make pre instantiated entities export a flag indicating whether they've been moved from their original location to give the option to not import their locations. This enables moving pre instantiated entities in the scene and then importing old data while retaining the change in default location.
+- [ ] the last user player id is not a properly and fully implemented system
+- [ ] physics entities that are awake by default do not go to sleep when the rigid body stops moving, since the update loop does not start and there is no responsible player
+- [ ] use the fact that entity prefabs are actually already instances in the scene, specifically by using te \[SingletonReference\] attribute for entities and entity extensions
+- [ ] split the internal name of entities into 2 fields: namespace and internal name. Neither of those are allowed to contain a `.`, as they will get combined into one script like this: `namespace.internal-name`
