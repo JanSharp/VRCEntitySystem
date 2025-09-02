@@ -332,7 +332,7 @@ namespace JanSharp
 
         public override void OnInspectorGUI()
         {
-            if (UdonSharpGUI.DrawDefaultUdonSharpBehaviourHeader(target))
+            if (UdonSharpGUI.DrawDefaultUdonSharpBehaviourHeader(targets))
                 return;
 
             so.Update();

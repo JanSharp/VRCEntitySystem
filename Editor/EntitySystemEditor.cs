@@ -284,6 +284,7 @@ namespace JanSharp
         }
     }
 
+    // No multi edit support because there is only ever one. It is a singleton after all.
     [CustomEditor(typeof(EntitySystem))]
     public class EntitySystemEditor : Editor
     {
