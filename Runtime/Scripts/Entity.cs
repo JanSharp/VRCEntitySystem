@@ -94,7 +94,7 @@ namespace JanSharp
             {
                 interpolation.CancelPositionInterpolation(t);
                 interpolation.CancelRotationInterpolation(t);
-                interpolation.CancelLocalScaleInterpolation(t);
+                interpolation.CancelScaleInterpolation(t);
                 t.position = entityData.position;
                 t.rotation = entityData.rotation;
                 t.localScale = entityData.scale;
@@ -176,17 +176,17 @@ namespace JanSharp
             if (t.position == position)
                 entityData.interpolation.CancelPositionInterpolation(t);
             else
-                entityData.interpolation.InterpolateWorldPosition(t, position, interpolationDuration);
+                entityData.interpolation.LerpWorldPosition(t, position, interpolationDuration);
 
             if (t.rotation == rotation)
                 entityData.interpolation.CancelRotationInterpolation(t);
             else
-                entityData.interpolation.InterpolateWorldRotation(t, rotation, interpolationDuration);
+                entityData.interpolation.LerpWorldRotation(t, rotation, interpolationDuration);
 
             if (t.localScale == scale)
-                entityData.interpolation.CancelLocalScaleInterpolation(t);
+                entityData.interpolation.CancelScaleInterpolation(t);
             else
-                entityData.interpolation.InterpolateLocalScale(t, scale, interpolationDuration);
+                entityData.interpolation.LerpLocalScale(t, scale, interpolationDuration);
         }
 
         private void EnqueueTransformChangeIA()

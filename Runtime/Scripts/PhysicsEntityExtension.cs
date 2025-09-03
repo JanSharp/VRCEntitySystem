@@ -157,8 +157,8 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  InterpolateToDataPositionAndRotation");
 #endif
             InterpolationManager interpolation = data.interpolation;
-            interpolation.InterpolateWorldPosition(this.transform, position, InterpolationDuration);
-            interpolation.InterpolateWorldRotation(this.transform, rotation, InterpolationDuration, this, nameof(OnInterpolationFinished), null);
+            interpolation.LerpWorldPosition(this.transform, position, InterpolationDuration);
+            interpolation.LerpWorldRotation(this.transform, rotation, InterpolationDuration, this, nameof(OnInterpolationFinished), null);
             rb.isKinematic = true;
             interpolationCounter++;
         }

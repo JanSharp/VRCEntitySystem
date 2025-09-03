@@ -598,10 +598,10 @@ namespace JanSharp
             if (positionChange)
             {
                 if (!discontinuousPositionChange)
-                    interpolation.InterpolateWorldPosition(entityTransform, position, Entity.TransformChangeInterpolationDuration);
+                    interpolation.LerpWorldPosition(entityTransform, position, Entity.TransformChangeInterpolationDuration);
                 else
                 {
-                    interpolation.CancelWorldPositionInterpolation(entityTransform);
+                    interpolation.CancelPositionInterpolation(entityTransform);
                     entityTransform.position = position;
                 }
             }
@@ -609,7 +609,7 @@ namespace JanSharp
             if (rotationChange)
             {
                 if (!discontinuousRotationChange)
-                    interpolation.InterpolateWorldRotation(entityTransform, rotation, Entity.TransformChangeInterpolationDuration);
+                    interpolation.LerpWorldRotation(entityTransform, rotation, Entity.TransformChangeInterpolationDuration);
                 else
                 {
                     interpolation.CancelRotationInterpolation(entityTransform);
@@ -620,10 +620,10 @@ namespace JanSharp
             if (scaleChange)
             {
                 if (!discontinuousScaleChange)
-                    interpolation.InterpolateLocalScale(entityTransform, scale, Entity.TransformChangeInterpolationDuration);
+                    interpolation.LerpLocalScale(entityTransform, scale, Entity.TransformChangeInterpolationDuration);
                 else
                 {
-                    interpolation.CancelLocalScaleInterpolation(entityTransform);
+                    interpolation.CancelScaleInterpolation(entityTransform);
                     entityTransform.localScale = scale;
                 }
             }
