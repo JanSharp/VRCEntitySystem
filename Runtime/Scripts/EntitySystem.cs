@@ -17,7 +17,7 @@ namespace JanSharp
         public override LockstepGameStateOptionsUI ExportUI => null;
         public override LockstepGameStateOptionsUI ImportUI => null;
 
-        private const long MaxWorkMSPerFrame = 20L;
+        private const long MaxWorkMSPerFrame = 5L;
         public const ulong InvalidUniqueId = 0uL;
         public const uint InvalidId = 0u;
 
