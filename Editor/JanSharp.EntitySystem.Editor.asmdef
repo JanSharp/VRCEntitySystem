@@ -1,5 +1,5 @@
 {
-    "name": "Jansharp.EntitySystem.Editor",
+    "name": "JanSharp.EntitySystem.Editor",
     "rootNamespace": "",
     "references": [
         "JanSharp.EntitySystem",
