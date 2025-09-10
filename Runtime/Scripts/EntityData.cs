@@ -454,7 +454,7 @@ namespace JanSharp
             if (isExport)
                 lockstep.WriteSmallUInt((uint)allExtensionData.Length);
             foreach (EntityExtensionData extensionData in allExtensionData)
-                lockstep.WriteCustomNullableClass(extensionData); // TODO: why nullable? Probably because of exports, but even for non exports?
+                lockstep.WriteCustomClass(extensionData);
         }
 
         public void Deserialize(bool isImport, uint importedDataVersion)
@@ -534,7 +534,7 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] EntityData  DeserializeAllExtensionData");
 #endif
             foreach (EntityExtensionData extensionData in allExtensionData)
-                lockstep.ReadCustomNullableClass(extensionData);
+                lockstep.ReadCustomClass(extensionData);
         }
 
         private void ImportAllExtensionData()
@@ -559,7 +559,7 @@ namespace JanSharp
                 }
                 int index = importedMetadata.resolvedExtensionIndexes[i];
                 EntityExtensionData extensionData = allExtensionData[index];
-                if (!lockstep.ReadCustomNullableClass(extensionData))
+                if (!lockstep.ReadCustomClass(extensionData))
                     extensionData.ImportedWithoutDeserialization();
             }
         }
