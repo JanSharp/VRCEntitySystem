@@ -147,14 +147,7 @@ namespace JanSharp
             lastUserPlayerId = 0u;
             hidden = false;
             parentEntity = null;
-            InitAllExtensionDataFromDefault();
-        }
 
-        private void InitAllExtensionDataFromDefault() // TODO: inline
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  InitAllExtensionDataFromDefault");
-#endif
             int length = allExtensionData.Length;
             EntityExtension[] defaultExtensions = entityPrototype.DefaultEntityInst.extensions;
             for (int i = 0; i < length; i++)
@@ -178,14 +171,8 @@ namespace JanSharp
             lastUserPlayerId = 0u;
             hidden = false;
             parentEntity = null;
-            InitAllExtensionDataFromPreInstantiated(entity.extensions);
-        }
 
-        private void InitAllExtensionDataFromPreInstantiated(EntityExtension[] extensions) // TODO: inline
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  InitAllExtensionDataFromPreInstantiated");
-#endif
+            EntityExtension[] extensions = entity.extensions;
             int length = allExtensionData.Length;
             for (int i = 0; i < length; i++)
                 allExtensionData[i].InitFromPreInstantiated(extensions[i]);
