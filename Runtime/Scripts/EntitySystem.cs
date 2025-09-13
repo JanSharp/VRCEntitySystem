@@ -119,6 +119,7 @@ namespace JanSharp
             InitExtensionIANameLut();
             nextEntityId = highestPreInstantiatedEntityId + 1u;
             playerDataManager.RegisterCustomPlayerData<EntitySystemPlayerData>(nameof(EntitySystemPlayerData));
+            RunOnInstantiateForAllPreInstantiatedEntities();
         }
 
         [LockstepEvent(LockstepEventType.OnInit)]
@@ -151,6 +152,20 @@ namespace JanSharp
             }
         }
 
+        private void RunOnInstantiateForAllPreInstantiatedEntities()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  RunOnInstantiateForAllPreInstantiatedEntities");
+#endif
+            int length = preInstantiatedEntityInstances.Length;
+            for (int i = 0; i < length; i++)
+            {
+                Entity entity = preInstantiatedEntityInstances[i];
+                EntityPrototype prototype = preInstantiatedEntityInstancePrototypes[i];
+                entity.OnInstantiate(lockstep, this, wannaBeClasses, prototype, isDefaultInstance: false);
+            }
+        }
+
         private void InitPreInstantiatedEntities()
         {
 #if ENTITY_SYSTEM_DEBUG
@@ -175,7 +190,6 @@ namespace JanSharp
             EntityPrototype prototype = preInstantiatedEntityInstancePrototypes[index];
             EntityData entityData = preInstantiatedEntityData[index];
             entityData.WannaBeConstructor(prototype, InvalidUniqueId, id);
-            entity.OnInstantiate(lockstep, this, wannaBeClasses, prototype, isDefaultInstance: false);
             RegisterEntityDataAndId(entityData);
             entityData.InitFromPreInstantiated(entity);
             entity.AssociateWithEntityData(entityData);
@@ -975,7 +989,6 @@ namespace JanSharp
             Entity entity = preInstantiatedEntityInstances[index];
             if (entity != null)
             {
-                entity.OnInstantiate(lockstep, this, wannaBeClasses, prototype, isDefaultInstance: false);
                 entity.AssociateWithEntityData(entityData);
                 return entityData;
             }

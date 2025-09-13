@@ -12,7 +12,8 @@
 - [x] ~~maybe change the no transform sync flag to a counter. Though when there are multiple systems trying to take control of syncing of an entity's transform, I don't foresee that going well currently so this is low priority if it even makes sense at all~~ there can only be EntityTransformController
 - [x] no transform sync is annoying to use because of the transform values reset in the game state that happens when enabling it. The reset is required in order to have identical game states including for those who join late, however if a system using the no transform sync feature doesn't actually handle all 3 of the transform values, like not handling scale for example, the result is the scale in the game state differing from the real scale of the entity when no transform sync gets disabled again
 - [x] ~~import of pre instantiated entities deleted them and created new ones, pretty sure, which it's not supposed to~~ incorrect observation
-- [ ] consider raising the OnInstantiate event for pre instantiated entities on start rather than later. Now that every pre instantiated entity is going to get it raise eventually, it should be safe to do so sooner as well. Can also spread it out across frames if desired
+- [x] consider raising the OnInstantiate event for pre instantiated entities on start rather than later. Now that every pre instantiated entity is going to get it raised eventually, it should be safe to do so sooner as well
+  - [ ] Maybe also spread it out across frames... there could be _many_ pre instantiated entities
 - [x] probably collapse the Prototype class into the EntityPrototype class
 - [x] need game state safe events on EntityExtensionData for when they get created and deleted
 - [x] raise an event on default entities to "initialize" them, similar to Start, except that order of operations is known and this initialize function actually calls OnInitialize by default
