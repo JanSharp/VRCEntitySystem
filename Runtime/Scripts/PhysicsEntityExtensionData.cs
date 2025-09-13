@@ -306,8 +306,8 @@ namespace JanSharp
                 ResetGameStateDueToSleep();
             else
             {
-                // TODO: This is an issue for imports, there is no responsible player... but there is,
-                // it just doesn't start the update loop for whatever reason.
+                if (isImport && responsiblePlayerId == 0u)
+                    SetResponsiblePlayerId(lockstep.MasterPlayerId);
                 velocity = lockstep.ReadVector3();
                 angularVelocity = lockstep.ReadVector3();
                 entityData.SetTransformSyncControllerDueToDeserialization(transformController);

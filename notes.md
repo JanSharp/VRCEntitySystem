@@ -39,4 +39,4 @@
 - [ ] split the internal name of entities into 2 fields: namespace and internal name. Neither of those are allowed to contain a `.`, as they will get combined into one script like this: `namespace.internal-name`
 - [x] make custom inspector for entities and physics entity extensions simply to remove the line that gets drawn by default by the UdonSharp inspector
 - [x] maybe lower the max work ms per frame to like 5 instead of 20. It does get very noticeably frame-y while deserializing and if I had to guess people prefer having more comfortable frames while the system is loading rather than it loading a few seconds faster overall
-- [ ] fix importing of awake physics entities potentially not having a responsible player
+- [x] fix importing of awake physics entities potentially not having a responsible player
