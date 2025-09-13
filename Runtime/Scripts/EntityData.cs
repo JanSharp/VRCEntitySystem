@@ -375,19 +375,26 @@ namespace JanSharp
                 prevController.OnControlTakenOver(this, controller);
             }
 
+            // TODO: ... Just remove this? It has been established that it's a bad idea... right?
             // if (latencyUniqueIdLut.Count == 0 && entity != null)
             //     entity.TakeControlOfTransformSync(controller);
         }
 
         /// <param name="releasingController">Only give back control if this matches the current controller.
         /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
-        public void GiveBackControlOfTransformSync(EntityTransformController releasingController, Vector3 position, Quaternion rotation, Vector3 scale, float interpolationDuration = Entity.TransformChangeInterpolationDuration)
+        public void GiveBackControlOfTransformSync(
+            EntityTransformController releasingController,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            float interpolationDuration = Entity.TransformChangeInterpolationDuration)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfTransformSync");
 #endif
             if (!noTransformSync || (releasingController != null && transformSyncController != releasingController))
             {
+                // TODO: ... Just remove this? It has been established that it's a bad idea... right?
                 // if (latencyUniqueIdLut.Count == 0 && entity != null)
                 //     entity.GiveBackControlOfTransformSync(releasingController, position, rotation, scale, interpolationDuration);
                 return;
@@ -401,6 +408,7 @@ namespace JanSharp
             transformSyncController = null;
             if (releasingController == null)
                 prevController.OnControlLost(this);
+            // TODO: ... Just remove this? It has been established that it's a bad idea... right?
             // if (latencyUniqueIdLut.Count == 0 && entity != null)
             //     entity.GiveBackControlOfTransformSync(releasingController, position, rotation, scale, interpolationDuration);
         }
