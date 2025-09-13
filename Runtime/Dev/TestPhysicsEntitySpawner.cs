@@ -51,7 +51,6 @@ namespace JanSharp
 
             PhysicsEntityExtensionData extensionData = GetExtensionData(entityData);
             extensionData.velocity = velocity;
-            extensionData.responsiblePlayerId = localPlayerId;
             EnsureIsAwake(extensionData);
         }
 
@@ -69,7 +68,6 @@ namespace JanSharp
             {
                 PhysicsEntityExtensionData extensionData = GetExtensionData(entityData);
                 extensionData.velocity = velocity;
-                extensionData.responsiblePlayerId = lockstep.SendingPlayerId;
                 EnsureIsAwake(extensionData);
             }
 

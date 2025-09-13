@@ -7,6 +7,8 @@
         "JanSharp.Common.Editor",
         "JanSharp.Lockstep",
         "JanSharp.Lockstep.Editor",
+        "JanSharp.PlayerData",
+        "JanSharp.PlayerData.Editor",
         "UdonSharp.Runtime",
         "UdonSharp.Editor",
         "Unity.TextMeshPro",

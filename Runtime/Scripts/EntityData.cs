@@ -10,6 +10,7 @@ namespace JanSharp
         [HideInInspector][SingletonReference] public LockstepAPI lockstep;
         [HideInInspector][SingletonReference] public EntitySystem entitySystem;
         [HideInInspector][SingletonReference] public InterpolationManager interpolation;
+        [HideInInspector][SingletonReference] public PlayerDataManager playerDataManager;
         /// <summary>
         /// <para>Negative 1 means that the entity has been destroyed.</para>
         /// <para>Not part of the public api.</para>
@@ -41,8 +42,14 @@ namespace JanSharp
         [System.NonSerialized] public Quaternion rotation;
         [System.NonSerialized] public Vector3 scale;
         [System.NonSerialized] public uint lastKnownTransformStateTick;
-        [System.NonSerialized] public uint createdByPlayerId;
-        [System.NonSerialized] public uint lastUserPlayerId;
+        /// <summary>
+        /// <para>Can be <see langword="null"/>.</para>
+        /// </summary>
+        [System.NonSerialized] public EntitySystemPlayerData createdByPlayerData;
+        /// <summary>
+        /// <para>Can be <see langword="null"/>.</para>
+        /// </summary>
+        [System.NonSerialized] public EntitySystemPlayerData lastUserPlayerData;
         [System.NonSerialized] public bool hidden;
         [System.NonSerialized] public EntityData parentEntity;
         [System.NonSerialized] public EntityData[] childEntities = new EntityData[0];
@@ -131,7 +138,12 @@ namespace JanSharp
             entity.entityData = this;
         }
 
-        public void InitFromDefault(Vector3 position, Quaternion rotation, Vector3 scale)
+        public void InitFromDefault(
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            EntitySystemPlayerData createdByPlayerData,
+            EntitySystemPlayerData lastUserPlayerData)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  InitFromDefault");
@@ -143,8 +155,8 @@ namespace JanSharp
             this.position = position;
             this.rotation = rotation;
             this.scale = scale;
-            createdByPlayerId = 0u;
-            lastUserPlayerId = 0u;
+            this.createdByPlayerData = createdByPlayerData;
+            this.lastUserPlayerData = lastUserPlayerData;
             hidden = false;
             parentEntity = null;
 
@@ -167,8 +179,8 @@ namespace JanSharp
             position = t.position;
             rotation = t.rotation;
             scale = t.localScale;
-            createdByPlayerId = 0u;
-            lastUserPlayerId = 0u;
+            createdByPlayerData = null;
+            lastUserPlayerData = null;
             hidden = false;
             parentEntity = null;
 
@@ -274,6 +286,32 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] EntityData  MarkLatencyHiddenUniqueIdAsProcessed");
 #endif
             ShouldApplyReceivedIAToLatencyState(); // Literally the same logic.
+        }
+
+        /// <summary>
+        /// <para>If the latency state differs from the game state, reset it to the game state. Any IAs which
+        /// had already been applied to the latency state will get applied again whenever the associated IA
+        /// runs in the game state.</para>
+        /// <para>This enables modification of entities through non latency hidden yet game state safe
+        /// events.</para>
+        /// <para>It is recommended to modify the game state of entities before calling
+        /// <see cref="ResetLatencyStateIfItDiverged"/>. Then if this returns <see langword="false"/> modify
+        /// the associated latency state. When this returns <see langword="true"/> then the changes made to
+        /// the game state will already have been applied to the latency state through
+        /// <see cref="EntityExtension.ApplyExtensionData"/>.</para>
+        /// </summary>
+        /// <returns><see langword="true"/> if the latency state had indeed diverged.</returns>
+        public bool ResetLatencyStateIfItDiverged()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityData  ResetLatencyStateIfItDiverged");
+#endif
+            if (latencyUniqueIdLut.Count == 0)
+                return false;
+            latencyUniqueIdLut.Clear();
+            if (entity != null)
+                entity.ApplyEntityData();
+            return true;
         }
 
         public void WritePotentiallyUnknownTransformValues()
@@ -425,6 +463,27 @@ namespace JanSharp
             // See SetTransformSyncControllerDueToDeserialization.
         }
 
+        public void WritePlayerData(EntitySystemPlayerData playerData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityData  WritePlayerData");
+#endif
+            lockstep.WriteSmallUInt(playerData == null ? 0u : playerData.PersistentId);
+        }
+
+        public EntitySystemPlayerData ReadPlayerData(bool isImport)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityData  ReadPlayerData");
+#endif
+            uint persistentId = lockstep.ReadSmallUInt();
+            if (persistentId == 0u)
+                return null;
+            if (isImport)
+                persistentId = playerDataManager.GetPersistentIdFromImportedId(persistentId);
+            return playerDataManager.GetPlayerDataForPersistentId<EntitySystemPlayerData>(nameof(EntitySystemPlayerData), persistentId);
+        }
+
         public void Serialize(bool isExport)
         {
 #if ENTITY_SYSTEM_DEBUG
@@ -432,8 +491,8 @@ namespace JanSharp
 #endif
             lockstep.WriteFlags(noTransformSync, hidden);
             SerializeTransformValues(isExport);
-            lockstep.WriteSmallUInt(createdByPlayerId);
-            lockstep.WriteSmallUInt(lastUserPlayerId);
+            WritePlayerData(createdByPlayerData);
+            WritePlayerData(lastUserPlayerData);
             lockstep.WriteSmallUInt(parentEntity == null ? 0u : parentEntity.id);
             lockstep.WriteSmallUInt((uint)childEntities.Length);
             foreach (EntityData child in childEntities)
@@ -451,8 +510,12 @@ namespace JanSharp
 #endif
             lockstep.ReadFlags(out noTransformSync, out hidden);
             DeserializeTransformValue(isImport);
-            createdByPlayerId = lockstep.ReadSmallUInt();
-            lastUserPlayerId = lockstep.ReadSmallUInt();
+            createdByPlayerData = ReadPlayerData(isImport);
+            lastUserPlayerData = ReadPlayerData(isImport);
+            if (createdByPlayerData != null)
+                createdByPlayerData.GainCreated(this);
+            if (lastUserPlayerData != null)
+                lastUserPlayerData.GainLastUsed(this);
             unresolvedParentEntityId = lockstep.ReadSmallUInt();
             int childEntitiesLength = (int)lockstep.ReadSmallUInt();
             unresolvedChildEntitiesIds = new uint[childEntitiesLength];
@@ -476,9 +539,9 @@ namespace JanSharp
 
             if (noTransformSync && transformSyncController == null)
             {
-                Debug.LogError($"[EntitySystem] An EntityData had noTransformSync set to true during "
+                Debug.LogError($"[EntitySystem] An EntityData had {nameof(noTransformSync)} set to true during "
                     + $"deserialization, however no system restored the transform sync controller which is "
-                    + $"responsible for managing this EntityData. Use SetTransformSyncControllerDueToDeserialization "
+                    + $"responsible for managing this EntityData. Use {nameof(SetTransformSyncControllerDueToDeserialization)} "
                     + $"inside of the Deserialize function of an EntityExtensionData.");
                 // To prevent runtime errors at least, but this is not guaranteed to
                 // actually resolve this error case in a game state safe manner.

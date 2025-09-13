@@ -1,8 +1,5 @@
 ﻿using UdonSharp;
 using UnityEngine;
-using VRC.SDK3.Data;
-using VRC.SDKBase;
-using VRC.Udon;
 
 namespace JanSharp
 {
@@ -11,23 +8,7 @@ namespace JanSharp
     public class PhysicsEntityManager : UdonSharpBehaviour
     {
         [HideInInspector][SerializeField][SingletonReference] private LockstepAPI lockstep;
-
-        /// <summary>
-        /// <para><see cref="uint"/> playerId => <see cref="DataList"/> of <see cref="PhysicsEntityExtensionData"/></para>
-        /// </summary>
-        private DataDictionary associatedEntitiesLut = new DataDictionary();
-
-        private DataList GetExtensionsListForPlayerId(uint playerId)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityManager  GetExtensionsListForPlayerId");
-#endif
-            if (associatedEntitiesLut.TryGetValue(playerId, out DataToken listToken))
-                return listToken.DataList;
-            DataList extensionsList = new DataList();
-            associatedEntitiesLut.Add(playerId, extensionsList);
-            return extensionsList;
-        }
+        [HideInInspector][SerializeField][SingletonReference] private EntitySystem entitySystem;
 
         [LockstepEvent(LockstepEventType.OnClientLeft)]
         public void OnClientLeft()
@@ -35,20 +16,23 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityManager  OnClientLeft");
 #endif
-            if (!associatedEntitiesLut.Remove(lockstep.LeftPlayerId, out DataToken listToken))
+            EntitySystemPlayerData leftPlayerData = entitySystem.GetPlayerDataForPlayerId(lockstep.LeftPlayerId);
+            PhysicsEntityExtensionData[] managed = leftPlayerData.managedPhysicsEntities;
+            int managedCount = leftPlayerData.managedPhysicsEntitiesCount;
+            if (managedCount == 0)
                 return;
-            uint masterPlayerId = lockstep.MasterPlayerId;
-            DataList listToCollapse = listToken.DataList;
-            DataList destinationList = GetExtensionsListForPlayerId(masterPlayerId);
-            destinationList.AddRange(listToCollapse);
-            int count = listToCollapse.Count;
-            for (int i = 0; i < count; i++)
+            EntitySystemPlayerData masterPlayerData = entitySystem.GetPlayerDataForPlayerId(lockstep.MasterPlayerId);
+            masterPlayerData.GainResponsibility(managed, managedCount);
+            for (int i = 0; i < managedCount; i++)
             {
-                PhysicsEntityExtensionData extensionData = (PhysicsEntityExtensionData)listToCollapse[i].Reference;
-                extensionData.responsiblePlayerId = masterPlayerId;
-                if (extensionData.ext != null)
-                    extensionData.ext.UpdateUpdateLoopRunningState();
+                PhysicsEntityExtensionData extensionData = managed[i];
+                // Must not use SetResponsiblePlayerId as that would call the deregister and register
+                // functions in the manager here, but the responsibilities have already been managed.
+                extensionData.responsiblePlayerId = masterPlayerData.PlayerId;
+                if (!extensionData.entityData.ResetLatencyStateIfItDiverged() && extensionData.ext != null)
+                    extensionData.ext.SetResponsiblePlayerId(masterPlayerData.PlayerId);
             }
+            leftPlayerData.LoseAllResponsibility();
         }
 
         public void RegisterPhysicsExtensionData(PhysicsEntityExtensionData extensionData)
@@ -56,7 +40,10 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityManager  RegisterPhysicsExtensionData");
 #endif
-            GetExtensionsListForPlayerId(extensionData.responsiblePlayerId).Add(extensionData);
+            if (extensionData.responsiblePlayerId == 0u)
+                return;
+            EntitySystemPlayerData playerData = entitySystem.GetPlayerDataForPlayerId(extensionData.responsiblePlayerId);
+            playerData.GainResponsibility(extensionData);
         }
 
         public void DeregisterPhysicsExtensionData(PhysicsEntityExtensionData extensionData)
@@ -64,7 +51,10 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityManager  DeregisterPhysicsExtensionData");
 #endif
-            GetExtensionsListForPlayerId(extensionData.responsiblePlayerId).Remove(extensionData);
+            if (extensionData.responsiblePlayerId == 0u)
+                return;
+            EntitySystemPlayerData playerData = entitySystem.GetPlayerDataForPlayerId(extensionData.responsiblePlayerId);
+            playerData.LoseResponsibility(extensionData);
         }
 
         // TODO: The manager could handle all of the update loops for all entities associated with the local player. This could make spreading work out more reliable

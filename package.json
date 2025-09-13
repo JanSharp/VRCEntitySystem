@@ -16,7 +16,8 @@
   "vpmDependencies": {
     "com.vrchat.worlds": "^3.6.x",
     "com.jansharp.common": ">=1.1.0",
-    "com.jansharp.lockstep": ">=1.0.0"
+    "com.jansharp.lockstep": ">=1.0.0",
+    "com.jansharp.player-data": ">=0.1.0"
   },
   "url": "https://github.com/JanSharp/VRCEntitySystem/releases/download/v0.1.0/com.jansharp.entity-system.zip",
   "changelogUrl": "https://github.com/JanSharp/VRCEntitySystem/blob/v0.1.0/CHANGELOG.md"

@@ -7,6 +7,7 @@ namespace JanSharp
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     [SingletonScript("d627f7fa95da90f1f87280f822155c9d")] // Runtime/Prefabs/EntitySystem.prefab
+    [LockstepGameStateDependency(typeof(PlayerDataManager))]
     public partial class EntitySystem : LockstepGameState
     {
         public override string GameStateInternalName => "jansharp.entity-system";
@@ -23,6 +24,7 @@ namespace JanSharp
 
         [HideInInspector][SerializeField][SingletonReference] private EntityPooling pooling;
         [HideInInspector][SerializeField][SingletonReference] private WannaBeClassesManager wannaBeClasses;
+        [HideInInspector][SerializeField][SingletonReference] private PlayerDataManager playerDataManager;
 
         [SerializeField] private Transform preInstantiatedEntityDataContainer;
         [SerializeField] private Transform entityPrefabInstsContainer;
@@ -83,6 +85,29 @@ namespace JanSharp
         private VRCPlayerApi localPlayer;
         private uint localPlayerId;
 
+        /// <summary>
+        /// <para>Can even get the player data for the local client inside of OnClientBeginCatchUp, because
+        /// the PlayerData system creates the player data in OnPreClientJoined, thus making it apart of the
+        /// late joiner data that has been sent to the local client. No edge cases! Lockstep is
+        /// beautiful.</para>
+        /// </summary>
+        /// <param name="playerId">Can be <c>0u</c>.</param>
+        /// <returns></returns>
+        public EntitySystemPlayerData GetPlayerDataForPlayerId(uint playerId)
+        {
+            return playerId == 0u
+                ? null
+                : (EntitySystemPlayerData)playerDataManager.GetPlayerDataForPlayerIdDynamic(nameof(EntitySystemPlayerData), playerId);
+        }
+
+        /// <inheritdoc cref="GetPlayerDataForPlayerId(uint)"/>
+        public EntitySystemPlayerData GetPlayerDataForPersistentId(uint persistentId)
+        {
+            return persistentId == 0u
+                ? null
+                : (EntitySystemPlayerData)playerDataManager.GetPlayerDataForPersistentIdDynamic(nameof(EntitySystemPlayerData), persistentId);
+        }
+
         private void Start()
         {
 #if ENTITY_SYSTEM_DEBUG
@@ -93,6 +118,7 @@ namespace JanSharp
             InitEntityPrototypes();
             InitExtensionIANameLut();
             nextEntityId = highestPreInstantiatedEntityId + 1u;
+            playerDataManager.RegisterCustomPlayerData<EntitySystemPlayerData>(nameof(EntitySystemPlayerData));
         }
 
         [LockstepEvent(LockstepEventType.OnInit)]
@@ -300,6 +326,7 @@ namespace JanSharp
             // Latency hiding.
             return CreateDefaultEntity(
                 GetEntityPrototype(prototypeId), uniqueId, InvalidId,
+                GetPlayerDataForPlayerId(localPlayerId),
                 position, rotation,
                 highPriority: true);
         }
@@ -315,8 +342,10 @@ namespace JanSharp
             ulong uniqueId = lockstep.SendingUniqueId;
             uint id = nextEntityId++;
 
+            EntitySystemPlayerData playerData = GetPlayerDataForPlayerId(lockstep.SendingPlayerId);
+
             EntityData entityData;
-            if (lockstep.SendingPlayerId == localPlayerId) // Latency hiding
+            if (lockstep.SendingPlayerId == localPlayerId) // Was latency hidden, promote entityData to game state.
             {
                 entityData = (EntityData)entityDataByUniqueId[uniqueId].Reference;
                 SetEntityDataId(entityData, id);
@@ -324,8 +353,12 @@ namespace JanSharp
             else
                 entityData = CreateDefaultEntity(
                     GetEntityPrototype(prototypeId), uniqueId, id,
+                    playerData,
                     position, rotation,
                     highPriority: false);
+
+            playerData.GainCreated(entityData);
+            playerData.GainLastUsed(entityData);
 
             entityData.OnEntityDataCreated();
             if (!onEntityCreatedGetsRaisedLater)
@@ -363,6 +396,7 @@ namespace JanSharp
             EntityPrototype prototype,
             ulong uniqueId,
             uint id,
+            EntitySystemPlayerData createdByPlayerData,
             Vector3 position,
             Quaternion rotation,
             bool highPriority)
@@ -371,7 +405,7 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] EntitySystem  CreateDefaultEntity");
 #endif
             EntityData entityData = NewEntityData(prototype, uniqueId, id);
-            entityData.InitFromDefault(position, rotation, prototype.DefaultScale);
+            entityData.InitFromDefault(position, rotation, prototype.DefaultScale, createdByPlayerData, createdByPlayerData);
             pooling.RequestEntity(entityData, highPriority);
             return entityData;
         }

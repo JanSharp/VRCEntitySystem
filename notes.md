@@ -33,8 +33,10 @@
   - [ ] a read only list of entity extensions
 - [ ] maybe make pre instantiated entities export a flag indicating whether they've been moved from their original location to give the option to not import their locations. This enables moving pre instantiated entities in the scene and then importing old data while retaining the change in default location.
 - [ ] the last user player id is not a properly and fully implemented system
-- [ ] physics entities that are awake by default do not go to sleep when the rigid body stops moving, since the update loop does not start and there is no responsible player
+- [x] physics entities that are awake by default do not go to sleep when the rigid body stops moving, since the update loop does not start and there is no responsible player
+  - [ ] issue still applies to pre instantiated entities
 - [ ] use the fact that entity prefabs are actually already instances in the scene, specifically by using te \[SingletonReference\] attribute for entities and entity extensions
 - [ ] split the internal name of entities into 2 fields: namespace and internal name. Neither of those are allowed to contain a `.`, as they will get combined into one script like this: `namespace.internal-name`
 - [x] make custom inspector for entities and physics entity extensions simply to remove the line that gets drawn by default by the UdonSharp inspector
 - [x] maybe lower the max work ms per frame to like 5 instead of 20. It does get very noticeably frame-y while deserializing and if I had to guess people prefer having more comfortable frames while the system is loading rather than it loading a few seconds faster overall
+- [ ] fix importing of awake physics entities potentially not having a responsible player

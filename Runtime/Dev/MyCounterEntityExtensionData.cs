@@ -52,13 +52,6 @@ namespace JanSharp
             Init();
         }
 
-        public override void OnAssociatedWithExtension()
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] MyCounterEntityExtensionData  OnAssociatedWithExtension");
-#endif
-        }
-
         public void SendModifyValueIA(int delta)
         {
 #if ENTITY_SYSTEM_DEBUG

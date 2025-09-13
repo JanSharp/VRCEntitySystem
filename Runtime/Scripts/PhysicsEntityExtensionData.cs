@@ -1,7 +1,6 @@
 ﻿using UdonSharp;
 using UnityEngine;
 using VRC.SDKBase;
-using VRC.Udon;
 
 namespace JanSharp
 {
@@ -15,9 +14,13 @@ namespace JanSharp
         [HideInInspector][SingletonReference] public PhysicsEntityManager manager;
         [HideInInspector][SingletonReference] public PhysicsEntityTransformController transformController;
         [HideInInspector][SingletonReference] public InterpolationManager interpolation;
+        [HideInInspector][SingletonReference] public PlayerDataManager playerDataManager;
 
         [System.NonSerialized] public PhysicsEntityExtension ext;
 
+        /// <summary>
+        /// <para>Can be <c>0u</c>.</para>
+        /// </summary>
         [System.NonSerialized] public uint responsiblePlayerId;
         [System.NonSerialized] public bool isSleeping = true;
         [System.NonSerialized] public Vector3 velocity;
@@ -25,23 +28,20 @@ namespace JanSharp
 
         private uint localPlayerId;
 
+        private void Init()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  Init");
+#endif
+            localPlayerId = (uint)Networking.LocalPlayer.playerId;
+        }
+
         public override void InitBeforeDeserialization()
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  InitBeforeDeserialization");
 #endif
-            localPlayerId = (uint)Networking.LocalPlayer.playerId;
-        }
-
-        public override void InitFromDefault(EntityExtension entityExtension)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  InitFromDefault");
-#endif
-            PhysicsEntityExtension ext = (PhysicsEntityExtension)entityExtension;
-            if (!ext.isSleeping)
-                WakeUp();
-            InitBeforeDeserialization();
+            Init();
         }
 
         public override void InitFromPreInstantiated(EntityExtension entityExtension)
@@ -49,7 +49,22 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  InitFromPreInstantiated");
 #endif
-            InitFromDefault(entityExtension);
+            Init();
+            PhysicsEntityExtension ext = (PhysicsEntityExtension)entityExtension;
+            if (!ext.isSleeping)
+                WakeUp();
+        }
+
+        public override void InitFromDefault(EntityExtension entityExtension)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  InitFromDefault");
+#endif
+            Init();
+            responsiblePlayerId = entityData.lastUserPlayerData == null ? 0u : entityData.lastUserPlayerData.PlayerId;
+            PhysicsEntityExtension ext = (PhysicsEntityExtension)entityExtension;
+            if (!ext.isSleeping)
+                WakeUp();
         }
 
         public override void OnEntityExtensionDataCreated()
@@ -57,16 +72,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnEntityExtensionDataCreated");
 #endif
-            if (responsiblePlayerId == 0u)
-                responsiblePlayerId = lockstep.MasterPlayerId;
             manager.RegisterPhysicsExtensionData(this);
-        }
-
-        public override void OnAssociatedWithExtension()
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  OnAssociatedWithExtension");
-#endif
         }
 
         public override void OnEntityExtensionDataDestroyed()
@@ -241,12 +247,39 @@ namespace JanSharp
             angularVelocity = Vector3.zero;
         }
 
+        private void ExportResponsiblePlayer()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  ExportResponsiblePlayer");
+#endif
+            lockstep.WriteSmallUInt(responsiblePlayerId == 0u
+                ? 0u
+                : playerDataManager.GetCorePlayerDataForPlayerId(responsiblePlayerId).persistentId);
+        }
+
+        private void ImportResponsiblePlayer()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  ImportResponsiblePlayer");
+#endif
+            uint persistentId = lockstep.ReadSmallUInt();
+            if (persistentId == 0u)
+                return;
+            persistentId = playerDataManager.GetPersistentIdFromImportedId(persistentId);
+            var playerData = playerDataManager.GetCorePlayerDataForPersistentId(persistentId);
+            if (playerData.isOffline)
+                return;
+            SetResponsiblePlayerId(playerData.playerId);
+        }
+
         public override void Serialize(bool isExport)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  Serialize");
 #endif
-            if (!isExport)
+            if (isExport)
+                ExportResponsiblePlayer();
+            else
                 lockstep.WriteSmallUInt(responsiblePlayerId);
             lockstep.WriteFlags(isSleeping);
             if (!isSleeping)
@@ -261,7 +294,9 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  Deserialize");
 #endif
-            if (!isImport)
+            if (isImport)
+                ImportResponsiblePlayer();
+            else
             {
                 responsiblePlayerId = lockstep.ReadSmallUInt();
                 manager.RegisterPhysicsExtensionData(this);
@@ -271,6 +306,8 @@ namespace JanSharp
                 ResetGameStateDueToSleep();
             else
             {
+                // TODO: This is an issue for imports, there is no responsible player... but there is,
+                // it just doesn't start the update loop for whatever reason.
                 velocity = lockstep.ReadVector3();
                 angularVelocity = lockstep.ReadVector3();
                 entityData.SetTransformSyncControllerDueToDeserialization(transformController);

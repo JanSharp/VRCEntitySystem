@@ -1,7 +1,4 @@
 ﻿using UdonSharp;
-using UnityEngine;
-using VRC.SDKBase;
-using VRC.Udon;
 
 namespace JanSharp
 {
@@ -21,10 +18,6 @@ namespace JanSharp
         }
 
         public override void InitBeforeDeserialization()
-        {
-        }
-
-        public override void OnAssociatedWithExtension()
         {
         }
 
