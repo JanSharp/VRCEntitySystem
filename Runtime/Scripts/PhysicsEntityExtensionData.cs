@@ -266,7 +266,7 @@ namespace JanSharp
             if (persistentId == 0u)
                 return;
             persistentId = playerDataManager.GetPersistentIdFromImportedId(persistentId);
-            var playerData = playerDataManager.GetCorePlayerDataForPersistentId(persistentId);
+            CorePlayerData playerData = playerDataManager.GetCorePlayerDataForPersistentId(persistentId);
             if (playerData.isOffline)
                 return;
             SetResponsiblePlayerId(playerData.playerId);
