@@ -100,10 +100,8 @@ namespace JanSharp
             if (ext == null)
                 return;
             entityData.RegisterLatencyHiddenUniqueId(uniqueId);
-            if (ext.responsiblePlayerId != localPlayerId)
-                ext.SetResponsiblePlayerId(localPlayerId);
-            if (ext.isSleeping)
-                ext.WakeUp();
+            ext.SetResponsiblePlayerId(localPlayerId);
+            ext.WakeUp();
         }
 
         [EntityExtensionDataInputAction]
