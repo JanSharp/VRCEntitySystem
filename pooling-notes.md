@@ -47,7 +47,9 @@ EntityExtensionData lifetime
   - [x] InitFromPreInstantiated
   - [x] Deserialize (game state safe)
 - [x] OnEntityExtensionDataCreated (game state safe)
-- [x] Import (potentially multiple times)
+- [x] One of (potentially multiple times)
+  - [x] Import
+  - [x] OnImportedWithoutDeserialization
 - [x] OnAssociatedWithExtension (raised after AssociateWithExtensionData)
 - [x] OnDisassociateFromExtension (for latency entity destroying)
 - [x] OnEntityExtensionDataDestroyed (game state safe)

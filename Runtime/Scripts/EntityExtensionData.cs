@@ -91,7 +91,7 @@ namespace JanSharp
         /// <summary>
         /// <para>Game state safe.</para>
         /// </summary>
-        public virtual void ImportedWithoutDeserialization() { } // TODO: maybe add On prefix, also add to lifecycle
+        public virtual void OnImportedWithoutDeserialization() { }
 
         public ulong SendExtensionDataInputAction(string methodName) => entitySystem.SendExtensionDataInputAction(this, methodName);
     }

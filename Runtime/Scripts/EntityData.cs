@@ -610,7 +610,7 @@ namespace JanSharp
                 int index = importedMetadata.resolvedExtensionIndexes[i];
                 EntityExtensionData extensionData = allExtensionData[index];
                 if (!lockstep.ReadCustomClass(extensionData))
-                    extensionData.ImportedWithoutDeserialization();
+                    extensionData.OnImportedWithoutDeserialization();
             }
         }
 
