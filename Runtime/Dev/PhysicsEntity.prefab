@@ -159,6 +159,10 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 4627319504475560812}
+  lockstep: {fileID: 0}
+  entitySystem: {fileID: 0}
+  wannaBeClasses: {fileID: 0}
+  interpolation: {fileID: 0}
   extensions:
   - {fileID: 1368530592881391589}
 --- !u!114 &4627319504475560812
@@ -208,6 +212,10 @@ MonoBehaviour:
     PrefabModifications: []
     SerializationNodes: []
   _udonSharpBackingUdonBehaviour: {fileID: 3489260515357487465}
+  lockstep: {fileID: 0}
+  entitySystem: {fileID: 0}
+  interpolation: {fileID: 0}
+  transformController: {fileID: 0}
 --- !u!114 &3489260515357487465
 MonoBehaviour:
   m_ObjectHideFlags: 0

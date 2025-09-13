@@ -1,7 +1,6 @@
 ﻿using UdonSharp;
 using UnityEngine;
 using VRC.SDKBase;
-using VRC.Udon;
 
 namespace JanSharp
 {
@@ -13,6 +12,8 @@ namespace JanSharp
     [DisallowMultipleComponent]
     public class PhysicsEntityExtension : EntityExtension
     {
+        [HideInInspector][SingletonReference] public InterpolationManager interpolation;
+        [HideInInspector][SingletonReference] public PhysicsEntityTransformController transformController;
         [System.NonSerialized] public PhysicsEntityExtensionData data;
 
         public const float PhysicsSyncInterval = 1f;
@@ -104,7 +105,7 @@ namespace JanSharp
                 return;
             isSleeping = false;
             rb.isKinematic = false;
-            entity.TakeControlOfTransformSync(data.transformController);
+            entity.TakeControlOfTransformSync(transformController);
             UpdateUpdateLoopRunningState();
         }
 
@@ -118,7 +119,7 @@ namespace JanSharp
             isSleeping = true;
             rb.isKinematic = true;
             entity.GiveBackControlOfTransformSync(
-                data.transformController,
+                transformController,
                 position,
                 rotation,
                 entity.transform.localScale,
@@ -156,7 +157,6 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtension  InterpolateToDataPositionAndRotation");
 #endif
-            InterpolationManager interpolation = data.interpolation;
             interpolation.LerpWorldPosition(this.transform, position, InterpolationDuration);
             interpolation.LerpWorldRotation(this.transform, rotation, InterpolationDuration, this, nameof(OnInterpolationFinished), null);
             rb.isKinematic = true;

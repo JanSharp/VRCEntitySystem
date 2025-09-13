@@ -148,7 +148,7 @@ namespace JanSharp
             {
                 entityPrototypesById.Add(prototype.Id, prototype);
                 entityPrototypesByName.Add(prototype.PrototypeName, prototype);
-                prototype.DefaultEntityInst.OnInstantiate(lockstep, this, wannaBeClasses, prototype, isDefaultInstance: true);
+                prototype.DefaultEntityInst.OnInstantiate(prototype, isDefaultInstance: true);
             }
         }
 
@@ -162,7 +162,7 @@ namespace JanSharp
             {
                 Entity entity = preInstantiatedEntityInstances[i];
                 EntityPrototype prototype = preInstantiatedEntityInstancePrototypes[i];
-                entity.OnInstantiate(lockstep, this, wannaBeClasses, prototype, isDefaultInstance: false);
+                entity.OnInstantiate(prototype, isDefaultInstance: false);
             }
         }
 

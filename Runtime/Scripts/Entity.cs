@@ -1,17 +1,15 @@
 ﻿using UdonSharp;
 using UnityEngine;
-using VRC.SDK3.Data;
-using VRC.SDKBase;
-using VRC.Udon;
 
 namespace JanSharp
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class Entity : UdonSharpBehaviour
     {
-        [System.NonSerialized] public LockstepAPI lockstep;
-        [System.NonSerialized] public EntitySystem entitySystem;
-        [System.NonSerialized] public WannaBeClassesManager wannaBeClasses;
+        [HideInInspector][SingletonReference] public LockstepAPI lockstep;
+        [HideInInspector][SingletonReference] public EntitySystem entitySystem;
+        [HideInInspector][SingletonReference] public WannaBeClassesManager wannaBeClasses;
+        [HideInInspector][SingletonReference] public InterpolationManager interpolation;
         [System.NonSerialized] public EntityPrototype prototype;
         [System.NonSerialized] public EntityData entityData;
         [System.NonSerialized] public int instanceIndex;
@@ -33,22 +31,16 @@ namespace JanSharp
         public const float TransformChangeInterpolationDuration = TimeBetweenTransformChangeIAs + 0.1f;
 
         public void OnInstantiate(
-            LockstepAPI lockstep,
-            EntitySystem entitySystem,
-            WannaBeClassesManager wannaBeClasses,
             EntityPrototype prototype,
             bool isDefaultInstance)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] Entity  OnInstantiate");
 #endif
-            this.lockstep = lockstep;
-            this.entitySystem = entitySystem;
-            this.wannaBeClasses = wannaBeClasses;
             this.prototype = prototype;
             int length = extensions.Length;
             for (int i = 0; i < length; i++)
-                extensions[i].InternalSetup(i, lockstep, entitySystem, this);
+                extensions[i].InternalSetup(i, this);
             if (isDefaultInstance)
                 for (int i = 0; i < length; i++)
                     extensions[i].OnInstantiateDefaultInstance();
@@ -89,7 +81,6 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityDataWithoutExtensions");
 #endif
             Transform t = this.transform;
-            var interpolation = entityData.interpolation;
             if (!noTransformSync && !entityData.noTransformSync)
             {
                 interpolation.CancelPositionInterpolation(t);
@@ -174,19 +165,19 @@ namespace JanSharp
             Transform t = this.transform;
 
             if (t.position == position)
-                entityData.interpolation.CancelPositionInterpolation(t);
+                interpolation.CancelPositionInterpolation(t);
             else
-                entityData.interpolation.LerpWorldPosition(t, position, interpolationDuration);
+                interpolation.LerpWorldPosition(t, position, interpolationDuration);
 
             if (t.rotation == rotation)
-                entityData.interpolation.CancelRotationInterpolation(t);
+                interpolation.CancelRotationInterpolation(t);
             else
-                entityData.interpolation.LerpWorldRotation(t, rotation, interpolationDuration);
+                interpolation.LerpWorldRotation(t, rotation, interpolationDuration);
 
             if (t.localScale == scale)
-                entityData.interpolation.CancelScaleInterpolation(t);
+                interpolation.CancelScaleInterpolation(t);
             else
-                entityData.interpolation.LerpLocalScale(t, scale, interpolationDuration);
+                interpolation.LerpLocalScale(t, scale, interpolationDuration);
         }
 
         private void EnqueueTransformChangeIA()

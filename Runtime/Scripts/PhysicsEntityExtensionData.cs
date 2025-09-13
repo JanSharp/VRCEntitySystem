@@ -13,7 +13,6 @@ namespace JanSharp
 
         [HideInInspector][SingletonReference] public PhysicsEntityManager manager;
         [HideInInspector][SingletonReference] public PhysicsEntityTransformController transformController;
-        [HideInInspector][SingletonReference] public InterpolationManager interpolation;
         [HideInInspector][SingletonReference] public PlayerDataManager playerDataManager;
 
         [System.NonSerialized] public PhysicsEntityExtension ext;
