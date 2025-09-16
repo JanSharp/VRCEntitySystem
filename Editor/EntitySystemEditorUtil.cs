@@ -145,15 +145,15 @@ namespace JanSharp
             return false;
         }
 
-        public static bool TryGetPrototypeDefinition(string prefabAssetGuid, out EntityPrototypeDefinition prototypeDefinition)
+        public static bool TryGetPrototypeDefinition(string prototypeDefinitionAssetGuid, out EntityPrototypeDefinition prototypeDefinition)
         {
-            if (guidToPrototypeDefLut.TryGetValue(prefabAssetGuid, out prototypeDefinition)
-                && prototypeDefinition != null && GetAssetGuid(prototypeDefinition.entityPrefab) == prefabAssetGuid)
+            if (guidToPrototypeDefLut.TryGetValue(prototypeDefinitionAssetGuid, out prototypeDefinition)
+                && prototypeDefinition != null && GetAssetGuid(prototypeDefinition.entityPrefab) == prototypeDefinitionAssetGuid)
             {
                 return true;
             }
             FindAllPrototypeDefinitions();
-            return guidToPrototypeDefLut.TryGetValue(prefabAssetGuid, out prototypeDefinition);
+            return guidToPrototypeDefLut.TryGetValue(prototypeDefinitionAssetGuid, out prototypeDefinition);
         }
 
         public static void FindAllPrototypeDefinitions()
