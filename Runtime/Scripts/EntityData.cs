@@ -330,9 +330,9 @@ namespace JanSharp
 
             // Use latency state controller as it will most likely be the controller at the time of receiving data.
             EntityTransformController controller = entity.transformSyncController;
-            bool unknownPosition = !controller.TryGetGameStatePosition(this, out var discord1); // Cannot use 'out _'.
-            bool unknownRotation = !controller.TryGetGameStateRotation(this, out var discord2); // Cannot use 'out _'.
-            bool unknownScale = !controller.TryGetGameStateScale(this, out var discord3); // Cannot use 'out _'.
+            bool unknownPosition = !controller.TryGetGameStatePosition(this, out var discard1); // Cannot use 'out _'.
+            bool unknownRotation = !controller.TryGetGameStateRotation(this, out var discard2); // Cannot use 'out _'.
+            bool unknownScale = !controller.TryGetGameStateScale(this, out var discard3); // Cannot use 'out _'.
 
             lockstep.WriteFlags(unknownPosition, unknownRotation, unknownScale);
             if (unknownPosition)
@@ -604,7 +604,7 @@ namespace JanSharp
             if (IsDummyEntityDataForImport)
             {
                 for (int i = 0; i < length; i++)
-                    lockstep.SkipCustomClass(out var discard1, out var discord2); // Cannot use 'out _'.
+                    lockstep.SkipCustomClass(out var discard1, out var discard2); // Cannot use 'out _'.
                 return;
             }
             for (int i = 0; i < length; i++)
@@ -612,7 +612,7 @@ namespace JanSharp
                 string newExtensionClassName = importedMetadata.resolvedExtensionClassNames[i];
                 if (newExtensionClassName == null)
                 {
-                    lockstep.SkipCustomClass(out var discard1, out var discord2); // Cannot use 'out _'.
+                    lockstep.SkipCustomClass(out var discard1, out var discard2); // Cannot use 'out _'.
                     continue;
                 }
                 int index = importedMetadata.resolvedExtensionIndexes[i];
