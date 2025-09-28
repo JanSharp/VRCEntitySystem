@@ -449,10 +449,10 @@ namespace JanSharp
                 lockstep.WriteSmallUInt(lockstep.CurrentTick - lastKnownTransformStateTick);
         }
 
-        private void DeserializeTransformValue(bool isImport)
+        private void DeserializeTransformValues(bool isImport)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  DeserializeTransformValue");
+            Debug.Log($"[EntitySystemDebug] EntityData  DeserializeTransformValues");
 #endif
             position = lockstep.ReadVector3();
             rotation = lockstep.ReadQuaternion();
@@ -517,7 +517,7 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] EntityData  Deserialize");
 #endif
             lockstep.ReadFlags(out noTransformSync, out hidden);
-            DeserializeTransformValue(isImport);
+            DeserializeTransformValues(isImport);
             createdByPlayerData = ReadPlayerData(isImport);
             lastUserPlayerData = ReadPlayerData(isImport);
             if (createdByPlayerData != null)
