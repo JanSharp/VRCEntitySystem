@@ -8,6 +8,7 @@ namespace JanSharp
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     [SingletonScript("d627f7fa95da90f1f87280f822155c9d")] // Runtime/Prefabs/EntitySystem.prefab
     [LockstepGameStateDependency(typeof(PlayerDataManager))]
+    [DefaultExecutionOrder(-100)]
     public partial class EntitySystem : LockstepGameState
     {
         public override string GameStateInternalName => "jansharp.entity-system";
