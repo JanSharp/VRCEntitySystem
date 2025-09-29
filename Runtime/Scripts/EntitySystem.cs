@@ -771,10 +771,19 @@ namespace JanSharp
             {
                 deserializationStage = 0;
                 allImportedEntityData = null;
-                importedPrototypeMetadataById = null;
-                remappedImportedEntityData = null;
             }
             return null;
+        }
+
+        [LockstepEvent(LockstepEventType.OnImportFinished)]
+        public void OnImportFinished()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  OnImportFinished");
+#endif
+            // Keep these alive for longer so game states importing after the EntitySystem can still use them.
+            importedPrototypeMetadataById = null;
+            remappedImportedEntityData = null;
         }
 
         private DataDictionary importedPrototypeMetadataById;
