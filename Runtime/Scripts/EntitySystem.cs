@@ -448,9 +448,16 @@ namespace JanSharp
 
         public bool TryReadEntityDataRef(out EntityData entityData)
         {
+            return TryReadEntityDataRef(out entityData, lockstep.IsDeserializingForImport);
+        }
+
+        public bool TryReadEntityDataRef(out EntityData entityData, bool isImport)
+        {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  TryReadEntityDataRef");
 #endif
+            if (isImport)
+                return TryGetRemappedImportedEntityData(lockstep.ReadSmallUInt(), out entityData);
             byte header = lockstep.ReadByte();
             if (header != 0xff)
             {
@@ -483,7 +490,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  OnTransformChangeIA");
 #endif
-            if (!TryReadEntityDataRef(out EntityData entityData))
+            if (!TryReadEntityDataRef(out EntityData entityData, isImport: false))
                 return;
             entityData.OnTransformChangeIA();
         }
@@ -507,7 +514,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  OnDestroyEntityIA");
 #endif
-            if (TryReadEntityDataRef(out EntityData entityData))
+            if (TryReadEntityDataRef(out EntityData entityData, isImport: false))
                 DestroyEntity(entityData);
         }
 
@@ -621,6 +628,7 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityExtensionDataRefDynamic");
 #endif
             bool foundEntityData = TryReadEntityDataRef(out EntityData entityData);
+            // TODO: Can and should this have import support, I wonder?
             // Must read the extensionIndex even if the entityData was not found otherwise the read stream position ends up being wrong.
             int extensionIndex = (int)lockstep.ReadSmallUInt();
             return foundEntityData
