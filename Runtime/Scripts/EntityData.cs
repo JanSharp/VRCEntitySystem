@@ -374,10 +374,6 @@ namespace JanSharp
                 transformSyncController = controller;
                 prevController.OnControlTakenOver(this, controller);
             }
-
-            // TODO: ... Just remove this? It has been established that it's a bad idea... right?
-            // if (latencyUniqueIdLut.Count == 0 && entity != null)
-            //     entity.TakeControlOfTransformSync(controller);
         }
 
         /// <param name="releasingController">Only give back control if this matches the current controller.
@@ -393,12 +389,7 @@ namespace JanSharp
             Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfTransformSync");
 #endif
             if (!noTransformSync || (releasingController != null && transformSyncController != releasingController))
-            {
-                // TODO: ... Just remove this? It has been established that it's a bad idea... right?
-                // if (latencyUniqueIdLut.Count == 0 && entity != null)
-                //     entity.GiveBackControlOfTransformSync(releasingController, position, rotation, scale, interpolationDuration);
                 return;
-            }
             noTransformSync = false;
             lastKnownTransformStateTick = 0u;
             this.position = position;
@@ -408,9 +399,6 @@ namespace JanSharp
             transformSyncController = null;
             if (releasingController == null)
                 prevController.OnControlLost(this);
-            // TODO: ... Just remove this? It has been established that it's a bad idea... right?
-            // if (latencyUniqueIdLut.Count == 0 && entity != null)
-            //     entity.GiveBackControlOfTransformSync(releasingController, position, rotation, scale, interpolationDuration);
         }
 
         public void SetTransformSyncControllerDueToDeserialization(EntityTransformController controller)
