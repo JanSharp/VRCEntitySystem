@@ -426,15 +426,33 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  SerializeTransformValues");
 #endif
-            lockstep.WriteVector3(position);
-            lockstep.WriteQuaternion(rotation);
-            lockstep.WriteVector3(scale);
-            if (!noTransformSync)
+            if (!noTransformSync) // For both serialization and exports.
+            {
+                lockstep.WriteVector3(position);
+                lockstep.WriteQuaternion(rotation);
+                lockstep.WriteVector3(scale);
                 return;
+            }
             if (!isExport)
+            {
                 lockstep.WriteSmallUInt(lastKnownTransformStateTick);
-            else
-                lockstep.WriteSmallUInt(lockstep.CurrentTick - lastKnownTransformStateTick);
+                return;
+            }
+            if (entity == null)
+            {
+                lockstep.WriteVector3(position);
+                lockstep.WriteQuaternion(rotation);
+                lockstep.WriteVector3(scale);
+                lockstep.WriteSmallUInt(lockstep.CurrentTick - lastKnownTransformStateTick); // ticksAgo
+                return;
+            }
+            // Exports can actually use non game state safe data.
+            // Imports are going to turn that data into game state safe data anyway.
+            Transform entityTransform = entity.transform;
+            lockstep.WriteVector3(entityTransform.position);
+            lockstep.WriteQuaternion(entityTransform.rotation);
+            lockstep.WriteVector3(entityTransform.localScale);
+            lockstep.WriteSmallUInt(0u); // ticksAgo
         }
 
         private void DeserializeTransformValues(bool isImport)
