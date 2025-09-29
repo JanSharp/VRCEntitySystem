@@ -4,7 +4,7 @@
   - [x] Preferably add staggered entity instantiation, limited to x entities per frame
 - [x] Add support for latency hidden entities (when creating, and when destroying them)
   - [ ] Test destroying entities
-- [ ] Add dependency on player data, specifically to use persistent ids
+- [x] Add dependency on player data, specifically to use persistent ids
 - [x] ~~Desynced transform state should periodically fetch the current position and rotation and save that in the entity system's game state~~ nope, since exports can actually include non game state safe data there's no longer a need for this information
 - [ ] exporting entities with desynced transforms should include their current transform values
 - [x] non export serialization desynced entities should not include transform values
