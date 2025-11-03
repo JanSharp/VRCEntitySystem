@@ -43,3 +43,4 @@
 - [x] fix importing of awake physics entities potentially not having a responsible player
 - [ ] maybe don't process any entity requests while an import is still in progress
 - [ ] does importing actually properly clear current entity requests?
+- [ ] adding extensions to a prefab makes the list of extensions not update properly for pre instantiated entities, causing exceptions. Reverting prefab overrides works around the issue, however that is just a note about it's behavior, it's not an acceptable solution
