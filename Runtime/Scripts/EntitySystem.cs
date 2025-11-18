@@ -362,6 +362,7 @@ namespace JanSharp
             EntityData entityData;
             if (lockstep.SendingPlayerId == localPlayerId) // Was latency hidden, promote entityData to game state.
             {
+                // BUG: This is wrong, if an import happened between sending and receiving the IA, this can fail.
                 entityData = (EntityData)entityDataByUniqueId[uniqueId].Reference;
                 SetEntityDataId(entityData, id);
             }
