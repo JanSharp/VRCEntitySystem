@@ -44,3 +44,11 @@
 - [ ] maybe don't process any entity requests while an import is still in progress
 - [ ] does importing actually properly clear current entity requests?
 - [ ] adding extensions to a prefab makes the list of extensions not update properly for pre instantiated entities, causing exceptions. Reverting prefab overrides works around the issue, however that is just a note about it's behavior, it's not an acceptable solution
+- [ ] there might an order of operations issue when adding an entity extension the first time to a scene.
+  - add an extension to an entity prefab that is used in the scene
+  - have a pre instantiated entity of that prototype in the scene
+  - run on build handlers
+  - it does not instantiate any new scripts! which indicates that it didn't instantiate the pre instantiated extension data for the previously mentioned pre instantiated entity
+  - the extensionDataMethodNamesLut also does not get updated with the new extension data (therefore if you entered play mode rather than manually running on build handlers it will error out trying to send an extension input action for that newly added extension type)
+  - run on build handlers again and it does instantiate scripts now
+- [ ] removing a pre instantiated entity can cause the entity system to get stuck in an infinite loop in the on build handlers. The pre instantiated entity in question is the last and only one of a given prototype which is also the only prototype that is using some unique entity extension
