@@ -21,16 +21,17 @@ namespace JanSharp
             int managedCount = leftPlayerData.managedPhysicsEntitiesCount;
             if (managedCount == 0)
                 return;
-            EntitySystemPlayerData masterPlayerData = entitySystem.GetPlayerDataForPlayerId(lockstep.MasterPlayerId);
+            uint masterPlayerId = lockstep.MasterPlayerId;
+            EntitySystemPlayerData masterPlayerData = entitySystem.GetPlayerDataForPlayerId(masterPlayerId);
             masterPlayerData.GainResponsibility(managed, managedCount);
             for (int i = 0; i < managedCount; i++)
             {
                 PhysicsEntityExtensionData extensionData = managed[i];
                 // Must not use SetResponsiblePlayerId as that would call the deregister and register
                 // functions in the manager here, but the responsibilities have already been managed.
-                extensionData.responsiblePlayerId = masterPlayerData.PlayerId;
+                extensionData.responsiblePlayerId = masterPlayerId;
                 if (!extensionData.entityData.ResetLatencyStateIfItDiverged() && extensionData.ext != null)
-                    extensionData.ext.SetResponsiblePlayerId(masterPlayerData.PlayerId);
+                    extensionData.ext.SetResponsiblePlayerId(masterPlayerId);
             }
             leftPlayerData.LoseAllResponsibility();
         }
