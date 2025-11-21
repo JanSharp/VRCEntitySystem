@@ -10,7 +10,7 @@ namespace JanSharp
         [HideInInspector][SingletonReference] public LockstepAPI lockstep;
         [HideInInspector][SingletonReference] public EntitySystem entitySystem;
         [HideInInspector][SingletonReference] public InterpolationManager interpolation;
-        [HideInInspector][SingletonReference] public PlayerDataManager playerDataManager;
+        [HideInInspector][SingletonReference] public PlayerDataManagerAPI playerDataManager;
         /// <summary>
         /// <para>Negative 1 means that the entity has been destroyed.</para>
         /// <para>Not part of the public api.</para>

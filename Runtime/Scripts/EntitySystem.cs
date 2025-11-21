@@ -7,7 +7,7 @@ namespace JanSharp
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     [SingletonScript("d627f7fa95da90f1f87280f822155c9d")] // Runtime/Prefabs/EntitySystem.prefab
-    [LockstepGameStateDependency(typeof(PlayerDataManager))]
+    [LockstepGameStateDependency(typeof(PlayerDataManagerAPI))]
     [DefaultExecutionOrder(-100)]
     public partial class EntitySystem : LockstepGameState
     {
@@ -25,7 +25,7 @@ namespace JanSharp
 
         [HideInInspector][SerializeField][SingletonReference] private EntityPooling pooling;
         [HideInInspector][SerializeField][SingletonReference] private WannaBeClassesManager wannaBeClasses;
-        [HideInInspector][SerializeField][SingletonReference] private PlayerDataManager playerDataManager;
+        [HideInInspector][SerializeField][SingletonReference] private PlayerDataManagerAPI playerDataManager;
 
         [SerializeField] private Transform preInstantiatedEntityDataContainer;
         [SerializeField] private Transform entityPrefabInstsContainer;
