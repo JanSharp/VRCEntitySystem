@@ -2,7 +2,13 @@ using UnityEngine;
 
 namespace JanSharp
 {
-    [CreateAssetMenu(fileName = "Entity", menuName = "Entity Prototype Definition", order = 202)] // Right above Prefab.
+    // Right below Prefab Variant.
+    // 202 puts it right above Prefab, which is where I wanted it initially, however closing and reopening
+    // unity then puts it between Prefab and Prefab Variant.
+    // 201 doesn't put it above Prefab, but rather 3 rows up or so.
+    // 203 puts it between Prefab and Prefab Variant, however closing and reopening unity then puts it under
+    // Prefab Variant.
+    [CreateAssetMenu(fileName = "Entity", menuName = "Entity Prototype Definition", order = 203)]
     public class EntityPrototypeDefinition : ScriptableObject
     {
         public string prototypeName;
