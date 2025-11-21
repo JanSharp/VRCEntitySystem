@@ -482,7 +482,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  WritePlayerData");
 #endif
-            lockstep.WriteSmallUInt(playerData == null ? 0u : playerData.corePlayerData.persistentId);
+            lockstep.WriteSmallUInt(playerData == null ? 0u : playerData.core.persistentId);
         }
 
         public EntitySystemPlayerData ReadPlayerData(bool isImport)
