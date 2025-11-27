@@ -147,11 +147,8 @@ namespace JanSharp
 
         public static bool TryGetPrototypeDefinition(string prototypeDefinitionAssetGuid, out EntityPrototypeDefinition prototypeDefinition)
         {
-            if (guidToPrototypeDefLut.TryGetValue(prototypeDefinitionAssetGuid, out prototypeDefinition)
-                && prototypeDefinition != null && GetAssetGuid(prototypeDefinition.entityPrefab) == prototypeDefinitionAssetGuid)
-            {
+            if (guidToPrototypeDefLut.TryGetValue(prototypeDefinitionAssetGuid, out prototypeDefinition) && prototypeDefinition != null)
                 return true;
-            }
             FindAllPrototypeDefinitions();
             return guidToPrototypeDefLut.TryGetValue(prototypeDefinitionAssetGuid, out prototypeDefinition);
         }
