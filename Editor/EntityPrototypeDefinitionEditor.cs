@@ -47,49 +47,6 @@ namespace JanSharp
                     definitionsNotInScene.Add(definition);
         }
 
-        private static int GetHierarchyDepth(Transform transform)
-        {
-            int depth = 0;
-            while (transform != null)
-            {
-                depth++;
-                transform = transform.parent;
-            }
-            return depth;
-        }
-
-        private Transform FindCommonParent()
-        {
-            Transform parent = prototypesInScene.FirstOrDefault()?.transform?.parent;
-            int depth = GetHierarchyDepth(parent);
-            foreach (var prototype in prototypesInScene.Skip(1))
-            {
-                Transform currentParent = prototype.transform.parent;
-                if (currentParent == parent)
-                    continue;
-                int currentDepth = GetHierarchyDepth(currentParent);
-                while (currentDepth > depth)
-                {
-                    currentParent = currentParent.parent;
-                    currentDepth--;
-                }
-                while (depth > currentDepth)
-                {
-                    parent = parent.parent;
-                    depth--;
-                }
-                while (currentParent != parent)
-                {
-                    parent = parent.parent;
-                    currentParent = currentParent.parent;
-                    depth--;
-                }
-                if (depth == 0)
-                    break;
-            }
-            return parent;
-        }
-
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
@@ -103,7 +60,7 @@ namespace JanSharp
                 using (new EditorGUI.DisabledGroupScope(disabled: definitionsNotInScene.Count == 0))
                     if (GUILayout.Button(new GUIContent("Add To Active Scene")))
                     {
-                        Transform parent = FindCommonParent();
+                        Transform parent = EditorUtil.FindCommonParent(prototypesInScene.Select(p => p.transform));
                         foreach (var definition in definitionsNotInScene)
                         {
                             GameObject prototypeGo = new GameObject(definition.name);
