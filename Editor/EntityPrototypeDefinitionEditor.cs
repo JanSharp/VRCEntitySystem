@@ -41,7 +41,7 @@ namespace JanSharp
             definitionsInScene.Clear();
             definitionsNotInScene.Clear();
             foreach (var definition in targets.Cast<EntityPrototypeDefinition>())
-                if (prototypesInSceneByGuid.TryGetValue(EntitySystemEditorUtil.GetAssetGuid(definition), out var prototype))
+                if (prototypesInSceneByGuid.TryGetValue(EditorUtil.GetAssetGuidOrEmpty(definition), out var prototype))
                     definitionsInScene.Add((prototype, definition));
                 else
                     definitionsNotInScene.Add(definition);
@@ -68,7 +68,7 @@ namespace JanSharp
                             if (parent != null)
                                 prototypeGo.transform.SetParent(parent, worldPositionStays: false);
                             EntityPrototype prototype = UdonSharpUndo.AddComponent<EntityPrototype>(prototypeGo);
-                            prototype.PrototypeDefinitionGuid = EntitySystemEditorUtil.GetAssetGuid(definition);
+                            prototype.PrototypeDefinitionGuid = EditorUtil.GetAssetGuidOrEmpty(definition);
                         }
                     }
             }

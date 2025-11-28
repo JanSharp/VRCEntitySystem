@@ -317,7 +317,7 @@ namespace JanSharp
 
         private void SetPrototypeDefinition(EntityPrototypeDefinition prototypeDefinition)
         {
-            string prototypeDefinitionGuid = EntitySystemEditorUtil.GetAssetGuid(prototypeDefinition);
+            string prototypeDefinitionGuid = EditorUtil.GetAssetGuidOrEmpty(prototypeDefinition);
             SetPrototypeDefinitions(prototypeDefinitionGuid == ""
                 ? new EntityPrototypeDefinition[0]
                 : new EntityPrototypeDefinition[1] { prototypeDefinition });
