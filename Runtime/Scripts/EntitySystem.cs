@@ -167,14 +167,22 @@ namespace JanSharp
             }
         }
 
+        private int initPreInstantiatedEntitiesIndex = 0;
         private void InitPreInstantiatedEntities()
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  InitPreInstantiatedEntities");
 #endif
+            deserializationSw.Restart(); // No deserialization can run while this is running so just reuse that code.
             int length = preInstantiatedEntityInstances.Length;
-            for (int i = 0; i < length; i++)
-                InitPreInstantiatedEntity(i);
+            while (initPreInstantiatedEntitiesIndex < length)
+            {
+                if (DeserializationIsRunningLong())
+                    return;
+                InitPreInstantiatedEntity(initPreInstantiatedEntitiesIndex);
+                initPreInstantiatedEntitiesIndex++;
+            }
+            initPreInstantiatedEntitiesIndex = 0;
             preInstantiatedEntityInstances = null;
             preInstantiatedEntityInstanceIds = null;
             preInstantiatedEntityInstancePrototypes = null;
@@ -710,7 +718,7 @@ namespace JanSharp
                     EntityData entityData = allEntityData[i];
                     lockstep.WriteSmallUInt(entityData.id);
                     lockstep.WriteSmallUInt(entityData.entityPrototype.Id);
-                    if (sw.ElapsedMilliseconds > MaxWorkMSPerFrame)
+                    if (sw.ElapsedMilliseconds >= MaxWorkMSPerFrame)
                     {
                         suspendedIndexInArray = i + 1;
                         lockstep.FlagToContinueNextFrame();
@@ -726,7 +734,7 @@ namespace JanSharp
                 for (int i = suspendedIndexInArray; i < allEntityDataCount; i++)
                 {
                     allEntityData[i].Serialize(isExport: true);
-                    if (sw.ElapsedMilliseconds > MaxWorkMSPerFrame)
+                    if (sw.ElapsedMilliseconds >= MaxWorkMSPerFrame)
                     {
                         suspendedIndexInArray = i + 1;
                         lockstep.FlagToContinueNextFrame();
@@ -743,7 +751,7 @@ namespace JanSharp
 
         private bool DeserializationIsRunningLong()
         {
-            bool result = deserializationSw.ElapsedMilliseconds > MaxWorkMSPerFrame;
+            bool result = deserializationSw.ElapsedMilliseconds >= MaxWorkMSPerFrame;
             if (result)
                 lockstep.FlagToContinueNextFrame();
             return result;
@@ -1041,7 +1049,7 @@ namespace JanSharp
             sw.Start();
             while (entitiesToWriteIndex < allEntityDataCount)
             {
-                if (sw.ElapsedMilliseconds > MaxWorkMSPerFrame)
+                if (sw.ElapsedMilliseconds >= MaxWorkMSPerFrame)
                 {
                     lockstep.FlagToContinueNextFrame();
                     return;
@@ -1056,8 +1064,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializeGameState");
 #endif
-            deserializationSw.Reset();
-            deserializationSw.Start();
+            deserializationSw.Restart();
 
             if (isImport)
                 return Import(importedDataVersion);
