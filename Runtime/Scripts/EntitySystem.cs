@@ -792,7 +792,7 @@ namespace JanSharp
             return null;
         }
 
-        [LockstepEvent(LockstepEventType.OnImportFinished)]
+        [LockstepEvent(LockstepEventType.OnImportFinished, Order = 10000)]
         public void OnImportFinished()
         {
 #if ENTITY_SYSTEM_DEBUG
