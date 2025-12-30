@@ -477,27 +477,6 @@ namespace JanSharp
             // See SetTransformSyncControllerDueToDeserialization.
         }
 
-        public void WritePlayerData(EntitySystemPlayerData playerData)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  WritePlayerData");
-#endif
-            lockstep.WriteSmallUInt(playerData == null ? 0u : playerData.core.persistentId);
-        }
-
-        public EntitySystemPlayerData ReadPlayerData(bool isImport)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  ReadPlayerData");
-#endif
-            uint persistentId = lockstep.ReadSmallUInt();
-            if (persistentId == 0u)
-                return null;
-            if (isImport)
-                persistentId = playerDataManager.GetPersistentIdFromImportedId(persistentId);
-            return playerDataManager.GetPlayerDataForPersistentId<EntitySystemPlayerData>(nameof(EntitySystemPlayerData), persistentId);
-        }
-
         public void Serialize(bool isExport)
         {
 #if ENTITY_SYSTEM_DEBUG
@@ -505,8 +484,8 @@ namespace JanSharp
 #endif
             lockstep.WriteFlags(noTransformSync, hidden);
             SerializeTransformValues(isExport);
-            WritePlayerData(createdByPlayerData);
-            WritePlayerData(lastUserPlayerData);
+            entitySystem.WritePlayerData(createdByPlayerData);
+            entitySystem.WritePlayerData(lastUserPlayerData);
             lockstep.WriteSmallUInt(parentEntity == null ? 0u : parentEntity.id);
             lockstep.WriteSmallUInt((uint)childEntities.Length);
             foreach (EntityData child in childEntities)
@@ -524,8 +503,8 @@ namespace JanSharp
 #endif
             lockstep.ReadFlags(out noTransformSync, out hidden);
             DeserializeTransformValues(isImport);
-            createdByPlayerData = ReadPlayerData(isImport);
-            lastUserPlayerData = ReadPlayerData(isImport);
+            createdByPlayerData = entitySystem.ReadPlayerData(isImport);
+            lastUserPlayerData = entitySystem.ReadPlayerData(isImport);
             if (createdByPlayerData != null)
                 createdByPlayerData.GainCreated(this);
             if (lastUserPlayerData != null)

@@ -85,6 +85,7 @@ namespace JanSharp
 
         private VRCPlayerApi localPlayer;
         private uint localPlayerId;
+        public int playerDataClassNameIndex;
 
         /// <summary>
         /// <para>Can even get the player data for the local client inside of OnClientBeginCatchUp, because
@@ -96,17 +97,32 @@ namespace JanSharp
         /// <returns></returns>
         public EntitySystemPlayerData GetPlayerDataForPlayerId(uint playerId)
         {
-            return playerId == 0u
-                ? null
-                : (EntitySystemPlayerData)playerDataManager.GetPlayerDataForPlayerIdDynamic(nameof(EntitySystemPlayerData), playerId);
+            CorePlayerData core = playerDataManager.GetCorePlayerDataForPlayerId(playerId);
+            return core == null ? null : (EntitySystemPlayerData)core.customPlayerData[playerDataClassNameIndex];
         }
 
         /// <inheritdoc cref="GetPlayerDataForPlayerId(uint)"/>
         public EntitySystemPlayerData GetPlayerDataForPersistentId(uint persistentId)
         {
-            return persistentId == 0u
-                ? null
-                : (EntitySystemPlayerData)playerDataManager.GetPlayerDataForPersistentIdDynamic(nameof(EntitySystemPlayerData), persistentId);
+            CorePlayerData core = playerDataManager.GetCorePlayerDataForPersistentId(persistentId);
+            return core == null ? null : (EntitySystemPlayerData)core.customPlayerData[playerDataClassNameIndex];
+        }
+
+        public void WritePlayerData(EntitySystemPlayerData playerData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  WritePlayerData");
+#endif
+            playerDataManager.WriteCorePlayerDataRef(playerData == null ? null : playerData.core);
+        }
+
+        public EntitySystemPlayerData ReadPlayerData(bool isImport)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  ReadPlayerData");
+#endif
+            CorePlayerData core = playerDataManager.ReadCorePlayerDataRef();
+            return core == null ? null : (EntitySystemPlayerData)core.customPlayerData[playerDataClassNameIndex];
         }
 
         private void Start()
@@ -119,8 +135,25 @@ namespace JanSharp
             InitEntityPrototypes();
             InitExtensionIANameLut();
             nextEntityId = highestPreInstantiatedEntityId + 1u;
-            playerDataManager.RegisterCustomPlayerData<EntitySystemPlayerData>(nameof(EntitySystemPlayerData));
             RunOnInstantiateForAllPreInstantiatedEntities();
+        }
+
+        [PlayerDataEvent(PlayerDataEventType.OnRegisterCustomPlayerData)]
+        public void OnRegisterCustomPlayerData()
+        {
+#if PERMISSION_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  OnRegisterCustomPlayerData");
+#endif
+            playerDataManager.RegisterCustomPlayerData<EntitySystemPlayerData>(nameof(EntitySystemPlayerData));
+        }
+
+        [PlayerDataEvent(PlayerDataEventType.OnAllCustomPlayerDataRegistered)]
+        public void OnAllCustomPlayerDataRegistered()
+        {
+#if PERMISSION_SYSTEM_DEBUG
+            Debug.Log($"[PermissionSystemDebug] Manager  OnAllCustomPlayerDataRegistered");
+#endif
+            playerDataClassNameIndex = playerDataManager.GetPlayerDataClassNameIndex<EntitySystemPlayerData>(nameof(EntitySystemPlayerData));
         }
 
         [LockstepEvent(LockstepEventType.OnInit)]
