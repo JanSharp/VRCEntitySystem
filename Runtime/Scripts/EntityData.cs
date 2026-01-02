@@ -322,7 +322,7 @@ namespace JanSharp
             if (!noTransformSync // At the time of sending the data was known, so we will have close to up to date values for sure.
                 || entity == null // May or may not be unknown by the current transform controller, but we couldn't send any transform data anyway without an entity transform.
                 || !entity.noTransformSync // Control has already been given back in the latency state, we are going to have up to date values.
-                || lockstep.CurrentTick - lastKnownTransformStateTick <= LockstepAPI.TickRate) // We knew transform values 1 second ago, that'll be good enough.
+                || lockstep.CurrentTick - lastKnownTransformStateTick <= LockstepAPI.TickRateUInt) // We knew transform values 1 second ago, that'll be good enough.
             {
                 lockstep.WriteByte(0);
                 return;
