@@ -141,7 +141,7 @@ namespace JanSharp
         [PlayerDataEvent(PlayerDataEventType.OnRegisterCustomPlayerData)]
         public void OnRegisterCustomPlayerData()
         {
-#if PERMISSION_SYSTEM_DEBUG
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  OnRegisterCustomPlayerData");
 #endif
             playerDataManager.RegisterCustomPlayerData<EntitySystemPlayerData>(nameof(EntitySystemPlayerData));
@@ -150,7 +150,7 @@ namespace JanSharp
         [PlayerDataEvent(PlayerDataEventType.OnAllCustomPlayerDataRegistered)]
         public void OnAllCustomPlayerDataRegistered()
         {
-#if PERMISSION_SYSTEM_DEBUG
+#if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[PermissionSystemDebug] Manager  OnAllCustomPlayerDataRegistered");
 #endif
             playerDataClassNameIndex = playerDataManager.GetPlayerDataClassNameIndex<EntitySystemPlayerData>(nameof(EntitySystemPlayerData));
