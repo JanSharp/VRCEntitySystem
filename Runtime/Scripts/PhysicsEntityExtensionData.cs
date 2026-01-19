@@ -251,9 +251,9 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  ExportResponsiblePlayer");
 #endif
-            lockstep.WriteSmallUInt(responsiblePlayerId == 0u
-                ? 0u
-                : playerDataManager.GetCorePlayerDataForPlayerId(responsiblePlayerId).persistentId);
+            playerDataManager.WriteCorePlayerDataRef(responsiblePlayerId == 0u
+                ? null
+                : playerDataManager.GetCorePlayerDataForPlayerId(responsiblePlayerId));
         }
 
         private void ImportResponsiblePlayer()
@@ -261,12 +261,8 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  ImportResponsiblePlayer");
 #endif
-            uint persistentId = lockstep.ReadSmallUInt();
-            if (persistentId == 0u)
-                return;
-            persistentId = playerDataManager.GetPersistentIdFromImportedId(persistentId);
-            CorePlayerData playerData = playerDataManager.GetCorePlayerDataForPersistentId(persistentId);
-            if (playerData.isOffline)
+            CorePlayerData playerData = playerDataManager.ReadCorePlayerDataRef(isImport: true);
+            if (playerData == null || playerData.isOffline)
                 return;
             SetResponsiblePlayerId(playerData.playerId);
         }
