@@ -52,3 +52,6 @@
   - the extensionDataMethodNamesLut also does not get updated with the new extension data (therefore if you entered play mode rather than manually running on build handlers it will error out trying to send an extension input action for that newly added extension type)
   - run on build handlers again and it does instantiate scripts now
 - [ ] removing a pre instantiated entity can cause the entity system to get stuck in an infinite loop in the on build handlers. The pre instantiated entity in question is the last and only one of a given prototype which is also the only prototype that is using some unique entity extension
+- [ ] some form of import export options, even if it is just an toggle to say "export all entities or not"
+- [ ] some kind of respawn system for items that fell off the world
+- [ ] preferably make the entity and entity data files and any extensions smaller for faster instantiation

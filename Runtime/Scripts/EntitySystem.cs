@@ -108,6 +108,15 @@ namespace JanSharp
             return core == null ? null : (EntitySystemPlayerData)core.customPlayerData[playerDataClassNameIndex];
         }
 
+        /// <summary>
+        /// </summary>
+        /// <param name="core">Must not be <see langword="null"/>.</param>
+        /// <returns></returns>
+        public EntitySystemPlayerData GetPlayerData(CorePlayerData core)
+        {
+            return (EntitySystemPlayerData)core.customPlayerData[playerDataClassNameIndex];
+        }
+
         public void WritePlayerData(EntitySystemPlayerData playerData)
         {
 #if ENTITY_SYSTEM_DEBUG
