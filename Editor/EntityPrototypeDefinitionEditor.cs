@@ -47,6 +47,21 @@ namespace JanSharp
                     definitionsNotInScene.Add(definition);
         }
 
+        public static Transform FindEntityPrototypesParent(IEnumerable<EntityPrototype> prototypes)
+        {
+            return EditorUtil.FindCommonParent(prototypes.Select(p => p.transform));
+        }
+
+        public static void AddEntityPrototypeToScene(EntityPrototypeDefinition definition, Transform parent, string undoActionName)
+        {
+            GameObject prototypeGo = new GameObject(definition.name);
+            Undo.RegisterCreatedObjectUndo(prototypeGo, undoActionName);
+            if (parent != null)
+                prototypeGo.transform.SetParent(parent, worldPositionStays: false);
+            EntityPrototype prototype = UdonSharpUndo.AddComponent<EntityPrototype>(prototypeGo);
+            prototype.PrototypeDefinitionGuid = EditorUtil.GetAssetGuidOrEmpty(definition);
+        }
+
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
@@ -60,16 +75,9 @@ namespace JanSharp
                 using (new EditorGUI.DisabledGroupScope(disabled: definitionsNotInScene.Count == 0))
                     if (GUILayout.Button(new GUIContent("Add To Active Scene")))
                     {
-                        Transform parent = EditorUtil.FindCommonParent(prototypesInScene.Select(p => p.transform));
+                        Transform parent = FindEntityPrototypesParent(prototypesInScene);
                         foreach (var definition in definitionsNotInScene)
-                        {
-                            GameObject prototypeGo = new GameObject(definition.name);
-                            Undo.RegisterCreatedObjectUndo(prototypeGo, "Add Entity Prototype To Active Scene");
-                            if (parent != null)
-                                prototypeGo.transform.SetParent(parent, worldPositionStays: false);
-                            EntityPrototype prototype = UdonSharpUndo.AddComponent<EntityPrototype>(prototypeGo);
-                            prototype.PrototypeDefinitionGuid = EditorUtil.GetAssetGuidOrEmpty(definition);
-                        }
+                            AddEntityPrototypeToScene(definition, parent, "Add Entity Prototype To Active Scene");
                     }
             }
 
