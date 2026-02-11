@@ -49,6 +49,12 @@ namespace JanSharp
 
         public static Transform FindEntityPrototypesParent(IEnumerable<EntityPrototype> prototypes)
         {
+            if (!prototypes.Any())
+            {
+                GameObject parentGo = new GameObject("EntityPrototypes");
+                Undo.RegisterCreatedObjectUndo(parentGo, "Create EntityPrototypes Container");
+                return parentGo.transform;
+            }
             return EditorUtil.FindCommonParent(prototypes.Select(p => p.transform));
         }
 
