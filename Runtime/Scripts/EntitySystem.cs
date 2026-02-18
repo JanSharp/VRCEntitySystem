@@ -825,7 +825,7 @@ namespace JanSharp
             if (deserializationStage == 5)
                 ReadAndCreateImportedEntities(allImportedEntityData, importedDataVersion);
             if (deserializationStage == 6)
-                DeleteEntityPrototypeMetadataClasses(allImportedEntityData);
+                ClearEntityPrototypeMetadataReferences(allImportedEntityData);
             if (deserializationStage == 7)
             {
                 deserializationStage = 0;
@@ -840,7 +840,10 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  OnImportFinished");
 #endif
-            // Keep these alive for longer so game states importing after the EntitySystem can still use them.
+            // Kept these alive for longer so game states importing after the EntitySystem could still use them.
+            DataList list = importedPrototypeMetadataById.GetValues();
+            for (int i = 0; i < list.Count; i++)
+                ((EntityPrototypeMetadata)list[i].Reference).DecrementRefsCount();
             importedPrototypeMetadataById = null;
             remappedImportedEntityData = null;
         }
@@ -980,17 +983,15 @@ namespace JanSharp
             deserializationStage++;
         }
 
-        private void DeleteEntityPrototypeMetadataClasses(EntityData[] allImportedEntityData)
+        private void ClearEntityPrototypeMetadataReferences(EntityData[] allImportedEntityData)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  DeleteEntityPrototypeMetadataClasses");
 #endif
-            DataList list = importedPrototypeMetadataById.GetValues();
-            for (int i = 0; i < list.Count; i++)
-                ((EntityPrototypeMetadata)list[i].Reference).Delete();
+            // Clear references to what is going to be empty unity object reference objects so those can get GCed too.
             foreach (EntityData entityData in allImportedEntityData)
                 if (entityData != null)
-                    entityData.importedMetadata = null; // Clear reference to empty unity object reference object so that can get GCed too.
+                    entityData.importedMetadata = null;
             deserializationStage++;
         }
 
