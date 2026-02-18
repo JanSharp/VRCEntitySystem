@@ -476,6 +476,48 @@ namespace JanSharp
             return entityData;
         }
 
+        public void WriteEntityPrototypeRef(EntityPrototype prototype)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  WriteEntityPrototypeRef");
+#endif
+            lockstep.WriteSmallUInt(prototype.Id);
+        }
+
+        public bool TryReadEntityPrototypeRef(out EntityPrototype prototype)
+        {
+            return TryReadEntityPrototypeRef(out prototype, lockstep.IsDeserializingForImport);
+        }
+
+        public bool TryReadEntityPrototypeRef(out EntityPrototype prototype, bool isImport)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  TryReadEntityPrototypeRef");
+#endif
+            if (isImport)
+            {
+                prototype = GetImportedPrototypeMetadata(lockstep.ReadSmallUInt()).entityPrototype;
+                return prototype != null;
+            }
+            prototype = (EntityPrototype)entityPrototypesById[lockstep.ReadSmallUInt()].Reference;
+            return true;
+        }
+
+        public EntityPrototype ReadEntityPrototypeRef()
+        {
+            return ReadEntityPrototypeRef(lockstep.IsDeserializingForImport);
+        }
+
+        public EntityPrototype ReadEntityPrototypeRef(bool isImport)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityPrototypeRef");
+#endif
+            return isImport
+                ? GetImportedPrototypeMetadata(lockstep.ReadSmallUInt()).entityPrototype
+                : (EntityPrototype)entityPrototypesById[lockstep.ReadSmallUInt()].Reference;
+        }
+
         public void WriteEntityDataRef(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
