@@ -882,6 +882,8 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  OnImportFinished");
 #endif
+            if (!IsPartOfCurrentImport)
+                return;
             // Kept these alive for longer so game states importing after the EntitySystem could still use them.
             DataList list = importedPrototypeMetadataById.GetValues();
             for (int i = 0; i < list.Count; i++)
