@@ -130,7 +130,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadPlayerData");
 #endif
-            CorePlayerData core = playerDataManager.ReadCorePlayerDataRef();
+            CorePlayerData core = playerDataManager.ReadCorePlayerDataRef(isImport);
             return core == null ? null : (EntitySystemPlayerData)core.customPlayerData[playerDataClassNameIndex];
         }
 
