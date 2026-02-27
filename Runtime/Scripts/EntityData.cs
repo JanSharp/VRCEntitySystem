@@ -489,7 +489,7 @@ namespace JanSharp
             if (isExport)
                 lockstep.WriteSmallUInt((uint)allExtensionData.Length);
             foreach (EntityExtensionData extensionData in allExtensionData)
-                lockstep.WriteCustomClass(extensionData);
+                lockstep.WriteCustomClass(extensionData, isExport);
         }
 
         public void Deserialize(bool isImport, uint importedDataVersion)
@@ -573,7 +573,7 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] EntityData  DeserializeAllExtensionData");
 #endif
             foreach (EntityExtensionData extensionData in allExtensionData)
-                lockstep.ReadCustomClass(extensionData);
+                lockstep.ReadCustomClass(extensionData, isImport: false);
         }
 
         private void ImportAllExtensionData()
@@ -598,7 +598,7 @@ namespace JanSharp
                 }
                 int index = importedMetadata.resolvedExtensionIndexes[i];
                 EntityExtensionData extensionData = allExtensionData[index];
-                if (!lockstep.ReadCustomClass(extensionData))
+                if (!lockstep.ReadCustomClass(extensionData, isImport: true))
                     extensionData.OnImportedWithoutDeserialization();
             }
         }
