@@ -288,21 +288,6 @@ namespace JanSharp
     [CustomEditor(typeof(EntitySystem))]
     public class EntitySystemEditor : Editor
     {
-#if ENTITY_SYSTEM_DEBUG
-        private SerializedObject so;
-        private SerializedProperty preInstantiatedEntityDataContainerProp;
-        private SerializedProperty entityPrefabInstsContainerProp;
-        private SerializedProperty defaultEntityInstsContainerProp;
-
-        private void OnEnable()
-        {
-            so = serializedObject;
-            preInstantiatedEntityDataContainerProp = so.FindProperty("preInstantiatedEntityDataContainer");
-            entityPrefabInstsContainerProp = so.FindProperty("entityPrefabInstsContainer");
-            defaultEntityInstsContainerProp = so.FindProperty("defaultEntityInstsContainer");
-        }
-#endif
-
         public override void OnInspectorGUI()
         {
             if (UdonSharpGUI.DrawDefaultUdonSharpBehaviourHeader(target))
@@ -326,11 +311,9 @@ namespace JanSharp
 
 #if ENTITY_SYSTEM_DEBUG
             GUILayout.Label("Debug / Internal", EditorStyles.boldLabel);
-            so.Update();
-            EditorGUILayout.PropertyField(preInstantiatedEntityDataContainerProp);
-            EditorGUILayout.PropertyField(entityPrefabInstsContainerProp);
-            EditorGUILayout.PropertyField(defaultEntityInstsContainerProp);
-            so.ApplyModifiedProperties();
+            serializedObject.Update();
+            DrawPropertiesExcluding(serializedObject, "m_Script");
+            serializedObject.ApplyModifiedProperties();
 #endif
         }
     }

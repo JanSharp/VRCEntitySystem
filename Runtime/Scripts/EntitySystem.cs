@@ -16,8 +16,10 @@ namespace JanSharp
         public override bool GameStateSupportsImportExport => true;
         public override uint GameStateDataVersion => 0u;
         public override uint GameStateLowestSupportedDataVersion => 0u;
-        public override LockstepGameStateOptionsUI ExportUI => null;
-        public override LockstepGameStateOptionsUI ImportUI => null;
+        [SerializeField] private EntitySystemImportExportOptionsUI exportUI;
+        [SerializeField] private EntitySystemImportExportOptionsUI importUI;
+        public override LockstepGameStateOptionsUI ExportUI => exportUI;
+        public override LockstepGameStateOptionsUI ImportUI => importUI;
 
         private const long MaxWorkMSPerFrame = 5L;
         public const ulong InvalidUniqueId = 0uL;
@@ -26,6 +28,11 @@ namespace JanSharp
         [HideInInspector][SerializeField][SingletonReference] private EntityPooling pooling;
         [HideInInspector][SerializeField][SingletonReference] private WannaBeClassesManager wannaBeClasses;
         [HideInInspector][SerializeField][SingletonReference] private PlayerDataManagerAPI playerDataManager;
+
+        public EntitySystemImportExportOptions ExportOptions => (EntitySystemImportExportOptions)OptionsForCurrentExport;
+        public EntitySystemImportExportOptions ImportOptions => (EntitySystemImportExportOptions)OptionsForCurrentImport;
+        private EntitySystemImportExportOptions optionsFromExport;
+        public EntitySystemImportExportOptions OptionsFromExport => optionsFromExport;
 
         [SerializeField] private Transform preInstantiatedEntityDataContainer;
         [SerializeField] private Transform entityPrefabInstsContainer;
@@ -85,7 +92,7 @@ namespace JanSharp
 
         private VRCPlayerApi localPlayer;
         private uint localPlayerId;
-        public int playerDataClassNameIndex;
+        [System.NonSerialized] public int playerDataClassNameIndex;
 
         /// <summary>
         /// <para>Can even get the player data for the local client inside of OnClientBeginCatchUp, because
@@ -775,59 +782,46 @@ namespace JanSharp
 
         private int exportStage = 0;
         private int suspendedIndexInArray = 0;
+        private System.Diagnostics.Stopwatch serializationSw = new System.Diagnostics.Stopwatch();
 
-        private void Export()
+        private bool SerializationIsRunningLong()
+        {
+            bool result = serializationSw.ElapsedMilliseconds >= MaxWorkMSPerFrame;
+            if (result)
+                lockstep.FlagToContinueNextFrame();
+            return result;
+        }
+
+        private void Export(EntitySystemImportExportOptions exportOptions)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  Export");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  Export - exportStage: {exportStage}");
 #endif
-            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
             if (exportStage == 0)
             {
+                lockstep.WriteCustomClass(exportOptions);
                 lockstep.WriteSmallUInt(highestPreInstantiatedEntityId);
-
-                lockstep.WriteSmallUInt((uint)entityPrototypes.Length);
-                foreach (EntityPrototype prototype in entityPrototypes)
-                    prototype.ExportMetadata();
-
-                lockstep.WriteSmallUInt((uint)allEntityDataCount);
                 exportStage++;
             }
-
             if (exportStage == 1)
-            {
-                for (int i = suspendedIndexInArray; i < allEntityDataCount; i++)
-                {
-                    EntityData entityData = allEntityData[i];
-                    lockstep.WriteSmallUInt(entityData.id);
-                    lockstep.WriteSmallUInt(entityData.entityPrototype.Id);
-                    if (sw.ElapsedMilliseconds >= MaxWorkMSPerFrame)
-                    {
-                        suspendedIndexInArray = i + 1;
-                        lockstep.FlagToContinueNextFrame();
-                        return;
-                    }
-                }
-                suspendedIndexInArray = 0;
-                exportStage++;
-            }
-
+                WriteAllExportedPrototypeMetadata();
             if (exportStage == 2)
             {
-                for (int i = suspendedIndexInArray; i < allEntityDataCount; i++)
+                if (!exportOptions.includeEntities)
                 {
-                    allEntityData[i].Serialize(isExport: true);
-                    if (sw.ElapsedMilliseconds >= MaxWorkMSPerFrame)
-                    {
-                        suspendedIndexInArray = i + 1;
-                        lockstep.FlagToContinueNextFrame();
-                        return;
-                    }
+                    exportStage = 0;
+                    return;
                 }
-                suspendedIndexInArray = 0;
-                exportStage = 0;
+                exportStage++;
             }
+            if (exportStage == 3)
+                WriteExportedIdsCount();
+            if (exportStage == 4)
+                WriteExportedIds();
+            if (exportStage == 5)
+                WriteExportedEntities();
+            if (exportStage == 6)
+                exportStage = 0;
         }
 
         private int deserializationStage = 0;
@@ -842,33 +836,43 @@ namespace JanSharp
         }
 
         private EntityData[] allImportedEntityData = null;
-        private string Import(uint importedDataVersion)
+        private string Import(uint importedDataVersion, EntitySystemImportExportOptions importOptions)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  Import - deserializationStage: {deserializationStage}");
 #endif
             if (deserializationStage == 0)
             {
+                optionsFromExport = (EntitySystemImportExportOptions)lockstep.ReadCustomClass(nameof(EntitySystemImportExportOptions));
                 importedPrototypeMetadataById = new DataDictionary();
                 remappedImportedEntityData = new DataDictionary();
                 highestImportedPreInstantiatedEntityId = lockstep.ReadSmallUInt();
                 deserializationStage++;
             }
+            if (deserializationStage == 1)
+                ReadAllImportedPrototypeMetadata();
+            if (deserializationStage == 2)
+            {
+                if (!optionsFromExport.includeEntities || !importOptions.includeEntities)
+                {
+                    deserializationStage = 0;
+                    return null;
+                }
+                deserializationStage++;
+            }
             // There's technically no reason for this to happen separately to
             // DestroyEntitiesWhichWereNotImported, but this is easier to read.
-            if (deserializationStage == 1)
-                DestroyNonPreInstantiatedEntities();
-            if (deserializationStage == 2)
-                ReadAllImportedPrototypeMetadata();
             if (deserializationStage == 3)
-                allImportedEntityData = ReadImportedIds();
+                DestroyNonPreInstantiatedEntities();
             if (deserializationStage == 4)
-                DestroyEntitiesWhichWereNotImported();
+                allImportedEntityData = ReadImportedIds();
             if (deserializationStage == 5)
-                ReadAndCreateImportedEntities(allImportedEntityData, importedDataVersion);
+                DestroyEntitiesWhichWereNotImported();
             if (deserializationStage == 6)
-                ClearEntityPrototypeMetadataReferences(allImportedEntityData);
+                ReadAndCreateImportedEntities(allImportedEntityData, importedDataVersion);
             if (deserializationStage == 7)
+                ClearEntityPrototypeMetadataReferences(allImportedEntityData);
+            if (deserializationStage == 8)
             {
                 deserializationStage = 0;
                 allImportedEntityData = null;
@@ -888,6 +892,8 @@ namespace JanSharp
             DataList list = importedPrototypeMetadataById.GetValues();
             for (int i = 0; i < list.Count; i++)
                 ((EntityPrototypeMetadata)list[i].Reference).DecrementRefsCount();
+            optionsFromExport.DecrementRefsCount();
+            optionsFromExport = null;
             importedPrototypeMetadataById = null;
             remappedImportedEntityData = null;
         }
@@ -924,6 +930,20 @@ namespace JanSharp
             return false;
         }
 
+        private void WriteAllExportedPrototypeMetadata()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  WriteAllExportedPrototypeMetadata");
+#endif
+            // Write metadata regardless of if entities get exported as other systems may depend on that
+            // metadata in imports. This is invisible to the user anyway, aside from inflating export size and
+            // taking import time due to udon behavior instantiation.
+            lockstep.WriteSmallUInt((uint)entityPrototypes.Length);
+            foreach (EntityPrototype prototype in entityPrototypes)
+                prototype.ExportMetadata();
+            exportStage++;
+        }
+
         private int readAllImportedPrototypeMetadataLength = -1;
         private int readAllImportedPrototypeMetadataIndex = 0;
         private void ReadAllImportedPrototypeMetadata()
@@ -946,6 +966,35 @@ namespace JanSharp
             readAllImportedPrototypeMetadataLength = -1;
             readAllImportedPrototypeMetadataIndex = 0;
             deserializationStage++;
+        }
+
+        private void WriteExportedIdsCount()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  WriteExportedIdsCount");
+#endif
+            lockstep.WriteSmallUInt((uint)allEntityDataCount);
+            exportStage++;
+        }
+
+        private void WriteExportedIds()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  ReadImportedIds");
+#endif
+            for (int i = suspendedIndexInArray; i < allEntityDataCount; i++)
+            {
+                EntityData entityData = allEntityData[i];
+                lockstep.WriteSmallUInt(entityData.id);
+                lockstep.WriteSmallUInt(entityData.entityPrototype.Id);
+                if (SerializationIsRunningLong())
+                {
+                    suspendedIndexInArray = i + 1;
+                    return;
+                }
+            }
+            suspendedIndexInArray = 0;
+            exportStage++;
         }
 
         private int readImportedIdsIndex = 0;
@@ -984,6 +1033,24 @@ namespace JanSharp
             readImportedIdsAllEntityData = null;
             deserializationStage++;
             return result;
+        }
+
+        private void WriteExportedEntities()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  WriteExportedEntities");
+#endif
+            for (int i = suspendedIndexInArray; i < allEntityDataCount; i++)
+            {
+                allEntityData[i].Serialize(isExport: true);
+                if (SerializationIsRunningLong())
+                {
+                    suspendedIndexInArray = i + 1;
+                    return;
+                }
+            }
+            suspendedIndexInArray = 0;
+            exportStage++;
         }
 
         private int readAndCreateImportedEntitiesIndex = -1;
@@ -1120,9 +1187,11 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  SerializeGameState");
 #endif
+            serializationSw.Restart();
+
             if (isExport)
             {
-                Export();
+                Export((EntitySystemImportExportOptions)exportOptions);
                 return;
             }
 
@@ -1132,15 +1201,10 @@ namespace JanSharp
                 lockstep.WriteSmallUInt((uint)allEntityDataCount);
                 entitiesToWriteIndex = 0;
             }
-            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
             while (entitiesToWriteIndex < allEntityDataCount)
             {
-                if (sw.ElapsedMilliseconds >= MaxWorkMSPerFrame)
-                {
-                    lockstep.FlagToContinueNextFrame();
+                if (SerializationIsRunningLong())
                     return;
-                }
                 WriteEntityData(allEntityData[entitiesToWriteIndex], isExport: false);
                 entitiesToWriteIndex++;
             }
@@ -1154,7 +1218,7 @@ namespace JanSharp
             deserializationSw.Restart();
 
             if (isImport)
-                return Import(importedDataVersion);
+                return Import(importedDataVersion, (EntitySystemImportExportOptions)importOptions);
 
             if (deserializationStage == 0)
             {
