@@ -7,6 +7,7 @@ namespace JanSharp
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     [SingletonScript("d627f7fa95da90f1f87280f822155c9d")] // Runtime/Prefabs/EntitySystem.prefab
+    [LockstepGameStateDependency(typeof(EntitySystemOptionsGS))]
     [LockstepGameStateDependency(typeof(PlayerDataManagerAPI))]
     [DefaultExecutionOrder(-100)]
     public partial class EntitySystem : LockstepGameState
@@ -16,10 +17,8 @@ namespace JanSharp
         public override bool GameStateSupportsImportExport => true;
         public override uint GameStateDataVersion => 0u;
         public override uint GameStateLowestSupportedDataVersion => 0u;
-        [SerializeField] private EntitySystemImportExportOptionsUI exportUI;
-        [SerializeField] private EntitySystemImportExportOptionsUI importUI;
-        public override LockstepGameStateOptionsUI ExportUI => exportUI;
-        public override LockstepGameStateOptionsUI ImportUI => importUI;
+        public override LockstepGameStateOptionsUI ExportUI => null;
+        public override LockstepGameStateOptionsUI ImportUI => null;
 
         private const long MaxWorkMSPerFrame = 5L;
         public const ulong InvalidUniqueId = 0uL;
@@ -29,10 +28,10 @@ namespace JanSharp
         [HideInInspector][SerializeField][SingletonReference] private WannaBeClassesManager wannaBeClasses;
         [HideInInspector][SerializeField][SingletonReference] private PlayerDataManagerAPI playerDataManager;
 
-        public EntitySystemImportExportOptions ExportOptions => (EntitySystemImportExportOptions)OptionsForCurrentExport;
-        public EntitySystemImportExportOptions ImportOptions => (EntitySystemImportExportOptions)OptionsForCurrentImport;
-        private EntitySystemImportExportOptions optionsFromExport;
-        public EntitySystemImportExportOptions OptionsFromExport => optionsFromExport;
+        [SerializeField] private EntitySystemOptionsGS optionsGS;
+        public EntitySystemImportExportOptions ExportOptions => (EntitySystemImportExportOptions)optionsGS.OptionsForCurrentExport;
+        public EntitySystemImportExportOptions ImportOptions => (EntitySystemImportExportOptions)optionsGS.OptionsForCurrentImport;
+        public EntitySystemImportExportOptions OptionsFromExport => optionsGS.OptionsFromExport;
 
         [SerializeField] private Transform preInstantiatedEntityDataContainer;
         [SerializeField] private Transform entityPrefabInstsContainer;
@@ -792,14 +791,13 @@ namespace JanSharp
             return result;
         }
 
-        private void Export(EntitySystemImportExportOptions exportOptions)
+        private void Export()
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  Export - exportStage: {exportStage}");
 #endif
             if (exportStage == 0)
             {
-                lockstep.WriteCustomClass(exportOptions);
                 lockstep.WriteSmallUInt(highestPreInstantiatedEntityId);
                 exportStage++;
             }
@@ -807,7 +805,7 @@ namespace JanSharp
                 WriteAllExportedPrototypeMetadata();
             if (exportStage == 2)
             {
-                if (!exportOptions.includeEntities)
+                if (!optionsGS.ExportOptions.includeEntities)
                 {
                     exportStage = 0;
                     return;
@@ -836,14 +834,13 @@ namespace JanSharp
         }
 
         private EntityData[] allImportedEntityData = null;
-        private string Import(uint importedDataVersion, EntitySystemImportExportOptions importOptions)
+        private string Import(uint importedDataVersion)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  Import - deserializationStage: {deserializationStage}");
 #endif
             if (deserializationStage == 0)
             {
-                optionsFromExport = (EntitySystemImportExportOptions)lockstep.ReadCustomClass(nameof(EntitySystemImportExportOptions));
                 importedPrototypeMetadataById = new DataDictionary();
                 remappedImportedEntityData = new DataDictionary();
                 highestImportedPreInstantiatedEntityId = lockstep.ReadSmallUInt();
@@ -853,7 +850,7 @@ namespace JanSharp
                 ReadAllImportedPrototypeMetadata();
             if (deserializationStage == 2)
             {
-                if (!optionsFromExport.includeEntities || !importOptions.includeEntities)
+                if (!optionsGS.OptionsFromExport.includeEntities || !optionsGS.ImportOptions.includeEntities)
                 {
                     deserializationStage = 0;
                     return null;
@@ -892,8 +889,6 @@ namespace JanSharp
             DataList list = importedPrototypeMetadataById.GetValues();
             for (int i = 0; i < list.Count; i++)
                 ((EntityPrototypeMetadata)list[i].Reference).DecrementRefsCount();
-            optionsFromExport.DecrementRefsCount();
-            optionsFromExport = null;
             importedPrototypeMetadataById = null;
             remappedImportedEntityData = null;
         }
@@ -1191,7 +1186,7 @@ namespace JanSharp
 
             if (isExport)
             {
-                Export((EntitySystemImportExportOptions)exportOptions);
+                Export();
                 return;
             }
 
@@ -1218,7 +1213,7 @@ namespace JanSharp
             deserializationSw.Restart();
 
             if (isImport)
-                return Import(importedDataVersion, (EntitySystemImportExportOptions)importOptions);
+                return Import(importedDataVersion);
 
             if (deserializationStage == 0)
             {

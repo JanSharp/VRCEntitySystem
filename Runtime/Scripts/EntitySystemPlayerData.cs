@@ -12,6 +12,8 @@ namespace JanSharp
         public override uint DataVersion => 0u;
         public override uint LowestSupportedDataVersion => 0u;
 
+        [HideInInspector][SerializeField][SingletonReference] private EntitySystem entitySystem;
+
         #region Game State
         [System.NonSerialized] public uint createdEntitiesCount = 0u;
         [System.NonSerialized] public uint lastUsedEntitiesCount = 0u;
@@ -103,6 +105,14 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  PersistPlayerDataWhileOffline");
 #endif
             return createdEntitiesCount != 0u || lastUsedEntitiesCount != 0u || managedPhysicsEntitiesCount != 0;
+        }
+
+        public override bool PersistPlayerDataInExport()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  PersistPlayerDataInExport");
+#endif
+            return entitySystem.ExportOptions.includeEntities && PersistPlayerDataWhileOffline();
         }
 
         public override void Serialize(bool isExport)
