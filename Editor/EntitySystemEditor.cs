@@ -290,7 +290,7 @@ namespace JanSharp
     {
         public override void OnInspectorGUI()
         {
-            if (UdonSharpGUI.DrawDefaultUdonSharpBehaviourHeader(target))
+            if (UdonSharpGUI.DrawDefaultUdonSharpBehaviourHeader(target)) // There is only one.
                 return;
 
             if (GUILayout.Button(new GUIContent(
