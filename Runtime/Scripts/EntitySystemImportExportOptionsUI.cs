@@ -38,7 +38,7 @@ namespace JanSharp
         {
             if (includeEntitiesToggle != null)
                 return;
-            includeEntitiesToggle = widgetManager.NewToggleField("Entities - Objects/Items", false);
+            includeEntitiesToggle = widgetManager.NewLeftToggleField("Entities - Objects/Items", false);
         }
 
         protected override void OnOptionsEditorShow(LockstepOptionsEditorUI ui, uint importedDataVersion)
