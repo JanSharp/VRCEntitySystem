@@ -42,6 +42,7 @@ namespace JanSharp
                     parent = EntityPrototypeDefinitionEditor.FindEntityPrototypesParent(prototypes);
                 }
                 EntityPrototypeDefinitionEditor.AddEntityPrototypeToScene(definition, parent, "Add Entity Prototype Due To Dependency");
+                OnBuildUtil.MarkForRerunDueToScriptInstantiation();
             }
             return true;
         }

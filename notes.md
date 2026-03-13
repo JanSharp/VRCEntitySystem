@@ -56,3 +56,4 @@
 - [ ] some kind of respawn system for items that fell off the world
 - [ ] preferably make the entity and entity data files and any extensions smaller for faster instantiation
 - [ ] add an EntitySystemAPI class
+- [ ] EntityPrefabInsts and DefaultEntityInsts do not get their game object names updated when the prefab name changed
