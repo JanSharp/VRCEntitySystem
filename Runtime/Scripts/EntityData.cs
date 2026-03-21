@@ -314,6 +314,12 @@ namespace JanSharp
             return true;
         }
 
+        /// <summary>
+        /// <para>Use this in cases where it is required for entity data to have up to date game state safe
+        /// transform values for a given input action.</para>
+        /// <para>This is required due to the potential existence of transform sync controllers which could
+        /// make the current transform values of an entity unknown to the game state.</para>
+        /// </summary>
         public void WritePotentiallyUnknownTransformValues()
         {
 #if ENTITY_SYSTEM_DEBUG
@@ -335,12 +341,13 @@ namespace JanSharp
             bool unknownScale = !controller.TryGetGameStateScale(this, out var discard3); // Cannot use 'out _'.
 
             lockstep.WriteFlags(unknownPosition, unknownRotation, unknownScale);
+            Transform entityTransform = entity.transform;
             if (unknownPosition)
-                lockstep.WriteVector3(position);
+                lockstep.WriteVector3(entityTransform.position);
             if (unknownRotation)
-                lockstep.WriteQuaternion(rotation);
+                lockstep.WriteQuaternion(entityTransform.rotation);
             if (unknownScale)
-                lockstep.WriteVector3(scale);
+                lockstep.WriteVector3(entityTransform.localScale);
         }
 
         public void ReadPotentiallyUnknownTransformValues()
