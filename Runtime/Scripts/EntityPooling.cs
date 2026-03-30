@@ -127,7 +127,15 @@ namespace JanSharp
             }
             else
             {
+#if ENTITY_SYSTEM_STOPWATCH
+                System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+                sw.Start();
+#endif
                 GameObject entityGo = Instantiate(prototype.EntityPrefabInst);
+#if ENTITY_SYSTEM_STOPWATCH
+                sw.Stop();
+                Debug.Log($"[EntitySystemDebug] [sw] EntityPooling  ProcessRequest (inner) - instantiateMs: {sw.Elapsed.TotalMilliseconds:f3}");
+#endif
                 entity = entityGo.GetComponent<Entity>();
                 entity.OnInstantiate(prototype, isDefaultInstance: false);
             }
