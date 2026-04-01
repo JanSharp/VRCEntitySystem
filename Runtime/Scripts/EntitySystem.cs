@@ -395,11 +395,14 @@ namespace JanSharp
             ulong uniqueId = lockstep.SendInputAction(iaId);
 
             // Latency hiding.
-            return CreateDefaultEntity(
+            lockstep.OpenGameStateUnsafeScope(); // The uniqueId is game state unsafe.
+            EntityData result = CreateDefaultEntity(
                 GetEntityPrototype(prototypeId), uniqueId, InvalidId,
                 GetPlayerDataForPlayerId(localPlayerId),
                 position, rotation,
                 highPriority: true);
+            lockstep.CloseGameStateUnsafeScope();
+            return result;
         }
 
         public EntityData ReadEntityInCustomCreateEntityIA(bool onEntityCreatedGetsRaisedLater = false)
@@ -423,11 +426,15 @@ namespace JanSharp
                 SetEntityDataId(entityData, id);
             }
             else
+            {
+                lockstep.OpenGameStateUnsafeScope(); // The condition for this if else block is game state unsafe.
                 entityData = CreateDefaultEntity(
                     GetEntityPrototype(prototypeId), uniqueId, id,
                     playerData,
                     position, rotation,
                     highPriority: false);
+                lockstep.CloseGameStateUnsafeScope();
+            }
 
             playerData.GainCreated(entityData);
             playerData.GainLastUsed(entityData);

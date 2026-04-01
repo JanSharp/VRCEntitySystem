@@ -57,5 +57,5 @@
 - [ ] preferably make the entity and entity data files and any extensions smaller for faster instantiation
 - [ ] add an EntitySystemAPI class
 - [ ] EntityPrefabInsts and DefaultEntityInsts do not get their game object names updated when the prefab name changed
-- [ ] add a game state variant of creating entities
+- [ ] add a game state variant of creating entities - without this, the InitFromDefault xml annotations are actually wrong, it is always game state unsafe currently
 - [ ] maybe add an option to prepopulate the pool with x amount of disabled entities

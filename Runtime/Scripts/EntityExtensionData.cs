@@ -36,8 +36,8 @@ namespace JanSharp
         /// <summary>
         /// <para>Used when creating a new entity. This can be latency hidden, thus this function gets called
         /// in a potentially latency hidden context, making it not actually game state safe.</para>
-        /// <para>There could be unknown code up the call stack, thus the value of
-        /// <see cref="LockstepAPI.InGameStateSafeEvent"/> cannot be trusted.</para>
+        /// <para><see cref="LockstepAPI.InGameStateSafeEvent"/> can be used to check for this, however it is
+        /// likely more convenient to use <see cref="OnEntityExtensionDataCreated"/>.</para>
         /// <para>The <see cref="OnEntityExtensionDataCreated"/> event gets raised in a game state safe manner
         /// after <see cref="InitFromDefault(EntityExtension)"/> has run.</para>
         /// <para>It is semantically incorrect to call <see cref="InitFromPreInstantiated(EntityExtension)"/>
