@@ -59,3 +59,4 @@
 - [ ] EntityPrefabInsts and DefaultEntityInsts do not get their game object names updated when the prefab name changed
 - [ ] add a game state variant of creating entities - without this, the InitFromDefault xml annotations are actually wrong, it is always game state unsafe currently
 - [ ] maybe add an option to prepopulate the pool with x amount of disabled entities
+- [x] use max work ms per frame from lockstep API

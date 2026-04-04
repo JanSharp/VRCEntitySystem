@@ -20,7 +20,7 @@ namespace JanSharp
         public override LockstepGameStateOptionsUI ExportUI => null;
         public override LockstepGameStateOptionsUI ImportUI => null;
 
-        private const long MaxWorkMSPerFrame = 5L;
+        private double maxWorkMSPerFrame;
         public const ulong InvalidUniqueId = 0uL;
         public const uint InvalidId = 0u;
 
@@ -147,10 +147,20 @@ namespace JanSharp
 #endif
             localPlayer = Networking.LocalPlayer;
             localPlayerId = (uint)localPlayer.playerId;
+            maxWorkMSPerFrame = lockstep.MaxWorkMSPerFrame;
             InitEntityPrototypes();
             InitExtensionIANameLut();
             nextEntityId = highestPreInstantiatedEntityId + 1u;
             RunOnInstantiateForAllPreInstantiatedEntities();
+        }
+
+        [LockstepEvent(LockstepEventType.OnMaxWorkMSPerFrameChanged)]
+        public void OnMaxWorkMSPerFrameChanged()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  OnMaxWorkMSPerFrameChanged");
+#endif
+            maxWorkMSPerFrame = lockstep.MaxWorkMSPerFrame;
         }
 
         [PlayerDataEvent(PlayerDataEventType.OnRegisterCustomPlayerData)]
@@ -792,7 +802,7 @@ namespace JanSharp
 
         private bool SerializationIsRunningLong()
         {
-            bool result = serializationSw.ElapsedMilliseconds >= MaxWorkMSPerFrame;
+            bool result = serializationSw.Elapsed.TotalMilliseconds > maxWorkMSPerFrame;
             if (result)
                 lockstep.FlagToContinueNextFrame();
             return result;
@@ -834,7 +844,7 @@ namespace JanSharp
 
         private bool DeserializationIsRunningLong()
         {
-            bool result = deserializationSw.ElapsedMilliseconds >= MaxWorkMSPerFrame;
+            bool result = deserializationSw.Elapsed.TotalMilliseconds > maxWorkMSPerFrame;
             if (result)
                 lockstep.FlagToContinueNextFrame();
             return result;
