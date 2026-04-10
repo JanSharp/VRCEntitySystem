@@ -104,7 +104,7 @@ namespace JanSharp
             {
                 allExtensionData = new EntityExtensionData[length];
                 for (int i = 0; i < length; i++)
-                    allExtensionData[i] = EntityExtensionDataStatics.New(WannaBeClasses, extensionClassNames[i], i, this);
+                    allExtensionData[i] = EntityExtensionDataStatics.New(wannaBeClasses, extensionClassNames[i], i, this);
             }
 
             return this;

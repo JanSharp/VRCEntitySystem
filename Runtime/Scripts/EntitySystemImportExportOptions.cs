@@ -13,7 +13,7 @@ namespace JanSharp
 
         public override LockstepGameStateOptionsData Clone()
         {
-            var clone = WannaBeClasses.New<EntitySystemImportExportOptions>(nameof(EntitySystemImportExportOptions));
+            var clone = wannaBeClasses.New<EntitySystemImportExportOptions>(nameof(EntitySystemImportExportOptions));
             clone.includeEntities = includeEntities;
             return clone;
         }
