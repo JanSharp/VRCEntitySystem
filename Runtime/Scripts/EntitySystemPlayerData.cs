@@ -4,7 +4,7 @@ using UnityEngine;
 namespace JanSharp
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
-    public class EntitySystemPlayerData : PlayerData
+    public class EntitySystemPlayerData : CustomPlayerData
     {
         public override string PlayerDataInternalName => "jansharp.entity-system-player-data";
         public override string PlayerDataDisplayName => "Entity System Player Data";
