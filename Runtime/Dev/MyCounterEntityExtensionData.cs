@@ -1,7 +1,6 @@
 ﻿using UdonSharp;
 using UnityEngine;
 using VRC.SDKBase;
-using VRC.Udon;
 
 namespace JanSharp
 {
@@ -15,6 +14,13 @@ namespace JanSharp
         public MyCounterEntityExtension Extension => (MyCounterEntityExtension)extension;
         [System.NonSerialized] public int counterValue;
         private uint localPlayerId;
+
+        public override bool WannaBeClassSupportsPooling => true;
+        public override void ResetWannaBeClassToDefault()
+        {
+            counterValue = default;
+            localPlayerId = default;
+        }
 
         private void Init()
         {

@@ -9,6 +9,11 @@ namespace JanSharp
         public override uint DataVersion => 0u;
         public override uint LowestSupportedDataVersion => 0u;
 
+        public override bool WannaBeClassSupportsPooling => true;
+        public override void ResetWannaBeClassToDefault()
+        {
+        }
+
         public override void InitFromDefault(EntityExtension entityExtension)
         {
         }

@@ -27,6 +27,17 @@ namespace JanSharp
 
         private uint localPlayerId;
 
+        public override bool WannaBeClassSupportsPooling => true;
+        public override void ResetWannaBeClassToDefault()
+        {
+            ext = default;
+            responsiblePlayerId = default;
+            isSleeping = true;
+            velocity = default;
+            angularVelocity = default;
+            localPlayerId = default;
+        }
+
         private void Init()
         {
 #if ENTITY_SYSTEM_DEBUG

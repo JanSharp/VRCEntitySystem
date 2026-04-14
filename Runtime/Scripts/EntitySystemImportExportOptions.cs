@@ -11,6 +11,13 @@ namespace JanSharp
 
         [System.NonSerialized] public bool includeEntities = true;
 
+        public override bool WannaBeClassSupportsPooling => true;
+        public override void ResetWannaBeClassToDefault()
+        {
+            base.ResetWannaBeClassToDefault();
+            includeEntities = true;
+        }
+
         public override LockstepGameStateOptionsData Clone()
         {
             var clone = wannaBeClasses.New<EntitySystemImportExportOptions>(nameof(EntitySystemImportExportOptions));

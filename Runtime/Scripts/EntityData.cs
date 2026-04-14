@@ -12,7 +12,9 @@ namespace JanSharp
         [HideInInspector][SingletonReference] public InterpolationManager interpolation;
         [HideInInspector][SingletonReference] public PlayerDataManagerAPI playerDataManager;
         /// <summary>
-        /// <para>Negative 1 means that the entity has been destroyed.</para>
+        /// <para>Negative 1 means that the entity has been destroyed. But ensure to call
+        /// <see cref="WannaBeClassExtensions.CheckLiveliness(WannaBeClass)"/> before checking for -1
+        /// too, because if the class instance has been deleted, this gets reset to 0.</para>
         /// <para>Not part of the public api.</para>
         /// <para>Game state safe.</para>
         /// </summary>
@@ -82,6 +84,38 @@ namespace JanSharp
             => transformSyncController != null && transformSyncController.TryGetGameStateScale(this, out Vector3 scale)
                 ? scale
                 : this.scale;
+
+        public override bool WannaBeClassSupportsPooling => true;
+        public override void ResetWannaBeClassToDefault()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityData  ResetWannaBeClassToDefault");
+#endif
+            instanceIndex = default;
+            entityPrototype = default;
+            entity = default;
+            entityIsDestroyed = default;
+            wasPreInstantiated = false;
+            isInitialized = false;
+            uniqueId = default;
+            id = default;
+            noTransformSync = default;
+            transformSyncController = default;
+            position = default;
+            rotation = default;
+            scale = default;
+            lastKnownTransformStateTick = default;
+            createdByPlayerData = default;
+            lastUserPlayerData = default;
+            hidden = default;
+            parentEntity = default;
+            childEntities = new EntityData[0];
+            allExtensionData = new EntityExtensionData[0]; // It is a serialized field, this is the default.
+            unresolvedParentEntityId = default;
+            unresolvedChildEntitiesIds = default;
+            importedMetadata = default;
+            latencyUniqueIdLut.Clear();
+        }
 
         public EntityData WannaBeConstructor(EntityPrototype entityPrototype, ulong uniqueId, uint id)
         {

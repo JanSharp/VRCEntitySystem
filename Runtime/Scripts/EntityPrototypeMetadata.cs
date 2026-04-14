@@ -1,7 +1,4 @@
 ﻿using UdonSharp;
-using UnityEngine;
-using VRC.SDKBase;
-using VRC.Udon;
 
 namespace JanSharp
 {
@@ -16,5 +13,18 @@ namespace JanSharp
         [System.NonSerialized] public EntityPrototype entityPrototype;
         [System.NonSerialized] public int[] resolvedExtensionIndexes;
         [System.NonSerialized] public string[] resolvedExtensionClassNames;
+
+        public override bool WannaBeClassSupportsPooling => true;
+        public override void ResetWannaBeClassToDefault()
+        {
+            id = default;
+            prototypeName = default;
+            displayName = default;
+            localExtensionIds = default;
+
+            entityPrototype = default;
+            resolvedExtensionIndexes = default;
+            resolvedExtensionClassNames = default;
+        }
     }
 }

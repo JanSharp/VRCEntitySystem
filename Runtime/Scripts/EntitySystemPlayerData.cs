@@ -22,8 +22,17 @@ namespace JanSharp
         /// how this is used to affect the game state.</para>
         /// </summary>
         [System.NonSerialized] public PhysicsEntityExtensionData[] managedPhysicsEntities = new PhysicsEntityExtensionData[ArrList.MinCapacity];
-        [System.NonSerialized] public int managedPhysicsEntitiesCount;
+        [System.NonSerialized] public int managedPhysicsEntitiesCount = 0;
         #endregion
+
+        public override bool WannaBeClassSupportsPooling => true;
+        public override void ResetWannaBeClassToDefault()
+        {
+            createdEntitiesCount = 0u;
+            lastUsedEntitiesCount = 0u;
+            managedPhysicsEntities = new PhysicsEntityExtensionData[ArrList.MinCapacity];
+            managedPhysicsEntitiesCount = 0;
+        }
 
         public void GainCreated(EntityData entityData)
         {

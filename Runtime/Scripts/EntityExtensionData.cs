@@ -12,6 +12,15 @@ namespace JanSharp
         [System.NonSerialized] public Entity entity;
         [System.NonSerialized] public EntityExtension extension;
 
+        // public override bool WannaBeClassSupportsPooling => true; // Up to the deriving class.
+        public override void ResetWannaBeClassToDefault()
+        {
+            extensionIndex = default;
+            entityData = default;
+            entity = default;
+            extension = default;
+        }
+
         public EntityExtensionData WannaBeConstructor(int extensionIndex, EntityData entityData)
         {
             this.extensionIndex = extensionIndex;

@@ -718,7 +718,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  DestroyEntity");
 #endif
-            if (entityData.instanceIndex == -1)
+            if (!entityData.CheckLiveliness() || entityData.instanceIndex == -1)
                 return;
             pooling.ReturnEntity(entityData);
             if (entityData.uniqueId != InvalidUniqueId)
