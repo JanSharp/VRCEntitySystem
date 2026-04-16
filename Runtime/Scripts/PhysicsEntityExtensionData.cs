@@ -72,9 +72,15 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  InitFromDefault");
 #endif
             Init();
-            responsiblePlayerId = entityData.lastUserPlayerData == null
-                ? lockstep.MasterPlayerId
-                : entityData.lastUserPlayerData.core.playerId;
+            if (!entityData.lastUserPlayerData.CheckLiveliness())
+                responsiblePlayerId = lockstep.MasterPlayerId;
+            else
+            {
+                CorePlayerData core = entityData.lastUserPlayerData.core;
+                responsiblePlayerId = core.CheckLiveliness() && !core.isOffline
+                    ? core.playerId
+                    : lockstep.MasterPlayerId;
+            }
             PhysicsEntityExtension ext = (PhysicsEntityExtension)entityExtension;
             if (!ext.isSleeping)
                 WakeUp();
