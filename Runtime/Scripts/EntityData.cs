@@ -334,13 +334,37 @@ namespace JanSharp
         /// the game state will already have been applied to the latency state through
         /// <see cref="EntityExtension.ApplyExtensionData"/>.</para>
         /// </summary>
-        /// <returns><see langword="true"/> if the latency state had indeed diverged.</returns>
+        /// <returns><see langword="true"/> if the latency state had indeed diverged, and it has been
+        /// reset.</returns>
         public bool ResetLatencyStateIfItDiverged()
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  ResetLatencyStateIfItDiverged");
 #endif
             if (latencyUniqueIdLut.Count == 0)
+                return false;
+            latencyUniqueIdLut.Clear();
+            if (entity != null)
+                entity.ApplyEntityData();
+            return true;
+        }
+
+        /// <summary>
+        /// <para>Resets the latency state to the game state, but only if the currently running input action
+        /// was latency hidden (aka sent by) the local player.</para>
+        /// <para>Useful for cases where an input action was applied to the latency state at the time of
+        /// sending, so latency hidden, however when actually running that input action in the game state it
+        /// turns out that what was applied to the latency state was actually incorrect and the input action
+        /// had to do something different.</para>
+        /// </summary>
+        /// <returns><see langword="true"/> if the input action had been latency hidden by the local player,
+        /// and the latency state has been reset.</returns>
+        public bool ResetLatencyStateBecauseIAGotAppliedDifferently()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityData  ResetLatencyStateBecauseIAGotAppliedDifferently");
+#endif
+            if (!latencyUniqueIdLut.ContainsKey(lockstep.SendingUniqueId))
                 return false;
             latencyUniqueIdLut.Clear();
             if (entity != null)
