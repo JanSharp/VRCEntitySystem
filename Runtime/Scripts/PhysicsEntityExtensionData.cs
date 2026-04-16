@@ -244,8 +244,7 @@ namespace JanSharp
                 transformController,
                 entityData.position,
                 entityData.rotation,
-                entityData.scale,
-                PhysicsEntityExtension.InterpolationDuration);
+                entityData.scale);
         }
 
         private void ResetGameStateDueToSleep()

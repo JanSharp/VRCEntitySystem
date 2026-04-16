@@ -423,8 +423,7 @@ namespace JanSharp
             EntityTransformController releasingController,
             Vector3 position,
             Quaternion rotation,
-            Vector3 scale,
-            float interpolationDuration = Entity.TransformChangeInterpolationDuration)
+            Vector3 scale)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfTransformSync");
