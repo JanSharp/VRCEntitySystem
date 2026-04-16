@@ -18,7 +18,7 @@ namespace JanSharp
         [System.NonSerialized] public PhysicsEntityExtension ext;
 
         /// <summary>
-        /// <para>Can be <c>0u</c>.</para>
+        /// <para>Never <c>0u</c>.</para>
         /// </summary>
         [System.NonSerialized] public uint responsiblePlayerId;
         [System.NonSerialized] public bool isSleeping = true;
@@ -60,6 +60,7 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  InitFromPreInstantiated");
 #endif
             Init();
+            SetResponsiblePlayerId(lockstep.MasterPlayerId); // After PlayerDataManager OnInit, player data for this player does exist.
             PhysicsEntityExtension ext = (PhysicsEntityExtension)entityExtension;
             if (!ext.isSleeping)
                 WakeUp();
@@ -71,7 +72,9 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  InitFromDefault");
 #endif
             Init();
-            responsiblePlayerId = entityData.lastUserPlayerData == null ? 0u : entityData.lastUserPlayerData.core.playerId;
+            responsiblePlayerId = entityData.lastUserPlayerData == null
+                ? lockstep.MasterPlayerId
+                : entityData.lastUserPlayerData.core.playerId;
             PhysicsEntityExtension ext = (PhysicsEntityExtension)entityExtension;
             if (!ext.isSleeping)
                 WakeUp();

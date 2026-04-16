@@ -10,7 +10,7 @@ namespace JanSharp
         [HideInInspector][SerializeField][SingletonReference] private LockstepAPI lockstep;
         [HideInInspector][SerializeField][SingletonReference] private EntitySystem entitySystem;
 
-        [LockstepEvent(LockstepEventType.OnClientLeft)]
+        [LockstepEvent(LockstepEventType.OnClientLeft)] // Before PlayerDataManager.
         public void OnClientLeft()
         {
 #if ENTITY_SYSTEM_DEBUG
