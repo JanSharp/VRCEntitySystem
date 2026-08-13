@@ -1147,15 +1147,17 @@ namespace JanSharp
             return DeserializePreInstantiatedEntity(id, prototypeId);
         }
 
+        // Without this UdonSharp sometimes uses a shared temporary instead which gets overwritten by other functions.
+        private EntityData readEntityDataIntoNewEntityEntityData;
         private EntityData ReadEntityDataIntoNewEntity(EntityPrototype prototype, ulong uniqueId, uint id)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityDataIntoNewEntity");
 #endif
-            EntityData entityData = NewEntityData(prototype, uniqueId, id);
-            entityData.Deserialize(isImport: false, importedDataVersion: 0u);
-            pooling.RequestEntity(entityData);
-            return entityData;
+            readEntityDataIntoNewEntityEntityData = NewEntityData(prototype, uniqueId, id);
+            readEntityDataIntoNewEntityEntityData.Deserialize(isImport: false, importedDataVersion: 0u);
+            pooling.RequestEntity(readEntityDataIntoNewEntityEntityData);
+            return readEntityDataIntoNewEntityEntityData;
         }
 
         private EntityData DeserializePreInstantiatedEntity(uint id, uint prototypeId)
