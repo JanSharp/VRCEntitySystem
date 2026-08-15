@@ -34,7 +34,8 @@ namespace JanSharp
             Transform parent = null;
             foreach (EntityPrototypeDefinition definition in dependencies.SelectMany(d => d.prototypes))
             {
-                if (prototypeGuidsInScene.Contains(EditorUtil.GetAssetGuidOrEmpty(definition)))
+                string definitionGuid = EditorUtil.GetAssetGuidOrEmpty(definition);
+                if (prototypeGuidsInScene.Contains(definitionGuid))
                     continue;
                 if (!searchedForAParent)
                 {
@@ -42,6 +43,7 @@ namespace JanSharp
                     parent = EntityPrototypeDefinitionEditor.FindEntityPrototypesParent(prototypes);
                 }
                 EntityPrototypeDefinitionEditor.AddEntityPrototypeToScene(definition, parent, "Add Entity Prototype Due To Dependency");
+                prototypeGuidsInScene.Add(definitionGuid);
                 OnBuildUtil.MarkForRerunDueToScriptInstantiation();
             }
             return true;
