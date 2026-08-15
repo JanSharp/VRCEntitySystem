@@ -32,7 +32,9 @@ namespace JanSharp
                 .ToHashSet();
             bool searchedForAParent = false;
             Transform parent = null;
-            foreach (EntityPrototypeDefinition definition in dependencies.SelectMany(d => d.prototypes))
+            foreach (EntityPrototypeDefinition definition in dependencies
+                .Where(d => d.prototypes != null)
+                .SelectMany(d => d.prototypes))
             {
                 string definitionGuid = EditorUtil.GetAssetGuidOrEmpty(definition);
                 if (prototypeGuidsInScene.Contains(definitionGuid))
