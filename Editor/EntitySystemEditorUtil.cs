@@ -56,14 +56,14 @@ namespace JanSharp
                 var attr = ubType.GetCustomAttribute<AssociatedEntityExtensionDataAttribute>(inherit: true);
                 if (attr == null)
                 {
-                    if (EditorUtil.DerivesFrom(ubType, typeof(EntityExtension)))
+                    if (typeof(EntityExtension).IsAssignableFrom(ubType))
                     {
                         Debug.LogError($"[EntitySystem] The '{ubType.Name}' class is missing the "
                             + $"[AssociatedEntityExtensionData] attribute. Every {nameof(EntityExtension)} "
                             + $"must have an associated {nameof(EntityExtensionData)}.");
                         hasInvalidAssociationAttributes = true;
                     }
-                    if (EditorUtil.DerivesFrom(ubType, typeof(EntityExtensionData)))
+                    if (typeof(EntityExtensionData).IsAssignableFrom(ubType))
                         extensionDataTypes.Add(ubType);
                     continue;
                 }
@@ -92,14 +92,14 @@ namespace JanSharp
 
         private static void ProcessExtensionTypePair(System.Type extensionType, System.Type extensionDataType)
         {
-            if (!EditorUtil.DerivesFrom(extensionType, typeof(EntityExtension)))
+            if (!typeof(EntityExtension).IsAssignableFrom(extensionType))
             {
                 Debug.LogError($"[EntitySystem] Classes with the [AssociatedEntityExtensionData] attribute "
                     + $"must derive from {nameof(EntityExtension)}, however the '{extensionType.Name}' class does not.");
                 hasInvalidAssociationAttributes = true;
                 return;
             }
-            if (!EditorUtil.DerivesFrom(extensionDataType, typeof(EntityExtensionData)))
+            if (!typeof(EntityExtensionData).IsAssignableFrom(extensionDataType))
             {
                 Debug.LogError($"[EntitySystem] Classes that are associated with entity extensions through the "
                     + $"[AssociatedEntityExtensionData] attribute must derive from {nameof(EntityExtensionData)}, "
