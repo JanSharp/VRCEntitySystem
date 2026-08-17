@@ -60,12 +60,12 @@ namespace JanSharp
                     return list;
                 });
             EditorUtil.SetArrayProperty(
-                so.FindProperty("rawExtensionMethodNamesLut"),
+                so.FindProperty(EntitySystem.RawExtensionMethodNamesLutPropName),
                 rawExtensionMethodNamesLut,
                 (p, v) => p.stringValue = v);
 
             EditorUtil.SetArrayProperty(
-                so.FindProperty("entityPrototypes"),
+                so.FindProperty(EntitySystem.EntityPrototypesPropName),
                 prototypes,
                 (p, v) => p.objectReferenceValue = v);
 
@@ -95,7 +95,7 @@ namespace JanSharp
                 .ToDictionary(g => AssetDatabase.GetAssetPath(g.Single().definition.entityPrefab), g => g.Single().prototype);
 
             bool invalid = false;
-            List<Entity> preInstantiatedEntityInstances = EditorUtil.EnumerateArrayProperty(so.FindProperty("preInstantiatedEntityInstances"))
+            List<Entity> preInstantiatedEntityInstances = EditorUtil.EnumerateArrayProperty(so.FindProperty(EntitySystem.PreInstantiatedEntityInstancesPropName))
                 .Select(p => (Entity)p.objectReferenceValue)
                 .ToList();
 
@@ -139,7 +139,7 @@ namespace JanSharp
                 return false;
 
             EditorUtil.SetArrayProperty(
-                so.FindProperty("preInstantiatedEntityInstancePrototypes"),
+                so.FindProperty(EntitySystem.PreInstantiatedEntityInstancePrototypesPropName),
                 preInstantiatedEntityInstancePrototypes,
                 (p, v) => p.objectReferenceValue = v);
 
@@ -271,14 +271,14 @@ namespace JanSharp
                 }
                 SerializedObject entityDataSo = new SerializedObject(entityData);
                 EditorUtil.SetArrayProperty(
-                    entityDataSo.FindProperty("allExtensionData"),
+                    entityDataSo.FindProperty(nameof(EntityData.allExtensionData)),
                     allExtensionData,
                     (p, v) => p.objectReferenceValue = v);
                 entityDataSo.ApplyModifiedProperties();
             }
 
             EditorUtil.SetArrayProperty(
-                so.FindProperty("preInstantiatedEntityData"),
+                so.FindProperty(EntitySystem.PreInstantiatedEntityDataPropName),
                 entityDataInsts,
                 (p, v) => p.objectReferenceValue = v);
         }

@@ -8,6 +8,22 @@ namespace JanSharp
     {
         [HideInInspector][SerializeField][SingletonReference] LockstepAPI lockstep;
 
+#if UNITY_EDITOR && !COMPILER_UDONSHARP
+        public const string IdPropName = nameof(id);
+        public const string PrototypeDefinitionGuidPropName = nameof(prototypeDefinitionGuid);
+
+        public const string PrototypeNamePropName = nameof(prototypeName);
+        public const string DisplayNamePropName = nameof(displayName);
+        public const string ShortDescriptionPropName = nameof(shortDescription);
+        public const string LongDescriptionPropName = nameof(longDescription);
+        public const string DefaultScalePropName = nameof(defaultScale);
+        public const string LocalExtensionIdsPropName = nameof(localExtensionIds);
+        public const string ExtensionDataClassNamesPropName = nameof(extensionDataClassNames);
+
+        public const string EntityPrefabInstPropName = nameof(entityPrefabInst);
+        public const string DefaultEntityInstPropName = nameof(defaultEntityInst);
+#endif
+
         /// <summary>
         /// <para>Id <c>0u</c> indicates invalid.</para>
         /// <para>Note that at this time nothing is using the invalid id for anything.</para>

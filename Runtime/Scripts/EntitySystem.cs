@@ -20,6 +20,14 @@ namespace JanSharp
         public override LockstepGameStateOptionsUI ExportUI => null;
         public override LockstepGameStateOptionsUI ImportUI => null;
 
+#if UNITY_EDITOR && !COMPILER_UDONSHARP
+        public const string RawExtensionMethodNamesLutPropName = nameof(rawExtensionMethodNamesLut);
+        public const string EntityPrototypesPropName = nameof(entityPrototypes);
+        public const string PreInstantiatedEntityInstancesPropName = nameof(preInstantiatedEntityInstances);
+        public const string PreInstantiatedEntityInstancePrototypesPropName = nameof(preInstantiatedEntityInstancePrototypes);
+        public const string PreInstantiatedEntityDataPropName = nameof(preInstantiatedEntityData);
+#endif
+
         private double maxWorkMSPerFrame;
         public const ulong InvalidUniqueId = 0uL;
         public const uint InvalidId = 0u;

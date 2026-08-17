@@ -155,7 +155,7 @@ namespace JanSharp
 
         public static void FindAllPrototypeDefinitions()
         {
-            string[] guids = AssetDatabase.FindAssets("t:EntityPrototypeDefinition");
+            string[] guids = AssetDatabase.FindAssets($"t:{nameof(EntityPrototypeDefinition)}");
             guidToPrototypeDefLut = guids.ToDictionary(
                 guid => guid,
                 guid => AssetDatabase.LoadAssetAtPath<EntityPrototypeDefinition>(AssetDatabase.GUIDToAssetPath(guid)));

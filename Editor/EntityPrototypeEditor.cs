@@ -61,7 +61,7 @@ namespace JanSharp
             if (!ValidateAndUpdatePrototypeDefinition(prototypeDefinition))
                 return false;
             SerializedObject so = new SerializedObject(entityPrototype);
-            so.FindProperty("id").uintValue = nextId++;
+            so.FindProperty(EntityPrototype.IdPropName).uintValue = nextId++;
             MirrorTheDefinition(prototypeDefinition, so);
             EnsureEntityPrefabInstExists(entityPrototype, prototypeDefinition, so);
             EnsureDefaultEntityInstExists(entityPrototype, prototypeDefinition, so);
@@ -165,17 +165,17 @@ namespace JanSharp
             EntityPrototypeDefinition prototypeDefinition,
             SerializedObject so)
         {
-            so.FindProperty("prototypeName").stringValue = prototypeDefinition.prototypeName;
-            so.FindProperty("displayName").stringValue = prototypeDefinition.displayName;
-            so.FindProperty("shortDescription").stringValue = prototypeDefinition.shortDescription;
-            so.FindProperty("longDescription").stringValue = prototypeDefinition.longDescription;
-            so.FindProperty("defaultScale").vector3Value = prototypeDefinition.defaultScale;
+            so.FindProperty(EntityPrototype.PrototypeNamePropName).stringValue = prototypeDefinition.prototypeName;
+            so.FindProperty(EntityPrototype.DisplayNamePropName).stringValue = prototypeDefinition.displayName;
+            so.FindProperty(EntityPrototype.ShortDescriptionPropName).stringValue = prototypeDefinition.shortDescription;
+            so.FindProperty(EntityPrototype.LongDescriptionPropName).stringValue = prototypeDefinition.longDescription;
+            so.FindProperty(EntityPrototype.DefaultScalePropName).vector3Value = prototypeDefinition.defaultScale;
             EditorUtil.SetArrayProperty(
-                so.FindProperty("localExtensionIds"),
+                so.FindProperty(EntityPrototype.LocalExtensionIdsPropName),
                 prototypeDefinition.localExtensionIds,
                 (p, v) => p.uintValue = v);
             EditorUtil.SetArrayProperty(
-                so.FindProperty("extensionDataClassNames"),
+                so.FindProperty(EntityPrototype.ExtensionDataClassNamesPropName),
                 prototypeDefinition.extensionDataClassNames,
                 (p, v) => p.stringValue = v);
         }
@@ -195,7 +195,7 @@ namespace JanSharp
                 entityPrefab = (GameObject)PrefabUtility.InstantiatePrefab(prototypeDefinition.entityPrefab, entitySystem.EntityPrefabInstsContainer);
                 entityPrefab.SetActive(true);
                 Undo.RegisterCreatedObjectUndo(entityPrefab, "Instantiate Entity Prefab");
-                so.FindProperty("entityPrefabInst").objectReferenceValue = entityPrefab;
+                so.FindProperty(EntityPrototype.EntityPrefabInstPropName).objectReferenceValue = entityPrefab;
                 OnBuildUtil.MarkForRerunDueToScriptInstantiation();
             }
             EnsureActiveState(entityPrefab, true); // TODO: maybe allow disabled entity prefabs.
@@ -218,7 +218,7 @@ namespace JanSharp
                 inst.SetActive(false);
                 Undo.RegisterCreatedObjectUndo(inst, "Instantiate Default Entity Inst");
                 defaultEntityInst = inst.GetComponent<Entity>();
-                so.FindProperty("defaultEntityInst").objectReferenceValue = defaultEntityInst;
+                so.FindProperty(EntityPrototype.DefaultEntityInstPropName).objectReferenceValue = defaultEntityInst;
                 OnBuildUtil.MarkForRerunDueToScriptInstantiation();
             }
             EnsureActiveState(defaultEntityInst.gameObject, false); // The parent is disabled anyway, this shouldn't really matter...
@@ -272,7 +272,7 @@ namespace JanSharp
         private void OnEnable()
         {
             so = serializedObject;
-            prototypeDefinitionGuidProp = so.FindProperty("prototypeDefinitionGuid");
+            prototypeDefinitionGuidProp = so.FindProperty(EntityPrototype.PrototypeDefinitionGuidPropName);
             prototypeDefinitionGuids = GetCurrentPrototypeDefinitionGuids();
             FetchPrototypeDefinition();
         }
@@ -298,11 +298,11 @@ namespace JanSharp
             definitionsSo = prototypeDefinitions.Length == 0
                 ? null
                 : new SerializedObject(prototypeDefinitions);
-            prototypeNameProp = definitionsSo == null ? null : definitionsSo.FindProperty("prototypeName");
-            displayNameProp = definitionsSo == null ? null : definitionsSo.FindProperty("displayName");
-            shortDescriptionProp = definitionsSo == null ? null : definitionsSo.FindProperty("shortDescription");
-            longDescriptionProp = definitionsSo == null ? null : definitionsSo.FindProperty("longDescription");
-            definitionEntityPrefabProp = definitionsSo == null ? null : definitionsSo.FindProperty("entityPrefab");
+            prototypeNameProp = definitionsSo == null ? null : definitionsSo.FindProperty(nameof(EntityPrototypeDefinition.prototypeName));
+            displayNameProp = definitionsSo == null ? null : definitionsSo.FindProperty(nameof(EntityPrototypeDefinition.displayName));
+            shortDescriptionProp = definitionsSo == null ? null : definitionsSo.FindProperty(nameof(EntityPrototypeDefinition.shortDescription));
+            longDescriptionProp = definitionsSo == null ? null : definitionsSo.FindProperty(nameof(EntityPrototypeDefinition.longDescription));
+            definitionEntityPrefabProp = definitionsSo == null ? null : definitionsSo.FindProperty(nameof(EntityPrototypeDefinition.entityPrefab));
         }
 
         private bool CompareStringArrays(string[] left, string[] right)
