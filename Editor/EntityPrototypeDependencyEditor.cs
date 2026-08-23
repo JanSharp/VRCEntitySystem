@@ -5,12 +5,12 @@ using UnityEngine;
 
 namespace JanSharp
 {
-    [InitializeOnLoad]
     public static class EntityPrototypeDependencyOnBuild
     {
         private static List<EntityPrototype> prototypes;
 
-        static EntityPrototypeDependencyOnBuild()
+        [OrderedInitializeOnLoad]
+        private static void OnAssemblyLoad()
         {
             OnBuildUtil.RegisterTypeCumulative<EntityPrototype>(OnPrototypesBuild, order: -101);
             OnBuildUtil.RegisterTypeCumulative<EntityPrototypeDependency>(OnDependenciesBuild, order: -100);

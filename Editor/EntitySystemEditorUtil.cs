@@ -6,8 +6,6 @@ using UnityEngine;
 
 namespace JanSharp
 {
-    [InitializeOnLoad]
-    [DefaultExecutionOrder(-10)]
     public static class EntitySystemEditorUtil
     {
         private class ExtensionTypePair
@@ -30,7 +28,8 @@ namespace JanSharp
 
         private static Dictionary<string, EntityPrototypeDefinition> guidToPrototypeDefLut = new();
 
-        static EntitySystemEditorUtil()
+        [OrderedInitializeOnLoad(Order = -10)]
+        private static void OnAssemblyLoad()
         {
             if (!FindAndValidateEntityDataAssociations())
                 OnBuildUtil.RegisterAction(OnInvalidEntityExtensionAssociationsBuild, order: -10000);

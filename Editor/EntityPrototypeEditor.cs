@@ -6,14 +6,14 @@ using UnityEngine;
 
 namespace JanSharp
 {
-    [InitializeOnLoad]
     public static class EntityPrototypeOnBuild
     {
         private static uint nextId = 1u;
         private static HashSet<string> internalNamesLut = new();
         private static EntitySystem entitySystem;
 
-        static EntityPrototypeOnBuild()
+        [OrderedInitializeOnLoad]
+        private static void OnAssemblyLoad()
         {
             OnBuildUtil.RegisterAction(OnPreBuild, order: -13);
             OnBuildUtil.RegisterType<EntitySystem>(OnFetchEntitySystem, order: -12);

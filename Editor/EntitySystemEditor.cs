@@ -8,12 +8,12 @@ using UnityEngine;
 
 namespace JanSharp
 {
-    [InitializeOnLoad]
     public static class EntitySystemOnBuild
     {
         private static List<EntityPrototype> prototypes;
 
-        static EntitySystemOnBuild()
+        [OrderedInitializeOnLoad]
+        private static void OnAssemblyLoad()
         {
             OnBuildUtil.RegisterTypeCumulative<EntityPrototype>(OnPrototypesBuild, order: -1);
             OnBuildUtil.RegisterType<EntitySystem>(OnBuild, order: 0);
