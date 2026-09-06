@@ -1,7 +1,6 @@
 ﻿using UdonSharp;
 using UnityEngine;
 using VRC.SDKBase;
-using VRC.Udon;
 using VRC.Udon.Common;
 
 namespace JanSharp
@@ -109,6 +108,11 @@ namespace JanSharp
             if (!isInVR)
                 return Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
             return false;
+        }
+
+        public override bool ShowVisualRaycastThisFrame()
+        {
+            return isInVR;
         }
 
         public override void OnPositionModified()
