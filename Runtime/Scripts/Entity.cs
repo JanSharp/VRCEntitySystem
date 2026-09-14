@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace JanSharp
 {
+    [DisallowMultipleComponent]
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public class Entity : UdonSharpBehaviour
     {
