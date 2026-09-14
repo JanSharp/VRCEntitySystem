@@ -62,3 +62,4 @@
 - [ ] maybe add a way to tell the system to always keep the pool populated with x amount of disabled entities at runtime
 - [ ] probably an api to instantly ensure an entity data has its entity instantiated and associated
 - [x] use max work ms per frame from lockstep API
+- [ ] createdByPlayerData and lastUserPlayerData should probably be strong references. Because things are checking liveliness on them, which is a problem now that they support WannaBeClass pooling

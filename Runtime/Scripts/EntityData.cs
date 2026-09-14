@@ -45,10 +45,12 @@ namespace JanSharp
         [System.NonSerialized] public Vector3 scale;
         [System.NonSerialized] public uint lastKnownTransformStateTick;
         /// <summary>
+        /// <para>Weak reference.</para>
         /// <para>Can be <see langword="null"/>.</para>
         /// </summary>
         [System.NonSerialized] public EntitySystemPlayerData createdByPlayerData;
         /// <summary>
+        /// <para>Weak reference.</para>
         /// <para>Can be <see langword="null"/>.</para>
         /// </summary>
         [System.NonSerialized] public EntitySystemPlayerData lastUserPlayerData;
