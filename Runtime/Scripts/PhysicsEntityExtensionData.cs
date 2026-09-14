@@ -30,6 +30,7 @@ namespace JanSharp
         public override bool WannaBeClassSupportsPooling => true;
         public override void ResetWannaBeClassToDefault()
         {
+            base.ResetWannaBeClassToDefault();
             ext = default;
             responsiblePlayerId = default;
             isSleeping = true;

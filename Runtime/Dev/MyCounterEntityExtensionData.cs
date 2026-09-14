@@ -18,6 +18,7 @@ namespace JanSharp
         public override bool WannaBeClassSupportsPooling => true;
         public override void ResetWannaBeClassToDefault()
         {
+            base.ResetWannaBeClassToDefault();
             counterValue = default;
             localPlayerId = default;
         }

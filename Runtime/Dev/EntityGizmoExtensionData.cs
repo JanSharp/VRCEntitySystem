@@ -12,6 +12,7 @@ namespace JanSharp
         public override bool WannaBeClassSupportsPooling => true;
         public override void ResetWannaBeClassToDefault()
         {
+            base.ResetWannaBeClassToDefault();
         }
 
         public override void InitFromDefault(EntityExtension entityExtension)
