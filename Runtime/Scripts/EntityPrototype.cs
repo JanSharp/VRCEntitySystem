@@ -14,6 +14,7 @@ namespace JanSharp
 
         public const string PrototypeNamePropName = nameof(prototypeName);
         public const string DisplayNamePropName = nameof(displayName);
+        public const string CategoryNamePropName = nameof(categoryName);
         public const string ShortDescriptionPropName = nameof(shortDescription);
         public const string LongDescriptionPropName = nameof(longDescription);
         public const string DefaultScalePropName = nameof(defaultScale);
@@ -43,6 +44,7 @@ namespace JanSharp
         // All of this is just a mirror of the EntityPrototypeDefinition.
         [SerializeField] private string prototypeName;
         [SerializeField] private string displayName;
+        [SerializeField] private string categoryName;
         [SerializeField] private string shortDescription;
         [SerializeField] private string longDescription;
         [SerializeField] private Vector3 defaultScale;
@@ -66,6 +68,7 @@ namespace JanSharp
         public GameObject EntityPrefabInst => entityPrefabInst;
         public string PrototypeName => prototypeName;
         public string DisplayName => displayName;
+        public string CategoryName => categoryName;
         public string ShortDescription => shortDescription;
         public string LongDescription => longDescription;
         public Vector3 DefaultScale => defaultScale;

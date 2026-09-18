@@ -167,6 +167,7 @@ namespace JanSharp
         {
             so.FindProperty(EntityPrototype.PrototypeNamePropName).stringValue = prototypeDefinition.prototypeName;
             so.FindProperty(EntityPrototype.DisplayNamePropName).stringValue = prototypeDefinition.displayName;
+            so.FindProperty(EntityPrototype.CategoryNamePropName).stringValue = prototypeDefinition.categoryName;
             so.FindProperty(EntityPrototype.ShortDescriptionPropName).stringValue = prototypeDefinition.shortDescription;
             so.FindProperty(EntityPrototype.LongDescriptionPropName).stringValue = prototypeDefinition.longDescription;
             so.FindProperty(EntityPrototype.DefaultScalePropName).vector3Value = prototypeDefinition.defaultScale;
@@ -264,6 +265,7 @@ namespace JanSharp
         private SerializedObject definitionsSo;
         private SerializedProperty prototypeNameProp;
         private SerializedProperty displayNameProp;
+        private SerializedProperty categoryNameProp;
         private SerializedProperty shortDescriptionProp;
         private SerializedProperty longDescriptionProp;
         private SerializedProperty definitionEntityPrefabProp;
@@ -300,6 +302,7 @@ namespace JanSharp
                 : new SerializedObject(prototypeDefinitions);
             prototypeNameProp = definitionsSo == null ? null : definitionsSo.FindProperty(nameof(EntityPrototypeDefinition.prototypeName));
             displayNameProp = definitionsSo == null ? null : definitionsSo.FindProperty(nameof(EntityPrototypeDefinition.displayName));
+            categoryNameProp = definitionsSo == null ? null : definitionsSo.FindProperty(nameof(EntityPrototypeDefinition.categoryName));
             shortDescriptionProp = definitionsSo == null ? null : definitionsSo.FindProperty(nameof(EntityPrototypeDefinition.shortDescription));
             longDescriptionProp = definitionsSo == null ? null : definitionsSo.FindProperty(nameof(EntityPrototypeDefinition.longDescription));
             definitionEntityPrefabProp = definitionsSo == null ? null : definitionsSo.FindProperty(nameof(EntityPrototypeDefinition.entityPrefab));
@@ -369,6 +372,7 @@ namespace JanSharp
                 definitionsSo.Update();
                 EditorGUILayout.PropertyField(prototypeNameProp);
                 EditorGUILayout.PropertyField(displayNameProp);
+                EditorGUILayout.PropertyField(categoryNameProp);
                 EditorGUILayout.PropertyField(shortDescriptionProp);
                 EditorGUILayout.PropertyField(longDescriptionProp);
                 EditorGUILayout.PropertyField(definitionEntityPrefabProp);

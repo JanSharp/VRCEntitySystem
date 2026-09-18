@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   prototypeName: my-test
   displayName: My Test
+  categoryName: 
   shortDescription: Hello
   longDescription: Very long description
   entityPrefab: {fileID: 4440450832928301110, guid: 6ca92859c93d5e606a89f2e3dc93532b,

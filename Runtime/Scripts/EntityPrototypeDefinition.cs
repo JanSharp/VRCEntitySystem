@@ -13,6 +13,7 @@ namespace JanSharp
     {
         public string prototypeName;
         public string displayName;
+        public string categoryName;
         public string shortDescription;
         public string longDescription;
         [Tooltip("Each Prototype Definition used in a scene must use a unique Entity Prefab.\n"

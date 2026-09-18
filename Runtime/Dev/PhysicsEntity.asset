@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   prototypeName: physics-entity
   displayName: Physics Entity
+  categoryName: 
   shortDescription: 
   longDescription: 
   entityPrefab: {fileID: 4490641290949901507, guid: 99803a8f7550cd11e940c6ec12919df2,
