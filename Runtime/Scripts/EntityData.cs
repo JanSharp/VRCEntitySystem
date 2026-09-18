@@ -25,7 +25,10 @@ namespace JanSharp
         /// </summary>
         [System.NonSerialized] public Entity entity;
         /// <summary>
-        /// <para>Once <see langword="true"/>, <see langword="true"/> forever.</para>
+        /// <para>Once <see langword="true"/>, <see langword="true"/> forever... until the
+        /// <see cref="WannaBeClass"/> gets deconstructed and returned to the class instance pool.</para>
+        /// <para>In other words, check <see cref="WannaBeClassExtensions.CheckLiveliness(WannaBeClass)"/>
+        /// prior to checking this field.</para>
         /// <para>Not game state safe.</para>
         /// </summary>
         [System.NonSerialized] public bool entityIsDestroyed;

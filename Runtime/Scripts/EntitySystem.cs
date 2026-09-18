@@ -624,7 +624,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  SendDestroyEntityIA");
 #endif
-            if (entityData.entityIsDestroyed)
+            if (!entityData.CheckLiveliness() || entityData.entityIsDestroyed)
                 return;
             WriteEntityDataRef(entityData);
             lockstep.SendInputAction(destroyEntityIAId);

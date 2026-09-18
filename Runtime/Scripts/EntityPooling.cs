@@ -114,7 +114,7 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] EntityPooling  ProcessRequest");
 #endif
             EntityData entityData = (EntityData)request[0];
-            if (entityData.entityIsDestroyed)
+            if (!entityData.CheckLiveliness() || entityData.entityIsDestroyed)
                 return; // TODO: probably check for the next few requests to make it process faster
             EntityPrototype prototype = entityData.entityPrototype;
             DataList pooled = pooledEntities[prototype.Id].DataList;
