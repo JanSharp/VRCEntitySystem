@@ -10,7 +10,8 @@ namespace JanSharp
     [LockstepGameStateDependency(typeof(EntitySystemOptionsGS))]
     [LockstepGameStateDependency(typeof(PlayerDataManagerAPI))]
     [DefaultExecutionOrder(-100)]
-    public partial class EntitySystem : LockstepGameState
+    [CustomRaisedEventsDispatcher(typeof(EntitySystemEventAttribute), typeof(EntitySystemEventType))]
+    public class EntitySystem : LockstepGameState
     {
         public override string GameStateInternalName => "jansharp.entity-system";
         public override string GameStateDisplayName => "Entity System";
@@ -1156,6 +1157,10 @@ namespace JanSharp
         }
 
         // Without this UdonSharp sometimes uses a shared temporary instead which gets overwritten by other functions.
+        // Since this is a very weird issue that I have otherwise not observed anywhere else, and the asset file
+        // of the EntitySystem kept getting modified while others do not... that was while this was a partial
+        // class. Which is to say, maybe, now that the EntitySystem class is no longer partial, this bug would
+        // also no longer happen. Who knows, maybe they are related.
         private EntityData readEntityDataIntoNewEntityEntityData;
         private EntityData ReadEntityDataIntoNewEntity(EntityPrototype prototype, ulong uniqueId, uint id)
         {
@@ -1317,6 +1322,50 @@ namespace JanSharp
             destroyUnusedPreInstantiatedEntitiesIndex = 0;
             deserializationStage++;
         }
+
+        #region EventDispatcher
+
+        [HideInInspector][SerializeField] private UdonSharpBehaviour[] onEntityDeserializedListeners;
+        [HideInInspector][SerializeField] private UdonSharpBehaviour[] onEntityCreatedListeners;
+        [HideInInspector][SerializeField] private UdonSharpBehaviour[] onEntityDestroyedListeners;
+
+        private EntityData deserializedEntityData;
+        public EntityData DeserializedEntityData => deserializedEntityData;
+        private void RaiseOnEntityDeserialized(EntityData deserializedEntityData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  RaiseOnEntityDeserialized");
+#endif
+            this.deserializedEntityData = deserializedEntityData;
+            CustomRaisedEvents.Raise(ref onEntityDeserializedListeners, nameof(EntitySystemEventType.OnEntityDeserialized));
+            this.deserializedEntityData = null;
+        }
+
+        private EntityData createdEntityData;
+        public EntityData CreatedEntityData => createdEntityData;
+        private void RaiseOnEntityCreated(EntityData createdEntityData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  RaiseOnEntityCreated");
+#endif
+            this.createdEntityData = createdEntityData;
+            CustomRaisedEvents.Raise(ref onEntityCreatedListeners, nameof(EntitySystemEventType.OnEntityCreated));
+            this.createdEntityData = null;
+        }
+
+        private EntityData destroyedEntityData;
+        public EntityData DestroyedEntityData => destroyedEntityData;
+        private void RaiseOnEntityDestroyed(EntityData destroyedEntityData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  RaiseOnEntityDestroyed");
+#endif
+            this.destroyedEntityData = destroyedEntityData;
+            CustomRaisedEvents.Raise(ref onEntityDestroyedListeners, nameof(EntitySystemEventType.OnEntityDestroyed));
+            this.destroyedEntityData = null;
+        }
+
+        #endregion
     }
 
     public static class EntitySystemExtension
