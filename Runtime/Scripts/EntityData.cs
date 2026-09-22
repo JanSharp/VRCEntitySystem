@@ -48,51 +48,12 @@ namespace JanSharp
         [System.NonSerialized] public Vector3 scale;
         [System.NonSerialized] public uint lastKnownTransformStateTick;
         /// <summary>
-        /// <para>Strong reference.</para>
-        /// <para>Also keeps a strong reference to the underlying <see cref="CorePlayerData"/>.</para>
-        /// <para>Can be <see langword="null"/>.</para>
+        /// <para>Weak reference, however guaranteed to always be a reference to an alive
+        /// <see cref="WannaBeClass"/> instance when non <see langword="null"/>.</para>
         /// </summary>
-        private EntitySystemPlayerData createdByPlayerData;
+        [System.NonSerialized] public EntitySystemPlayerData createdByPlayerData;
         /// <inheritdoc cref="createdByPlayerData"/>
-        public EntitySystemPlayerData CreatedByPlayerData
-        {
-            get => createdByPlayerData;
-            set
-            {
-                if (createdByPlayerData != null)
-                {
-                    createdByPlayerData.core.DecrementRefsCount(); // Order matters.
-                    createdByPlayerData.DecrementRefsCount();
-                }
-                createdByPlayerData = value;
-                if (createdByPlayerData != null)
-                {
-                    createdByPlayerData.IncrementRefsCount();
-                    createdByPlayerData.core.IncrementRefsCount();
-                }
-            }
-        }
-        /// <inheritdoc cref="createdByPlayerData"/>
-        private EntitySystemPlayerData lastUserPlayerData;
-        /// <inheritdoc cref="lastUserPlayerData"/>
-        public EntitySystemPlayerData LastUserPlayerData
-        {
-            get => lastUserPlayerData;
-            set
-            {
-                if (lastUserPlayerData != null)
-                {
-                    lastUserPlayerData.core.DecrementRefsCount(); // Order matters.
-                    lastUserPlayerData.DecrementRefsCount();
-                }
-                lastUserPlayerData = value;
-                if (lastUserPlayerData != null)
-                {
-                    lastUserPlayerData.IncrementRefsCount();
-                    lastUserPlayerData.core.IncrementRefsCount();
-                }
-            }
-        }
+        [System.NonSerialized] public EntitySystemPlayerData lastUserPlayerData;
         [System.NonSerialized] public bool hidden;
         [System.NonSerialized] public EntityData parentEntity;
         [System.NonSerialized] public EntityData[] childEntities = new EntityData[0];
@@ -146,8 +107,8 @@ namespace JanSharp
             rotation = default;
             scale = default;
             lastKnownTransformStateTick = default;
-            CreatedByPlayerData = default;
-            LastUserPlayerData = default;
+            createdByPlayerData = default;
+            lastUserPlayerData = default;
             hidden = default;
             parentEntity = default;
             childEntities = new EntityData[0];
@@ -230,8 +191,8 @@ namespace JanSharp
             this.position = position;
             this.rotation = rotation;
             this.scale = scale;
-            CreatedByPlayerData = createdByPlayerData;
-            LastUserPlayerData = lastUserPlayerData;
+            this.createdByPlayerData = createdByPlayerData;
+            this.lastUserPlayerData = lastUserPlayerData;
             hidden = false;
             parentEntity = null;
 
@@ -254,8 +215,8 @@ namespace JanSharp
             position = t.position;
             rotation = t.rotation;
             scale = t.localScale;
-            CreatedByPlayerData = null;
-            LastUserPlayerData = null;
+            createdByPlayerData = null;
+            lastUserPlayerData = null;
             hidden = false;
             parentEntity = null;
 
@@ -585,7 +546,6 @@ namespace JanSharp
 #endif
             lockstep.WriteFlags(noTransformSync, hidden);
             SerializeTransformValues(isExport);
-            // Not using the property getter for micro optimization reasons. Because Udon.
             entitySystem.WritePlayerData(createdByPlayerData);
             entitySystem.WritePlayerData(lastUserPlayerData);
             lockstep.WriteSmallUInt(parentEntity == null ? 0u : parentEntity.id);
@@ -605,9 +565,8 @@ namespace JanSharp
 #endif
             lockstep.ReadFlags(out noTransformSync, out hidden);
             DeserializeTransformValues(isImport);
-            CreatedByPlayerData = entitySystem.ReadPlayerData(isImport);
-            LastUserPlayerData = entitySystem.ReadPlayerData(isImport);
-            // Not using the property getter for micro optimization reasons. Because Udon.
+            createdByPlayerData = entitySystem.ReadPlayerData(isImport);
+            lastUserPlayerData = entitySystem.ReadPlayerData(isImport);
             if (createdByPlayerData != null)
                 createdByPlayerData.GainCreated(this);
             if (lastUserPlayerData != null)
