@@ -43,8 +43,8 @@
 - [x] fix importing of awake physics entities potentially not having a responsible player
 - [ ] maybe don't process any entity requests while an import is still in progress
 - [ ] does importing actually properly clear current entity requests?
-- [ ] adding extensions to a prefab makes the list of extensions not update properly for pre instantiated entities, causing exceptions. Reverting prefab overrides works around the issue, however that is just a note about it's behavior, it's not an acceptable solution
-- [ ] there might an order of operations issue when adding an entity extension the first time to a scene.
+- [x] adding extensions to a prefab makes the list of extensions not update properly for pre instantiated entities, causing exceptions. Reverting prefab overrides works around the issue, however that is just a note about it's behavior, it's not an acceptable solution
+- [x] there might an order of operations issue when adding an entity extension the first time to a scene.
   - add an extension to an entity prefab that is used in the scene
   - have a pre instantiated entity of that prototype in the scene
   - run on build handlers
@@ -63,3 +63,4 @@
 - [ ] probably an api to instantly ensure an entity data has its entity instantiated and associated
 - [x] use max work ms per frame from lockstep API
 - [ ] createdByPlayerData and lastUserPlayerData should probably be strong references. Because things are checking liveliness on them, which is a problem now that they support WannaBeClass pooling
+- [ ] ensure all pre instantiated entity instances do not have any overrides on their list of extensions. The extensions list can gain overrides when one removes an extension from an instance and then applies those overrides to the prefab. It does not apply the fact that there is now a missing element in the array, it remains an override

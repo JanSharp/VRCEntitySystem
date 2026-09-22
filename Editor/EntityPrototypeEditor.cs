@@ -143,7 +143,8 @@ namespace JanSharp
                 entitySo.FindProperty(nameof(Entity.extensions)),
                 resolvedExtensions,
                 (p, v) => p.objectReferenceValue = v.extension);
-            entitySo.ApplyModifiedProperties();
+            if (entitySo.ApplyModifiedProperties())
+                PrefabUtility.SavePrefabAsset(prefabGo);
 
             SerializedObject definitionSo = new SerializedObject(prototypeDefinition);
             definitionSo.FindProperty(nameof(EntityPrototypeDefinition.defaultScale)).vector3Value = prefabGo.transform.localScale;
