@@ -28,6 +28,7 @@ namespace JanSharp
         public override bool WannaBeClassSupportsPooling => true;
         public override void ResetWannaBeClassToDefault()
         {
+            base.ResetWannaBeClassToDefault();
             createdEntitiesCount = 0u;
             lastUsedEntitiesCount = 0u;
             managedPhysicsEntities = new PhysicsEntityExtensionData[ArrList.MinCapacity];
