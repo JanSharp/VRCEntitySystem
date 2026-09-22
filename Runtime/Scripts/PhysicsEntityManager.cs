@@ -1,5 +1,6 @@
 ﻿using UdonSharp;
 using UnityEngine;
+using VRC.SDK3.Data;
 
 namespace JanSharp
 {
@@ -24,9 +25,24 @@ namespace JanSharp
             uint masterPlayerId = lockstep.MasterPlayerId;
             EntitySystemPlayerData masterPlayerData = entitySystem.GetPlayerDataForPlayerId(masterPlayerId);
             masterPlayerData.GainResponsibility(managed, managedCount);
+
+            // The managed list's order is not game state safe,
+            // however ResetLatencyStateIfItDiverged must be called in a game state safe context.
+            // Sorting by entity id makes the order game state safe.
+            // And this is probably the easiest and considering Udon's quirks maybe even fastest way to "sort"
+            // a list by some value contained with each element in the list. Even though it is cursed.
+            DataDictionary managedLut = new DataDictionary();
             for (int i = 0; i < managedCount; i++)
             {
                 PhysicsEntityExtensionData extensionData = managed[i];
+                managedLut.Add(extensionData.entityData.id, extensionData);
+            }
+            DataList keys = managedLut.GetKeys();
+            keys.Sort();
+
+            for (int i = 0; i < managedCount; i++)
+            {
+                PhysicsEntityExtensionData extensionData = (PhysicsEntityExtensionData)managedLut[keys[i]].Reference;
                 // Must not use SetResponsiblePlayerId as that would call the deregister and register
                 // functions in the manager here, but the responsibilities have already been managed.
                 extensionData.responsiblePlayerId = masterPlayerId;
