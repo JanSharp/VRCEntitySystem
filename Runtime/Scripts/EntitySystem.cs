@@ -199,14 +199,6 @@ namespace JanSharp
             InitPreInstantiatedEntities();
         }
 
-        //         [LockstepEvent(LockstepEventType.OnClientBeginCatchUp)]
-        //         public void OnClientBeginCatchUp()
-        //         {
-        // #if ENTITY_SYSTEM_DEBUG
-        //             Debug.Log($"[EntitySystemDebug] EntitySystem  OnClientBeginCatchUp");
-        // #endif
-        //         }
-
         private void InitEntityPrototypes()
         {
 #if ENTITY_SYSTEM_DEBUG
