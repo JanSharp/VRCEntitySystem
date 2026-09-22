@@ -18,7 +18,9 @@ namespace JanSharp
         [System.NonSerialized] public bool noTransformSync;
         [System.NonSerialized] public EntityTransformController transformSyncController;
 
-        [HideInInspector] public EntityExtension[] extensions;
+        [Tooltip("Updated automatically when entering play mode or building the world.\n"
+            + "Prefabs which are not used in a scene will not be updated. There's no need.")]
+        public EntityExtension[] extensions;
 
         private bool transformChangeIAIsQueued = false;
         private bool flaggedForPositionChange = false;

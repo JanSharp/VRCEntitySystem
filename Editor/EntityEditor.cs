@@ -31,10 +31,16 @@ namespace JanSharp
     [CustomEditor(typeof(Entity))]
     public class EntityEditor : Editor
     {
+        private static bool internalFoldedOut = false;
+
         public override void OnInspectorGUI()
         {
-            if (UdonSharpGUI.DrawDefaultUdonSharpBehaviourHeader(targets, skipLine: true))
+            if (UdonSharpGUI.DrawDefaultUdonSharpBehaviourHeader(targets))
                 return;
+            serializedObject.Update();
+            if (internalFoldedOut = EditorGUILayout.Foldout(internalFoldedOut, "Internal", toggleOnLabelClick: true))
+                DrawPropertiesExcluding(serializedObject, "m_Script");
+            serializedObject.ApplyModifiedProperties();
         }
     }
 }
