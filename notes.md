@@ -63,4 +63,4 @@
 - [ ] probably an api to instantly ensure an entity data has its entity instantiated and associated
 - [x] use max work ms per frame from lockstep API
 - [ ] createdByPlayerData and lastUserPlayerData should probably be strong references. Because things are checking liveliness on them, which is a problem now that they support WannaBeClass pooling
-- [ ] ensure all pre instantiated entity instances do not have any overrides on their list of extensions. The extensions list can gain overrides when one removes an extension from an instance and then applies those overrides to the prefab. It does not apply the fact that there is now a missing element in the array, it remains an override
+- [x] ensure all pre instantiated entity instances do not have any overrides on their list of extensions. The extensions list can gain overrides when one removes an extension from an instance and then applies those overrides to the prefab. It does not apply the fact that there is now a missing element in the array, it remains an override
