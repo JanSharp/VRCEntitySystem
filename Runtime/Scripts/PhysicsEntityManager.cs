@@ -25,6 +25,7 @@ namespace JanSharp
             uint masterPlayerId = lockstep.MasterPlayerId;
             EntitySystemPlayerData masterPlayerData = entitySystem.GetPlayerDataForPlayerId(masterPlayerId);
             masterPlayerData.GainResponsibility(managed, managedCount);
+            leftPlayerData.LoseAllResponsibility();
 
             // The managed list's order is not game state safe,
             // however ResetLatencyStateIfItDiverged must be called in a game state safe context.
@@ -49,7 +50,6 @@ namespace JanSharp
                 if (!extensionData.entityData.ResetLatencyStateIfItDiverged() && extensionData.ext != null)
                     extensionData.ext.SetResponsiblePlayerId(masterPlayerId);
             }
-            leftPlayerData.LoseAllResponsibility();
         }
 
         public void RegisterPhysicsExtensionData(PhysicsEntityExtensionData extensionData)
