@@ -15,12 +15,16 @@ namespace JanSharp
         [HideInInspector][SerializeField][SingletonReference] private EntitySystem entitySystem;
 
         #region Game State
-        [System.NonSerialized] public uint createdEntitiesCount = 0u;
-        [System.NonSerialized] public uint lastUsedEntitiesCount = 0u;
         /// <summary>
         /// <para>While this is part of the game state, the order is non deterministic. Be very careful with
         /// how this is used to affect the game state.</para>
         /// </summary>
+        [System.NonSerialized] public EntityData[] createdEntities = new EntityData[ArrList.MinCapacity];
+        [System.NonSerialized] public int createdEntitiesCount = 0;
+        /// <inheritdoc cref="createdEntities"/>
+        [System.NonSerialized] public EntityData[] lastUsedEntities = new EntityData[ArrList.MinCapacity];
+        [System.NonSerialized] public int lastUsedEntitiesCount = 0;
+        /// <inheritdoc cref="createdEntities"/>
         [System.NonSerialized] public PhysicsEntityExtensionData[] managedPhysicsEntities = new PhysicsEntityExtensionData[ArrList.MinCapacity];
         [System.NonSerialized] public int managedPhysicsEntitiesCount = 0;
         #endregion
@@ -28,11 +32,27 @@ namespace JanSharp
         public override bool WannaBeClassSupportsPooling => true;
         public override void ResetWannaBeClassToDefault()
         {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  ResetWannaBeClassToDefault");
+#endif
             base.ResetWannaBeClassToDefault();
-            createdEntitiesCount = 0u;
-            lastUsedEntitiesCount = 0u;
+            createdEntities = new EntityData[ArrList.MinCapacity];
+            createdEntitiesCount = 0;
+            lastUsedEntities = new EntityData[ArrList.MinCapacity];
+            lastUsedEntitiesCount = 0;
             managedPhysicsEntities = new PhysicsEntityExtensionData[ArrList.MinCapacity];
             managedPhysicsEntitiesCount = 0;
+        }
+
+        public override void OnPlayerDataUninit(bool forced)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  OnPlayerDataUninit");
+#endif
+            for (int i = 0; i < createdEntitiesCount; i++)
+                createdEntities[i].CreatedByPlayerData = null;
+            for (int i = 0; i < lastUsedEntitiesCount; i++)
+                lastUsedEntities[i].LastUserPlayerData = null;
         }
 
         public void GainCreated(EntityData entityData)
@@ -40,7 +60,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  GainCreated");
 #endif
-            createdEntitiesCount++;
+            ArrList.Add(ref createdEntities, ref createdEntitiesCount, entityData);
         }
 
         public void LoseCreated(EntityData entityData)
@@ -48,7 +68,15 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  LoseCreated");
 #endif
-            createdEntitiesCount--;
+            ArrList.Remove(ref createdEntities, ref createdEntitiesCount, entityData);
+        }
+
+        public void LoseAllCreated()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  LoseAllCreated");
+#endif
+            ArrList.Clear(ref createdEntities, ref createdEntitiesCount);
         }
 
         public void GainLastUsed(EntityData entityData)
@@ -56,7 +84,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  GainLastUsed");
 #endif
-            lastUsedEntitiesCount++;
+            ArrList.Add(ref lastUsedEntities, ref lastUsedEntitiesCount, entityData);
         }
 
         public void LoseLastUsed(EntityData entityData)
@@ -64,7 +92,15 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  LoseLastUsed");
 #endif
-            lastUsedEntitiesCount--;
+            ArrList.Remove(ref lastUsedEntities, ref lastUsedEntitiesCount, entityData);
+        }
+
+        public void LoseAllLastUsed()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  LoseLastUsed");
+#endif
+            ArrList.Clear(ref lastUsedEntities, ref lastUsedEntitiesCount);
         }
 
         public void GainResponsibility(PhysicsEntityExtensionData physicsEntityData)
@@ -104,8 +140,8 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  Clear");
 #endif
-            createdEntitiesCount = 0;
-            lastUsedEntitiesCount = 0;
+            LoseAllCreated();
+            LoseAllLastUsed();
             LoseAllResponsibility();
         }
 
@@ -114,7 +150,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  PersistPlayerDataWhileOffline");
 #endif
-            return createdEntitiesCount != 0u || lastUsedEntitiesCount != 0u || managedPhysicsEntitiesCount != 0;
+            return createdEntitiesCount != 0 || lastUsedEntitiesCount != 0 || managedPhysicsEntitiesCount != 0;
         }
 
         public override bool PersistPlayerDataInExport()
