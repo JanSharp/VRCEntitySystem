@@ -66,7 +66,9 @@ namespace JanSharp
             EnsureEntityPrefabInstExists(entityPrototype, prototypeDefinition, so);
             EnsureDefaultEntityInstExists(entityPrototype, prototypeDefinition, so);
             so.ApplyModifiedProperties();
-            EnsureGameObjectNameMatchesDefinitionName(entityPrototype, prototypeDefinition);
+            EnsureGameObjectName(entityPrototype.EntityPrefabInst, prototypeDefinition.entityPrefab.name);
+            EnsureGameObjectName(entityPrototype.DefaultEntityInst.gameObject, prototypeDefinition.entityPrefab.name);
+            EnsureGameObjectName(entityPrototype.gameObject, prototypeDefinition.name);
             return true;
         }
 
@@ -227,16 +229,13 @@ namespace JanSharp
             EnsureParent(defaultEntityInst.transform, entitySystem.DefaultEntityInstsContainer);
         }
 
-        private static void EnsureGameObjectNameMatchesDefinitionName(
-            EntityPrototype entityPrototype,
-            EntityPrototypeDefinition prototypeDefinition)
+        private static void EnsureGameObjectName(GameObject go, string name)
         {
-            if (entityPrototype.name != prototypeDefinition.name)
-            {
-                SerializedObject goSo = new SerializedObject(entityPrototype.gameObject);
-                goSo.FindProperty("m_Name").stringValue = prototypeDefinition.name;
-                goSo.ApplyModifiedProperties();
-            }
+            if (go.name == name)
+                return;
+            SerializedObject so = new SerializedObject(go);
+            so.FindProperty("m_Name").stringValue = name;
+            so.ApplyModifiedProperties();
         }
 
         private static void EnsureActiveState(GameObject go, bool active)

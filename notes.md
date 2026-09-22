@@ -56,7 +56,7 @@
 - [ ] some kind of respawn system for items that fell off the world
 - [ ] preferably make the entity and entity data files and any extensions smaller for faster instantiation
 - [ ] add an EntitySystemAPI class
-- [ ] EntityPrefabInsts and DefaultEntityInsts do not get their game object names updated when the prefab name changed
+- [x] EntityPrefabInsts and DefaultEntityInsts do not get their game object names updated when the prefab name changed
 - [ ] add a game state variant of creating entities - without this, the InitFromDefault xml annotations are actually wrong, it is always game state unsafe currently
 - [ ] maybe add an option to prepopulate the pool with x amount of disabled entities
 - [ ] maybe add a way to tell the system to always keep the pool populated with x amount of disabled entities at runtime
