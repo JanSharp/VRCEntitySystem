@@ -15,7 +15,7 @@ namespace JanSharp
 
         // private DataDictionary defaultEntities = new DataDictionary();
 
-        private object[][] requestQueue = new object[ArrQueue.MinCapacity][];
+        private EntityData[] requestQueue = new EntityData[ArrQueue.MinCapacity];
         private int rqStartIndex = 0;
         private int rqCount = 0;
 
@@ -48,17 +48,10 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  RequestEntity");
 #endif
-            object[] request = new object[]
-            {
-                entityData,
-                position,
-                rotation,
-                scale,
-            };
             if (highPriority)
-                ArrQueue.EnqueueAtFront(ref requestQueue, ref rqStartIndex, ref rqCount, request);
+                ArrQueue.EnqueueAtFront(ref requestQueue, ref rqStartIndex, ref rqCount, entityData);
             else
-                ArrQueue.Enqueue(ref requestQueue, ref rqStartIndex, ref rqCount, request);
+                ArrQueue.Enqueue(ref requestQueue, ref rqStartIndex, ref rqCount, entityData);
             // Never instantly process a request. Makes it more consistent. Though the argument for having
             // instant instantiation of an entity being better for the user can be made so this may change.
             StartRequestLoop();
@@ -102,18 +95,17 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  CustomUpdate");
 #endif
-            object[] request = ArrQueue.Dequeue(ref requestQueue, ref rqStartIndex, ref rqCount);
-            ProcessRequest(request);
+            EntityData entityData = ArrQueue.Dequeue(ref requestQueue, ref rqStartIndex, ref rqCount);
+            ProcessRequest(entityData);
             if (rqCount == 0)
                 updateManager.Deregister(this);
         }
 
-        private void ProcessRequest(object[] request)
+        private void ProcessRequest(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  ProcessRequest");
 #endif
-            EntityData entityData = (EntityData)request[0];
             if (!entityData.CheckLiveliness() || entityData.entityIsDestroyed)
                 return; // TODO: probably check for the next few requests to make it process faster
             EntityPrototype prototype = entityData.entityPrototype;
