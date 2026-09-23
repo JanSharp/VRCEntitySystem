@@ -85,6 +85,8 @@ namespace JanSharp
 
         /// <summary>
         /// <para><see cref="ulong"/> uniqueId => <see cref="EntityData"/> entityData</para>
+        /// <para>Must not be cleared entirely by imports, see
+        /// <see cref="ReadEntityInCustomCreateEntityIA"/>.</para>
         /// <para>Not game state safe.</para>
         /// </summary>
         private DataDictionary entityDataByUniqueId = new DataDictionary();
@@ -432,7 +434,14 @@ namespace JanSharp
             EntityData entityData;
             if (lockstep.SendingPlayerId == localPlayerId) // Was latency hidden, promote entityData to game state.
             {
-                // BUG: This is wrong, if an import happened between sending and receiving the IA, this can fail.
+                // In the case of an import having happened between sending and receiving the IA, this is still correct.
+                // The import does not delete latency hidden entities which are not yet part of the game state.
+                // It is also generally disallowed to cancel the creation of an entity, that would break the
+                // guarantee of its lifecycle. (And making developers add support for even more entity
+                // lifecycles is unreasonable.)
+                // That is also why comparing against the local player id is sufficient for checking for latency
+                // hidden IAs, no need for latencyHiddenUniqueIds, because nothing can cancel nor invalidate
+                // these latency hidden create entity IAs.
                 entityData = (EntityData)entityDataByUniqueId[uniqueId].Reference;
                 SetEntityDataId(entityData, id);
             }
