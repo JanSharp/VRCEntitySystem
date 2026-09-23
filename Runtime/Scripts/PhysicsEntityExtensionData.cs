@@ -73,7 +73,7 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] PhysicsEntityExtensionData  InitFromDefault");
 #endif
             Init();
-            EntitySystemPlayerData lastUserPlayerData = entityData.lastUserPlayerData;
+            EntitySystemPlayerData lastUserPlayerData = entityData.LastUserPlayerData;
             responsiblePlayerId = lastUserPlayerData != null && !lastUserPlayerData.core.isOffline
                 ? lastUserPlayerData.core.playerId
                 : lockstep.MasterPlayerId;

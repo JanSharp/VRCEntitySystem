@@ -33,7 +33,7 @@
   - [ ] the entity prototype, if present in the scene
   - [ ] a read only list of entity extensions
 - [ ] maybe make pre instantiated entities export a flag indicating whether they've been moved from their original location to give the option to not import their locations. This enables moving pre instantiated entities in the scene and then importing old data while retaining the change in default location.
-- [ ] the last user player id is not a properly and fully implemented system
+- [x] the last user player id is not a properly and fully implemented system
 - [x] physics entities that are awake by default do not go to sleep when the rigid body stops moving, since the update loop does not start and there is no responsible player
   - [x] issue still applies to pre instantiated entities
 - [ ] use the fact that entity prefabs are actually already instances in the scene, specifically by using te \[SingletonReference\] attribute for entities and entity extensions

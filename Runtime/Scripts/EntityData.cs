@@ -51,9 +51,37 @@ namespace JanSharp
         /// <para>Weak reference, however guaranteed to always be a reference to an alive
         /// <see cref="WannaBeClass"/> instance when non <see langword="null"/>.</para>
         /// </summary>
-        [System.NonSerialized] public EntitySystemPlayerData createdByPlayerData;
+        private EntitySystemPlayerData createdByPlayerData;
+        public const string InternalCreatedByPlayerDataFieldName = nameof(createdByPlayerData);
         /// <inheritdoc cref="createdByPlayerData"/>
-        [System.NonSerialized] public EntitySystemPlayerData lastUserPlayerData;
+        public EntitySystemPlayerData CreatedByPlayerData
+        {
+            get => createdByPlayerData;
+            set
+            {
+                if (createdByPlayerData != null)
+                    createdByPlayerData.LoseCreated(this);
+                createdByPlayerData = value;
+                if (createdByPlayerData != null)
+                    createdByPlayerData.GainCreated(this);
+            }
+        }
+        /// <inheritdoc cref="createdByPlayerData"/>
+        private EntitySystemPlayerData lastUserPlayerData;
+        public const string InternalLastUserPlayerDataFieldName = nameof(lastUserPlayerData);
+        /// <inheritdoc cref="lastUserPlayerData"/>
+        public EntitySystemPlayerData LastUserPlayerData
+        {
+            get => lastUserPlayerData;
+            set
+            {
+                if (lastUserPlayerData != null)
+                    lastUserPlayerData.LoseCreated(this);
+                lastUserPlayerData = value;
+                if (lastUserPlayerData != null)
+                    lastUserPlayerData.GainCreated(this);
+            }
+        }
         [System.NonSerialized] public bool hidden;
         [System.NonSerialized] public EntityData parentEntity;
         [System.NonSerialized] public EntityData[] childEntities = new EntityData[0];
@@ -191,6 +219,8 @@ namespace JanSharp
             this.position = position;
             this.rotation = rotation;
             this.scale = scale;
+            // Intentionally bypassing the setter because this event is not game state safe.
+            // The GainCreated and GainLastUsed methods will be called later in the entity creation input action.
             this.createdByPlayerData = createdByPlayerData;
             this.lastUserPlayerData = lastUserPlayerData;
             hidden = false;
@@ -215,8 +245,10 @@ namespace JanSharp
             position = t.position;
             rotation = t.rotation;
             scale = t.localScale;
-            createdByPlayerData = null;
-            lastUserPlayerData = null;
+            // These 2 are null anyway, but just for clarity.
+            // And it is semantically correct to use the property setter here, this is a game state safe event.
+            CreatedByPlayerData = null;
+            LastUserPlayerData = null;
             hidden = false;
             parentEntity = null;
 
@@ -546,8 +578,8 @@ namespace JanSharp
 #endif
             lockstep.WriteFlags(noTransformSync, hidden);
             SerializeTransformValues(isExport);
-            entitySystem.WritePlayerData(createdByPlayerData);
-            entitySystem.WritePlayerData(lastUserPlayerData);
+            entitySystem.WritePlayerData(CreatedByPlayerData);
+            entitySystem.WritePlayerData(LastUserPlayerData);
             lockstep.WriteSmallUInt(parentEntity == null ? 0u : parentEntity.id);
             lockstep.WriteSmallUInt((uint)childEntities.Length);
             foreach (EntityData child in childEntities)
@@ -565,12 +597,8 @@ namespace JanSharp
 #endif
             lockstep.ReadFlags(out noTransformSync, out hidden);
             DeserializeTransformValues(isImport);
-            createdByPlayerData = entitySystem.ReadPlayerData(isImport);
-            lastUserPlayerData = entitySystem.ReadPlayerData(isImport);
-            if (createdByPlayerData != null)
-                createdByPlayerData.GainCreated(this);
-            if (lastUserPlayerData != null)
-                lastUserPlayerData.GainLastUsed(this);
+            CreatedByPlayerData = entitySystem.ReadPlayerData(isImport);
+            LastUserPlayerData = entitySystem.ReadPlayerData(isImport);
             unresolvedParentEntityId = lockstep.ReadSmallUInt();
             int childEntitiesLength = (int)lockstep.ReadSmallUInt();
             unresolvedChildEntitiesIds = new uint[childEntitiesLength];

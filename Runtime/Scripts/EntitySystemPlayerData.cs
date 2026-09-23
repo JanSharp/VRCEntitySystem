@@ -50,9 +50,9 @@ namespace JanSharp
             Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  OnPlayerDataUninit");
 #endif
             for (int i = 0; i < createdEntitiesCount; i++)
-                createdEntities[i].createdByPlayerData = null;
+                createdEntities[i].SetProgramVariable(EntityData.InternalCreatedByPlayerDataFieldName, null);
             for (int i = 0; i < lastUsedEntitiesCount; i++)
-                lastUsedEntities[i].lastUserPlayerData = null;
+                lastUsedEntities[i].SetProgramVariable(EntityData.InternalLastUserPlayerDataFieldName, null);
         }
 
         public void GainCreated(EntityData entityData)
