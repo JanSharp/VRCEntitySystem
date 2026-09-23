@@ -96,7 +96,7 @@ namespace JanSharp
         private bool IsDummyEntityDataForImport => entityPrototype == null;
         [System.NonSerialized] public EntityPrototypeMetadata importedMetadata;
 
-        private DataDictionary latencyUniqueIdLut = new DataDictionary();
+        private DataDictionary latencyHiddenUniqueIds = new DataDictionary();
 
         public const string OnTransformSyncControlLostEvent = "OnTransformSyncControlLost";
         public const string OnLatencyTransformSyncControlLostEvent = "OnLatencyTransformSyncControlLost";
@@ -144,7 +144,7 @@ namespace JanSharp
             unresolvedParentEntityId = default;
             unresolvedChildEntitiesIds = default;
             importedMetadata = default;
-            latencyUniqueIdLut.Clear();
+            latencyHiddenUniqueIds.Clear();
         }
 
         public EntityData WannaBeConstructor(EntityPrototype entityPrototype, ulong uniqueId, uint id)
@@ -314,7 +314,7 @@ namespace JanSharp
 #endif
             if (uniqueId == 0uL)
                 return false;
-            latencyUniqueIdLut.Add(uniqueId, true);
+            latencyHiddenUniqueIds.Add(uniqueId, true);
             return true;
         }
 
@@ -326,11 +326,11 @@ namespace JanSharp
         public bool ShouldApplyReceivedIAToLatencyState()
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  ShouldApplyReceivedIAToLatencyState - uniqueId: 0x{lockstep.SendingUniqueId:x16}, latencyUniqueIdLut.Count: {latencyUniqueIdLut.Count}");
+            Debug.Log($"[EntitySystemDebug] EntityData  ShouldApplyReceivedIAToLatencyState - uniqueId: 0x{lockstep.SendingUniqueId:x16}, latencyHiddenUniqueIds.Count: {latencyHiddenUniqueIds.Count}");
 #endif
-            if (latencyUniqueIdLut.Count == 0)
+            if (latencyHiddenUniqueIds.Count == 0)
                 return true;
-            if (latencyUniqueIdLut.Remove(lockstep.SendingUniqueId)) // Was already applied to latency state, stay in latency state.
+            if (latencyHiddenUniqueIds.Remove(lockstep.SendingUniqueId)) // Was already applied to latency state, stay in latency state.
                 return false;
             // The latency state is desynced from the game state, however an input action which has not been
             // applied to the game state has been received in between input actions which have already been
@@ -339,7 +339,7 @@ namespace JanSharp
             // latency state to match the game state entirely instead. This undoes some IAs which had already
             // been applied to the latency state and they are going to get applied again whenever the
             // associated IA gets run in the game state.
-            latencyUniqueIdLut.Clear();
+            latencyHiddenUniqueIds.Clear();
             if (entity != null)
                 entity.ApplyEntityData();
             return false; // Already got applied by the above.
@@ -375,9 +375,9 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  ResetLatencyStateIfItDiverged");
 #endif
-            if (latencyUniqueIdLut.Count == 0)
+            if (latencyHiddenUniqueIds.Count == 0)
                 return false;
-            latencyUniqueIdLut.Clear();
+            latencyHiddenUniqueIds.Clear();
             if (entity != null)
                 entity.ApplyEntityData();
             return true;
@@ -398,9 +398,9 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  ResetLatencyStateBecauseIAGotAppliedDifferently");
 #endif
-            if (!latencyUniqueIdLut.ContainsKey(lockstep.SendingUniqueId))
+            if (!latencyHiddenUniqueIds.ContainsKey(lockstep.SendingUniqueId))
                 return false;
-            latencyUniqueIdLut.Clear();
+            latencyHiddenUniqueIds.Clear();
             if (entity != null)
                 entity.ApplyEntityData();
             return true;
@@ -608,7 +608,7 @@ namespace JanSharp
             {
                 ResolveImportedParentEntityId();
                 ResolveImportedChildEntityIds();
-                latencyUniqueIdLut.Clear();
+                latencyHiddenUniqueIds.Clear();
                 if (!isInitialized)
                     InitAllExtensionDataBeforeDeserialization();
                 ImportAllExtensionData();
