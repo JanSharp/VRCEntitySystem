@@ -41,8 +41,8 @@
 - [x] make custom inspector for entities and physics entity extensions simply to remove the line that gets drawn by default by the UdonSharp inspector
 - [x] maybe lower the max work ms per frame to like 5 instead of 20. It does get very noticeably frame-y while deserializing and if I had to guess people prefer having more comfortable frames while the system is loading rather than it loading a few seconds faster overall
 - [x] fix importing of awake physics entities potentially not having a responsible player
-- [ ] maybe don't process any entity requests while an import is still in progress
-- [ ] does importing actually properly clear current entity requests?
+- [x] maybe don't process any entity requests while an import is still in progress - nope, just keep processing them, it is only one entity per frame
+- [x] does importing actually properly clear current entity requests? - nope, but it is better if it doesn't, because there could be latency hidden entities which got requested already which the import did not destroy and must not clear from the pooling script
 - [x] adding extensions to a prefab makes the list of extensions not update properly for pre instantiated entities, causing exceptions. Reverting prefab overrides works around the issue, however that is just a note about it's behavior, it's not an acceptable solution
 - [x] there might an order of operations issue when adding an entity extension the first time to a scene.
   - add an extension to an entity prefab that is used in the scene
