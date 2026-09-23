@@ -27,8 +27,12 @@ namespace JanSharp
             foreach (EntityPrototype prototype in entitySystem.EntityPrototypes)
                 pooledEntities.Add(prototype.Id, new DataList());
 
-            // TODO: Start gradual deletion loop of stale pooled entities.
-            // Could use a linked list of all pooled entities, unfortunately would have to be bi bidirectional.
+            // Could start gradual deletion loop of stale pooled entities.
+            // Could use a linked list of all pooled entities, unfortunately would have to be bidirectional.
+            // However the creation of entities is so expensive due to Udon script initialization taking
+            // multiple milliseconds that gradually deleting pooled entities is not worth the small bit of
+            // memory that would be regained. Unless it'd be like hundreds or thousands of unused pooled
+            // objects, then maybe.
         }
 
         public void RequestEntity(EntityData entityData, bool highPriority = false)
