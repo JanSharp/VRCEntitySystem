@@ -13,6 +13,12 @@ namespace JanSharp
         /// <summary>Required by the <see cref="UpdateManager"/>.</summary>
         [System.NonSerialized] public int customUpdateInternalIndex;
 
+        /// <summary>
+        /// <para>The amount of requests to check, looking for a not already destroyed entity to
+        /// create.</para>
+        /// </summary>
+        private const int MaxRequestsToCheckPerFrame = 10;
+
         private EntityData[] requestQueue = new EntityData[ArrQueue.MinCapacity];
         private int rqStartIndex = 0;
         private int rqCount = 0;
@@ -98,20 +104,28 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  CustomUpdate");
 #endif
-            EntityData entityData = ArrQueue.Dequeue(ref requestQueue, ref rqStartIndex, ref rqCount);
-            ProcessRequest(entityData);
-            entityData.DecrementRefsCount();
-            if (rqCount == 0)
-                updateManager.Deregister(this);
+            for (int i = 0; i < MaxRequestsToCheckPerFrame; i++)
+            {
+                EntityData entityData = ArrQueue.Dequeue(ref requestQueue, ref rqStartIndex, ref rqCount);
+                bool didCreate = TryProcessRequest(entityData);
+                entityData.DecrementRefsCount();
+                if (rqCount == 0)
+                {
+                    updateManager.Deregister(this);
+                    break;
+                }
+                if (didCreate)
+                    break;
+            }
         }
 
-        private void ProcessRequest(EntityData entityData)
+        private bool TryProcessRequest(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  ProcessRequest");
 #endif
             if (entityData.entityIsDestroyed)
-                return; // TODO: probably check for the next few requests to make it process faster
+                return false;
             EntityPrototype prototype = entityData.entityPrototype;
             DataList pooled = pooledEntities[prototype.Id].DataList;
             int pooledCount = pooled.Count;
@@ -141,6 +155,7 @@ namespace JanSharp
             t.localScale = entityData.LastKnownScale;
             entity.gameObject.SetActive(true);
             entity.AssociateWithEntityData(entityData);
+            return true;
         }
     }
 }
