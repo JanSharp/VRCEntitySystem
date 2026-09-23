@@ -578,8 +578,8 @@ namespace JanSharp
 #endif
             lockstep.WriteFlags(noTransformSync, hidden);
             SerializeTransformValues(isExport);
-            entitySystem.WritePlayerData(CreatedByPlayerData);
-            entitySystem.WritePlayerData(LastUserPlayerData);
+            entitySystem.WritePlayerDataRef(CreatedByPlayerData);
+            entitySystem.WritePlayerDataRef(LastUserPlayerData);
             lockstep.WriteSmallUInt(parentEntity == null ? 0u : parentEntity.id);
             lockstep.WriteSmallUInt((uint)childEntities.Length);
             foreach (EntityData child in childEntities)
@@ -597,8 +597,8 @@ namespace JanSharp
 #endif
             lockstep.ReadFlags(out noTransformSync, out hidden);
             DeserializeTransformValues(isImport);
-            CreatedByPlayerData = entitySystem.ReadPlayerData(isImport);
-            LastUserPlayerData = entitySystem.ReadPlayerData(isImport);
+            CreatedByPlayerData = entitySystem.ReadPlayerDataRef(isImport);
+            LastUserPlayerData = entitySystem.ReadPlayerDataRef(isImport);
             unresolvedParentEntityId = lockstep.ReadSmallUInt();
             int childEntitiesLength = (int)lockstep.ReadSmallUInt();
             unresolvedChildEntitiesIds = new uint[childEntitiesLength];

@@ -30,8 +30,8 @@ namespace JanSharp
         /// <param name="core">Must not be <see langword="null"/>.</param>
         /// <returns></returns>
         public abstract EntitySystemPlayerData GetPlayerData(CorePlayerData core);
-        public abstract void WritePlayerData(EntitySystemPlayerData playerData);
-        public abstract EntitySystemPlayerData ReadPlayerData(bool isImport);
+        public abstract void WritePlayerDataRef(EntitySystemPlayerData playerData);
+        public abstract EntitySystemPlayerData ReadPlayerDataRef(bool isImport);
 
         public abstract bool IsPreInstantiatedEntityId(uint id, bool isImport);
 

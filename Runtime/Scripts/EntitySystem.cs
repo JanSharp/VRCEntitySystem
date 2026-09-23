@@ -120,7 +120,7 @@ namespace JanSharp.Internal
             return (EntitySystemPlayerData)core.customPlayerData[playerDataClassNameIndex];
         }
 
-        public override void WritePlayerData(EntitySystemPlayerData playerData)
+        public override void WritePlayerDataRef(EntitySystemPlayerData playerData)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  WritePlayerData");
@@ -128,7 +128,7 @@ namespace JanSharp.Internal
             playerDataManager.WriteCorePlayerDataRef(playerData == null ? null : playerData.core);
         }
 
-        public override EntitySystemPlayerData ReadPlayerData(bool isImport)
+        public override EntitySystemPlayerData ReadPlayerDataRef(bool isImport)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadPlayerData");
