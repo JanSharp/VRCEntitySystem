@@ -13,8 +13,6 @@ namespace JanSharp
         /// <summary>Required by the <see cref="UpdateManager"/>.</summary>
         [System.NonSerialized] public int customUpdateInternalIndex;
 
-        // private DataDictionary defaultEntities = new DataDictionary();
-
         private EntityData[] requestQueue = new EntityData[ArrQueue.MinCapacity];
         private int rqStartIndex = 0;
         private int rqCount = 0;
