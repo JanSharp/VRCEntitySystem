@@ -8,7 +8,7 @@ namespace JanSharp
     public class Entity : UdonSharpBehaviour
     {
         [HideInInspector][SingletonReference] public LockstepAPI lockstep;
-        [HideInInspector][SingletonReference] public EntitySystem entitySystem;
+        [HideInInspector][SingletonReference] public EntitySystemAPI entitySystem;
         [HideInInspector][SingletonReference] public WannaBeClassesManager wannaBeClasses;
         [HideInInspector][SingletonReference] public InterpolationManager interpolation;
         [System.NonSerialized] public EntityPrototype prototype;
@@ -293,7 +293,7 @@ namespace JanSharp
             }
 
             timeAtLastTransformChangeIA = Time.time;
-            entityData.RegisterLatencyHiddenUniqueId(entitySystem.SendTransformChangeIA());
+            entityData.RegisterLatencyHiddenUniqueId(((Internal.EntitySystem)entitySystem).SendTransformChangeIA());
         }
     }
 

@@ -8,7 +8,7 @@ namespace JanSharp
     [SingletonScript("d627f7fa95da90f1f87280f822155c9d")] // Runtime/Prefabs/EntitySystem.prefab
     public class EntityPooling : UdonSharpBehaviour
     {
-        [HideInInspector][SerializeField][SingletonReference] private EntitySystem entitySystem;
+        [HideInInspector][SerializeField][SingletonReference] private EntitySystemAPI entitySystem;
         [HideInInspector][SerializeField][SingletonReference] private UpdateManager updateManager;
         /// <summary>Required by the <see cref="UpdateManager"/>.</summary>
         [System.NonSerialized] public int customUpdateInternalIndex;

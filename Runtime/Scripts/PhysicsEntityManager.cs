@@ -9,7 +9,7 @@ namespace JanSharp
     public class PhysicsEntityManager : UdonSharpBehaviour
     {
         [HideInInspector][SerializeField][SingletonReference] private LockstepAPI lockstep;
-        [HideInInspector][SerializeField][SingletonReference] private EntitySystem entitySystem;
+        [HideInInspector][SerializeField][SingletonReference] private EntitySystemAPI entitySystem;
 
         [LockstepEvent(LockstepEventType.OnClientLeft)] // Before PlayerDataManager.
         public void OnClientLeft()

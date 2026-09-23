@@ -7,7 +7,7 @@ namespace JanSharp
     public abstract class EntityExtension : UdonSharpBehaviour
     {
         [HideInInspector][SingletonReference] public LockstepAPI lockstep;
-        [HideInInspector][SingletonReference] public EntitySystem entitySystem;
+        [HideInInspector][SingletonReference] public EntitySystemAPI entitySystem;
         [System.NonSerialized] public int extensionIndex;
         [System.NonSerialized] public EntityData entityData;
         [System.NonSerialized] public Entity entity;

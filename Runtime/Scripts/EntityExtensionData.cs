@@ -6,7 +6,7 @@ namespace JanSharp
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     public abstract class EntityExtensionData : SerializableWannaBeClass
     {
-        [HideInInspector][SingletonReference] public EntitySystem entitySystem;
+        [HideInInspector][SingletonReference] public EntitySystemAPI entitySystem;
         [System.NonSerialized] public int extensionIndex;
         [System.NonSerialized] public EntityData entityData;
         [System.NonSerialized] public Entity entity;

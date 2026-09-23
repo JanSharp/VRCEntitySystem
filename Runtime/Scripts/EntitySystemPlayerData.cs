@@ -12,7 +12,7 @@ namespace JanSharp
         public override uint DataVersion => 0u;
         public override uint LowestSupportedDataVersion => 0u;
 
-        [HideInInspector][SerializeField][SingletonReference] private EntitySystem entitySystem;
+        [HideInInspector][SerializeField][SingletonReference] private EntitySystemAPI entitySystem;
 
         #region Game State
         /// <summary>

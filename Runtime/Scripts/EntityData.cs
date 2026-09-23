@@ -8,7 +8,7 @@ namespace JanSharp
     public class EntityData : WannaBeClass
     {
         [HideInInspector][SingletonReference] public LockstepAPI lockstep;
-        [HideInInspector][SingletonReference] public EntitySystem entitySystem;
+        [HideInInspector][SingletonReference] public EntitySystemAPI entitySystem;
         [HideInInspector][SingletonReference] public InterpolationManager interpolation;
         [HideInInspector][SingletonReference] public PlayerDataManagerAPI playerDataManager;
         /// <summary>
