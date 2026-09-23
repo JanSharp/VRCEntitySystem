@@ -50,6 +50,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  RequestEntity");
 #endif
+            entityData.IncrementRefsCount();
             if (highPriority)
                 ArrQueue.EnqueueAtFront(ref requestQueue, ref rqStartIndex, ref rqCount, entityData);
             else
@@ -99,6 +100,7 @@ namespace JanSharp
 #endif
             EntityData entityData = ArrQueue.Dequeue(ref requestQueue, ref rqStartIndex, ref rqCount);
             ProcessRequest(entityData);
+            entityData.DecrementRefsCount();
             if (rqCount == 0)
                 updateManager.Deregister(this);
         }
@@ -108,7 +110,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  ProcessRequest");
 #endif
-            if (!entityData.CheckLiveliness() || entityData.entityIsDestroyed)
+            if (entityData.entityIsDestroyed)
                 return; // TODO: probably check for the next few requests to make it process faster
             EntityPrototype prototype = entityData.entityPrototype;
             DataList pooled = pooledEntities[prototype.Id].DataList;
