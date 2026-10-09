@@ -178,7 +178,8 @@ namespace JanSharp.Internal
             playerDataClassNameIndex = playerDataManager.GetPlayerDataClassNameIndex<EntitySystemPlayerData>(nameof(EntitySystemPlayerData));
         }
 
-        [LockstepEvent(LockstepEventType.OnInit)]
+        // Must run after PlayerDataManager OnInit, but should run before any regular Order 0 handlers.
+        [LockstepEvent(LockstepEventType.OnInit, Order = -5000)]
         public void OnInit()
         {
 #if ENTITY_SYSTEM_DEBUG
