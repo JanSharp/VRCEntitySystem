@@ -712,7 +712,7 @@ namespace JanSharp.Internal
         public override void DestroyEntityInGS(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  DestroyEntity");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  DestroyEntityInGS");
 #endif
             if (!entityData.CheckLiveliness() || entityData.instanceIndex == -1)
                 return;
