@@ -98,7 +98,7 @@ namespace JanSharp
         public void LoseAllLastUsed()
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  LoseLastUsed");
+            Debug.Log($"[EntitySystemDebug] EntitySystemPlayerData  LoseAllLastUsed");
 #endif
             ArrList.Clear(ref lastUsedEntities, ref lastUsedEntitiesCount);
         }
