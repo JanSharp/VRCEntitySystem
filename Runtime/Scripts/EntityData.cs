@@ -76,10 +76,10 @@ namespace JanSharp
             set
             {
                 if (lastUserPlayerData != null)
-                    lastUserPlayerData.LoseCreated(this);
+                    lastUserPlayerData.LoseLastUsed(this);
                 lastUserPlayerData = value;
                 if (lastUserPlayerData != null)
-                    lastUserPlayerData.GainCreated(this);
+                    lastUserPlayerData.GainLastUsed(this);
             }
         }
         [System.NonSerialized] public bool hidden;
