@@ -81,7 +81,7 @@ namespace JanSharp
         private void ApplyEntityDataWithoutExtensions()
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityDataWithoutExtensions");
+            Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityDataWithoutExtensions - noTransformSync: {noTransformSync}, entityData.noTransformSync: {entityData.noTransformSync}");
 #endif
             Transform t = this.transform;
             if (!noTransformSync && !entityData.noTransformSync)
