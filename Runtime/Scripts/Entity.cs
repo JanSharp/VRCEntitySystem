@@ -167,20 +167,37 @@ namespace JanSharp
 
             Transform t = this.transform;
 
+            bool doInterpolate = interpolationDuration > 0f;
+
             if (t.position == position)
                 interpolation.CancelPositionInterpolation(t);
-            else
+            else if (doInterpolate)
                 interpolation.LerpWorldPosition(t, position, interpolationDuration);
+            else
+            {
+                interpolation.CancelPositionInterpolation(t);
+                t.position = position;
+            }
 
             if (t.rotation == rotation)
                 interpolation.CancelRotationInterpolation(t);
-            else
+            else if (doInterpolate)
                 interpolation.LerpWorldRotation(t, rotation, interpolationDuration);
+            else
+            {
+                interpolation.CancelRotationInterpolation(t);
+                t.rotation = rotation;
+            }
 
             if (t.localScale == scale)
                 interpolation.CancelScaleInterpolation(t);
-            else
+            else if (doInterpolate)
                 interpolation.LerpLocalScale(t, scale, interpolationDuration);
+            else
+            {
+                interpolation.CancelScaleInterpolation(t);
+                t.localScale = scale;
+            }
         }
 
         private void EnqueueTransformChangeIA()
