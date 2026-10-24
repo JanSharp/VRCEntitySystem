@@ -604,7 +604,15 @@ namespace JanSharp
             unresolvedChildEntitiesIds = new uint[childEntitiesLength];
             for (int i = 0; i < childEntitiesLength; i++)
                 unresolvedChildEntitiesIds[i] = lockstep.ReadSmallUInt();
-            if (isImport)
+            if (!isImport)
+            {
+                ResolveParentEntityId();
+                ResolveChildEntityIds();
+                if (!isInitialized)
+                    InitAllExtensionDataBeforeDeserialization();
+                DeserializeAllExtensionData();
+            }
+            else
             {
                 ResolveImportedParentEntityId();
                 ResolveImportedChildEntityIds();
@@ -612,12 +620,6 @@ namespace JanSharp
                 if (!isInitialized)
                     InitAllExtensionDataBeforeDeserialization();
                 ImportAllExtensionData();
-            }
-            else
-            {
-                if (!isInitialized)
-                    InitAllExtensionDataBeforeDeserialization();
-                DeserializeAllExtensionData();
             }
 
             if (noTransformSync && transformSyncController == null)
@@ -631,6 +633,27 @@ namespace JanSharp
                 noTransformSync = false;
                 lastKnownTransformStateTick = 0u;
             }
+        }
+
+        private void ResolveParentEntityId()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityData  ResolveParentEntityId");
+#endif
+            entitySystem.TryGetEntityData(unresolvedParentEntityId, out parentEntity);
+            unresolvedParentEntityId = 0u;
+        }
+
+        private void ResolveChildEntityIds()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityData  ResolveChildEntityIds");
+#endif
+            int count = unresolvedChildEntitiesIds.Length;
+            childEntities = new EntityData[count];
+            for (int i = 0; i < count; i++)
+                childEntities[i] = entitySystem.GetEntityData(unresolvedChildEntitiesIds[i]);
+            unresolvedChildEntitiesIds = null;
         }
 
         private void ResolveImportedParentEntityId()
@@ -647,7 +670,7 @@ namespace JanSharp
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityData  ResolveImportedChildEntityIds");
 #endif
-            EntityData[] childEntities = new EntityData[unresolvedChildEntitiesIds.Length];
+            childEntities = new EntityData[unresolvedChildEntitiesIds.Length];
             int i = 0;
             foreach (uint childId in unresolvedChildEntitiesIds)
                 if (entitySystem.TryGetRemappedImportedEntityData(childId, out EntityData data))
