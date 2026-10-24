@@ -3,7 +3,7 @@
 - [x] Add support for entity data existing without an entity existing yet
   - [x] Preferably add staggered entity instantiation, limited to x entities per frame
 - [x] Add support for latency hidden entities (when creating, and when destroying them)
-  - [ ] Test destroying entities
+  - [x] Test destroying entities
 - [x] Add dependency on player data, specifically to use persistent ids
 - [x] ~~Desynced transform state should periodically fetch the current position and rotation and save that in the entity system's game state~~ nope, since exports can actually include non game state safe data there's no longer a need for this information
 - [x] exporting entities with desynced transforms should include their current transform values
@@ -64,3 +64,12 @@
 - [x] use max work ms per frame from lockstep API
 - [x] createdByPlayerData and lastUserPlayerData should probably be strong references. Because things are checking liveliness on them, which is a problem now that they support WannaBeClass pooling
 - [x] ensure all pre instantiated entity instances do not have any overrides on their list of extensions. The extensions list can gain overrides when one removes an extension from an instance and then applies those overrides to the prefab. It does not apply the fact that there is now a missing element in the array, it remains an override
+- [ ] add a context menu or otherwise editor tool to create an entity prefab plus entity prototype from a given object (entity) in the scene
+  - [ ] likely have some kind of metadata definition editor only script in the scene which specifies which folders to put the prefab and the entity prototype asset
+- [ ] add runtime registerable events to entities (latency state)
+- [ ] raise events when an entity's transform controller changed
+  - [ ] as well as a one-frame-delayed variant, to make handling of cases where multiple controller changes happen immediately after each other easier
+- [ ] add API for attaching and detaching child entities
+  - [ ] in the game state
+  - [ ] in the latency state
+  - [ ] make resetting latency state to game state also reset child attachment states... likely must reset the entire tree of entities
