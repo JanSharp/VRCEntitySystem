@@ -2,207 +2,67 @@
 using UnityEngine;
 using VRC.SDK3.Data;
 
-namespace JanSharp
+namespace JanSharp.Internal
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
-    public class EntityData : WannaBeClass
+    [SingletonScript("d627f7fa95da90f1f87280f822155c9d")] // Runtime/Prefabs/EntitySystem.prefab
+    public class EntityDataLogic : UdonSharpBehaviour
     {
         [HideInInspector][SingletonReference] public LockstepAPI lockstep;
         [HideInInspector][SingletonReference] public EntitySystemAPI entitySystem;
         [HideInInspector][SingletonReference] public InterpolationManager interpolation;
         [HideInInspector][SingletonReference] public PlayerDataManagerAPI playerDataManager;
-        /// <summary>
-        /// <para>Negative 1 means that the entity has been destroyed. But ensure to call
-        /// <see cref="WannaBeClassExtensions.CheckLiveliness(WannaBeClass)"/> before checking for -1
-        /// too, because if the class instance has been deleted, this gets reset to 0.</para>
-        /// <para>Not part of the public api.</para>
-        /// <para>Game state safe.</para>
-        /// </summary>
-        [System.NonSerialized] public int instanceIndex;
-        [System.NonSerialized] public EntityPrototype entityPrototype;
-        /// <summary>
-        /// <para>Not game state safe.</para>
-        /// </summary>
-        [System.NonSerialized] public Entity entity;
-        /// <summary>
-        /// <para>Once <see langword="true"/>, <see langword="true"/> forever... until the
-        /// <see cref="WannaBeClass"/> gets deconstructed and returned to the class instance pool.</para>
-        /// <para>In other words, check <see cref="WannaBeClassExtensions.CheckLiveliness(WannaBeClass)"/>
-        /// prior to checking this field.</para>
-        /// <para>Not game state safe.</para>
-        /// </summary>
-        [System.NonSerialized] public bool entityIsDestroyed;
-        [System.NonSerialized] public bool wasPreInstantiated = false;
-        [System.NonSerialized] public bool isInitialized = false;
-        [System.NonSerialized] public ulong uniqueId;
-        [System.NonSerialized] public uint id;
-        [System.NonSerialized] public bool noTransformSync;
-        /// <summary>
-        /// <para>Could still be <see langword="null"/> even when <see cref="noTransformSync"/> is
-        /// <see langword="true"/> inside of entity extension data deserialize functions, when the entity
-        /// extension data responsible for restoring it has not run yet.</para>
-        /// </summary>
-        [System.NonSerialized] public EntityTransformController transformSyncController;
-        [System.NonSerialized] public Vector3 position;
-        [System.NonSerialized] public Quaternion rotation;
-        [System.NonSerialized] public Vector3 scale;
-        [System.NonSerialized] public uint lastKnownTransformStateTick;
-        /// <summary>
-        /// <para>Weak reference, however guaranteed to always be a reference to an alive
-        /// <see cref="WannaBeClass"/> instance when non <see langword="null"/>.</para>
-        /// </summary>
-        private EntitySystemPlayerData createdByPlayerData;
-        public const string InternalCreatedByPlayerDataFieldName = nameof(createdByPlayerData);
-        /// <inheritdoc cref="createdByPlayerData"/>
-        public EntitySystemPlayerData CreatedByPlayerData
-        {
-            get => createdByPlayerData;
-            set
-            {
-                if (createdByPlayerData != null)
-                    createdByPlayerData.LoseCreated(this);
-                createdByPlayerData = value;
-                if (createdByPlayerData != null)
-                    createdByPlayerData.GainCreated(this);
-            }
-        }
-        /// <inheritdoc cref="createdByPlayerData"/>
-        private EntitySystemPlayerData lastUserPlayerData;
-        public const string InternalLastUserPlayerDataFieldName = nameof(lastUserPlayerData);
-        /// <inheritdoc cref="lastUserPlayerData"/>
-        public EntitySystemPlayerData LastUserPlayerData
-        {
-            get => lastUserPlayerData;
-            set
-            {
-                if (lastUserPlayerData != null)
-                    lastUserPlayerData.LoseLastUsed(this);
-                lastUserPlayerData = value;
-                if (lastUserPlayerData != null)
-                    lastUserPlayerData.GainLastUsed(this);
-            }
-        }
-        [System.NonSerialized] public bool hidden;
-        [System.NonSerialized] public EntityData parentEntity;
-        [System.NonSerialized] public EntityData[] childEntities = new EntityData[0];
-        // Having serialized fields in WannaBeClasses is a very bad idea, as they could end up having stale
-        // previous default values. It's fine in this case as the value gets overwritten for newly created
-        // entity data, and the pre instantiated ones get populated through editor scripting.
-        [HideInInspector] public EntityExtensionData[] allExtensionData;
+        [HideInInspector][SingletonReference] public WannaBeClassesManager wannaBeClasses;
 
-        [System.NonSerialized] public uint unresolvedParentEntityId;
-        [System.NonSerialized] public uint[] unresolvedChildEntitiesIds;
+        private bool IsDummyEntityDataForImport(EntityData entityData) => entityData.entityPrototype == null;
 
-        private bool IsDummyEntityDataForImport => entityPrototype == null;
-        [System.NonSerialized] public EntityPrototypeMetadata importedMetadata;
-
-        private DataDictionary latencyHiddenUniqueIds = new DataDictionary();
-
-        public const string OnTransformSyncControlLostEvent = "OnTransformSyncControlLost";
-        public const string OnLatencyTransformSyncControlLostEvent = "OnLatencyTransformSyncControlLost";
-        public const string ControlledEntityDataField = "controlledEntityData";
-
-        public Vector3 LastKnownPosition
-            => transformSyncController != null && transformSyncController.TryGetGameStatePosition(this, out Vector3 position)
-                ? position
-                : this.position;
-        public Quaternion LastKnownRotation
-            => transformSyncController != null && transformSyncController.TryGetGameStateRotation(this, out Quaternion rotation)
-                ? rotation
-                : this.rotation;
-        public Vector3 LastKnownScale
-            => transformSyncController != null && transformSyncController.TryGetGameStateScale(this, out Vector3 scale)
-                ? scale
-                : this.scale;
-
-        public override bool WannaBeClassSupportsPooling => true;
-        public override void ResetWannaBeClassToDefault()
+        public void WannaBeConstructor(EntityData entityData, EntityPrototype entityPrototype, ulong uniqueId, uint id)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  ResetWannaBeClassToDefault");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  WannaBeConstructor - entityPrototype.PrototypeName: {(entityPrototype == null ? "<null>" : entityPrototype.PrototypeName)}, uniqueId: 0x{uniqueId:x16}, id: {id}");
 #endif
-            instanceIndex = default;
-            entityPrototype = default;
-            entity = default;
-            entityIsDestroyed = default;
-            wasPreInstantiated = false;
-            isInitialized = false;
-            uniqueId = default;
-            id = default;
-            noTransformSync = default;
-            transformSyncController = default;
-            position = default;
-            rotation = default;
-            scale = default;
-            lastKnownTransformStateTick = default;
-            createdByPlayerData = default;
-            lastUserPlayerData = default;
-            hidden = default;
-            parentEntity = default;
-            childEntities = new EntityData[0];
-            allExtensionData = new EntityExtensionData[0]; // It is a serialized field, this is the default.
-            unresolvedParentEntityId = default;
-            unresolvedChildEntitiesIds = default;
-            importedMetadata = default;
-            latencyHiddenUniqueIds.Clear();
-        }
+            entityData.entityPrototype = entityPrototype;
+            entityData.uniqueId = uniqueId;
+            entityData.id = id;
 
-        public EntityData WannaBeConstructor(EntityPrototype entityPrototype, ulong uniqueId, uint id)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  WannaBeConstructor - entityPrototype.PrototypeName: {(entityPrototype == null ? "<null>" : entityPrototype.PrototypeName)}, uniqueId: 0x{uniqueId:x16}, id: {id}");
-#endif
-            this.entityPrototype = entityPrototype;
-            this.uniqueId = uniqueId;
-            this.id = id;
-
-            if (IsDummyEntityDataForImport)
-                return this;
+            if (IsDummyEntityDataForImport(entityData))
+                return;
 
             string[] extensionClassNames = entityPrototype.ExtensionDataClassNames;
             int length = extensionClassNames.Length;
-            if (allExtensionData.Length == length) // Already populated for pre instantiated EntityData.
+            if (entityData.allExtensionData.Length == length) // Already populated for pre instantiated EntityData.
                 for (int i = 0; i < length; i++)
-                    allExtensionData[i].WannaBeConstructor(i, this);
+                    entityData.allExtensionData[i].WannaBeConstructor(i, entityData);
             else
             {
-                allExtensionData = new EntityExtensionData[length];
+                entityData.allExtensionData = new EntityExtensionData[length];
                 for (int i = 0; i < length; i++)
-                    allExtensionData[i] = EntityExtensionDataStatics.New(wannaBeClasses, extensionClassNames[i], i, this);
+                    entityData.allExtensionData[i] = EntityExtensionDataStatics.New(wannaBeClasses, extensionClassNames[i], i, entityData);
             }
-
-            return this;
         }
 
-        public override void WannaBeDestructor()
+        public void WannaBeDestructor(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  WannaBeDestructor");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  WannaBeDestructor");
 #endif
-            if (allExtensionData == null)
+            if (entityData.allExtensionData == null)
                 return;
-            foreach (EntityExtensionData extensionData in allExtensionData)
+            foreach (EntityExtensionData extensionData in entityData.allExtensionData)
                 extensionData.DecrementRefsCount();
         }
 
-        public void SendDestroyEntityIA()
+        public void SetEntity(EntityData entityData, Entity entity)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  SendDestroyEntityIA");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  SetEntity");
 #endif
-            entitySystem.SendDestroyEntityIA(this);
-        }
-
-        public void SetEntity(Entity entity)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  SetEntity");
-#endif
-            this.entity = entity;
-            entity.entityData = this;
+            entityData.entity = entity;
+            entity.entityData = entityData;
         }
 
         public void InitFromDefault(
+            EntityData entityData,
             Vector3 position,
             Quaternion rotation,
             Vector3 scale,
@@ -210,112 +70,103 @@ namespace JanSharp
             EntitySystemPlayerData lastUserPlayerData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  InitFromDefault");
-            if (isInitialized)
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  InitFromDefault");
+            if (entityData.isInitialized)
                 Debug.LogError($"[EntitySystemDebug] Attempt to InitFromDefault "
                     + $"EntityData which has already been initialized.");
 #endif
-            isInitialized = true;
-            this.position = position;
-            this.rotation = rotation;
-            this.scale = scale;
+            entityData.isInitialized = true;
+            entityData.position = position;
+            entityData.rotation = rotation;
+            entityData.scale = scale;
             // Intentionally bypassing the setter because this event is not game state safe.
             // The GainCreated and GainLastUsed methods will be called later in the entity creation input action.
-            this.createdByPlayerData = createdByPlayerData;
-            this.lastUserPlayerData = lastUserPlayerData;
-            hidden = false;
-            parentEntity = null;
+            entityData.createdByPlayerData = createdByPlayerData;
+            entityData.lastUserPlayerData = lastUserPlayerData;
+            entityData.hidden = false;
+            entityData.parentEntity = null;
 
+            EntityExtensionData[] allExtensionData = entityData.allExtensionData;
             int length = allExtensionData.Length;
-            EntityExtension[] defaultExtensions = entityPrototype.DefaultEntityInst.extensions;
+            EntityExtension[] defaultExtensions = entityData.entityPrototype.DefaultEntityInst.extensions;
             for (int i = 0; i < length; i++)
                 allExtensionData[i].InitFromDefault(defaultExtensions[i]);
         }
 
-        public void InitFromPreInstantiated(Entity entity)
+        public void InitFromPreInstantiated(EntityData entityData, Entity entity)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  InitFromPreInstantiated");
-            if (isInitialized)
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  InitFromPreInstantiated");
+            if (entityData.isInitialized)
                 Debug.LogError($"[EntitySystemDebug] Attempt to InitFromPreInstantiated "
                     + $"EntityData which has already been initialized.");
 #endif
-            isInitialized = true;
+            entityData.isInitialized = true;
             Transform t = entity.transform;
-            position = t.position;
-            rotation = t.rotation;
-            scale = t.localScale;
+            entityData.position = t.position;
+            entityData.rotation = t.rotation;
+            entityData.scale = t.localScale;
             // These 2 are null anyway, but just for clarity.
             // And it is semantically correct to use the property setter here, this is a game state safe event.
-            CreatedByPlayerData = null;
-            LastUserPlayerData = null;
-            hidden = false;
-            parentEntity = null;
+            entityData.CreatedByPlayerData = null;
+            entityData.LastUserPlayerData = null;
+            entityData.hidden = false;
+            entityData.parentEntity = null;
 
+            EntityExtensionData[] allExtensionData = entityData.allExtensionData;
             EntityExtension[] extensions = entity.extensions;
             int length = allExtensionData.Length;
             for (int i = 0; i < length; i++)
                 allExtensionData[i].InitFromPreInstantiated(extensions[i]);
         }
 
-        private void InitAllExtensionDataBeforeDeserialization()
+        private void InitAllExtensionDataBeforeDeserialization(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  InitAllExtensionDataBeforeDeserialization");
-            if (isInitialized)
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  InitAllExtensionDataBeforeDeserialization");
+            if (entityData.isInitialized)
                 Debug.LogError($"[EntitySystemDebug] Attempt to InitAllExtensionDataBeforeDeserialization "
                     + $"EntityData which has already been initialized.");
 #endif
-            isInitialized = true;
-            foreach (EntityExtensionData extensionData in allExtensionData)
+            entityData.isInitialized = true;
+            foreach (EntityExtensionData extensionData in entityData.allExtensionData)
                 extensionData.InitBeforeDeserialization();
         }
 
-        public void OnEntityDataCreated()
+        public void OnEntityDataCreated(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  OnEntityDataCreated");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  OnEntityDataCreated");
 #endif
-            foreach (EntityExtensionData extensionData in allExtensionData)
+            foreach (EntityExtensionData extensionData in entityData.allExtensionData)
                 extensionData.OnEntityExtensionDataCreated();
         }
 
-        public void OnAssociatedWithEntity()
+        public void OnAssociatedWithEntity(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  OnAssociatedWithEntity");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  OnAssociatedWithEntity");
 #endif
-            foreach (EntityExtensionData extensionData in allExtensionData)
+            foreach (EntityExtensionData extensionData in entityData.allExtensionData)
                 extensionData.OnAssociatedWithExtension();
         }
 
-        public void OnDisassociateFromEntity()
+        public void OnDisassociateFromEntity(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  OnDisassociateFromEntity");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  OnDisassociateFromEntity");
 #endif
-            foreach (EntityExtensionData extensionData in allExtensionData)
+            foreach (EntityExtensionData extensionData in entityData.allExtensionData)
                 extensionData.OnDisassociateFromExtension();
         }
 
-        public void OnEntityDataDestroyed()
+        public void OnEntityDataDestroyed(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  OnEntityDataDestroyed");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  OnEntityDataDestroyed");
 #endif
-            foreach (EntityExtensionData extensionData in allExtensionData)
+            foreach (EntityExtensionData extensionData in entityData.allExtensionData)
                 extensionData.OnEntityExtensionDataDestroyed();
-        }
-
-        public bool RegisterLatencyHiddenUniqueId(ulong uniqueId)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  RegisterLatencyHiddenUniqueId - uniqueId: 0x{uniqueId:x16}");
-#endif
-            if (uniqueId == 0uL)
-                return false;
-            latencyHiddenUniqueIds.Add(uniqueId, true);
-            return true;
         }
 
         /// <summary>
@@ -323,11 +174,12 @@ namespace JanSharp
         /// after, but only if this returned <see langword="true"/>.</para>
         /// </summary>
         /// <returns></returns>
-        public bool ShouldApplyReceivedIAToLatencyState()
+        public bool ShouldApplyReceivedIAToLatencyState(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  ShouldApplyReceivedIAToLatencyState - uniqueId: 0x{lockstep.SendingUniqueId:x16}, latencyHiddenUniqueIds.Count: {latencyHiddenUniqueIds.Count}");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  ShouldApplyReceivedIAToLatencyState - uniqueId: 0x{lockstep.SendingUniqueId:x16}, latencyHiddenUniqueIds.Count: {entityData.latencyHiddenUniqueIds.Count}");
 #endif
+            DataDictionary latencyHiddenUniqueIds = entityData.latencyHiddenUniqueIds;
             if (latencyHiddenUniqueIds.Count == 0)
                 return true;
             if (latencyHiddenUniqueIds.Remove(lockstep.SendingUniqueId)) // Was already applied to latency state, stay in latency state.
@@ -340,6 +192,7 @@ namespace JanSharp
             // been applied to the latency state and they are going to get applied again whenever the
             // associated IA gets run in the game state.
             latencyHiddenUniqueIds.Clear();
+            Entity entity = entityData.entity;
             if (entity != null)
                 entity.ApplyEntityData();
             return false; // Already got applied by the above.
@@ -348,12 +201,12 @@ namespace JanSharp
         /// <summary>
         /// <para>Do not modify the game state nor latency state after calling this function.</para>
         /// </summary>
-        public void MarkLatencyHiddenUniqueIdAsProcessed()
+        public void MarkLatencyHiddenUniqueIdAsProcessed(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  MarkLatencyHiddenUniqueIdAsProcessed");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  MarkLatencyHiddenUniqueIdAsProcessed");
 #endif
-            ShouldApplyReceivedIAToLatencyState(); // Literally the same logic.
+            ShouldApplyReceivedIAToLatencyState(entityData); // Literally the same logic.
         }
 
         /// <summary>
@@ -370,14 +223,16 @@ namespace JanSharp
         /// </summary>
         /// <returns><see langword="true"/> if the latency state had indeed diverged, and it has been
         /// reset.</returns>
-        public bool ResetLatencyStateIfItDiverged()
+        public bool ResetLatencyStateIfItDiverged(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  ResetLatencyStateIfItDiverged");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  ResetLatencyStateIfItDiverged");
 #endif
+            DataDictionary latencyHiddenUniqueIds = entityData.latencyHiddenUniqueIds;
             if (latencyHiddenUniqueIds.Count == 0)
                 return false;
             latencyHiddenUniqueIds.Clear();
+            Entity entity = entityData.entity;
             if (entity != null)
                 entity.ApplyEntityData();
             return true;
@@ -393,14 +248,16 @@ namespace JanSharp
         /// </summary>
         /// <returns><see langword="true"/> if the input action had been latency hidden by the local player,
         /// and the latency state has been reset.</returns>
-        public bool ResetLatencyStateBecauseIAGotAppliedDifferently()
+        public bool ResetLatencyStateBecauseIAGotAppliedDifferently(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  ResetLatencyStateBecauseIAGotAppliedDifferently");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  ResetLatencyStateBecauseIAGotAppliedDifferently");
 #endif
+            DataDictionary latencyHiddenUniqueIds = entityData.latencyHiddenUniqueIds;
             if (!latencyHiddenUniqueIds.ContainsKey(lockstep.SendingUniqueId))
                 return false;
             latencyHiddenUniqueIds.Clear();
+            Entity entity = entityData.entity;
             if (entity != null)
                 entity.ApplyEntityData();
             return true;
@@ -412,15 +269,16 @@ namespace JanSharp
         /// <para>This is required due to the potential existence of transform sync controllers which could
         /// make the current transform values of an entity unknown to the game state.</para>
         /// </summary>
-        public void WritePotentiallyUnknownTransformValues()
+        public void WritePotentiallyUnknownTransformValues(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log("[EntitySystemDebug] EntityData  WritePotentiallyUnknownTransformValues");
+            Debug.Log("[EntitySystemDebug] EntityDataLogic  WritePotentiallyUnknownTransformValues");
 #endif
-            if (!noTransformSync // At the time of sending the data was known, so we will have close to up to date values for sure.
+            Entity entity = entityData.entity;
+            if (!entityData.noTransformSync // At the time of sending the data was known, so we will have close to up to date values for sure.
                 || entity == null // May or may not be unknown by the current transform controller, but we couldn't send any transform data anyway without an entity transform.
                 || !entity.noTransformSync // Control has already been given back in the latency state, we are going to have up to date values.
-                || lockstep.CurrentTick - lastKnownTransformStateTick <= LockstepAPI.TickRateUInt) // We knew transform values 1 second ago, that'll be good enough.
+                || lockstep.CurrentTick - entityData.lastKnownTransformStateTick <= LockstepAPI.TickRateUInt) // We knew transform values 1 second ago, that'll be good enough.
             {
                 lockstep.WriteByte(0);
                 return;
@@ -428,9 +286,9 @@ namespace JanSharp
 
             // Use latency state controller as it will most likely be the controller at the time of receiving data.
             EntityTransformController controller = entity.transformSyncController;
-            bool unknownPosition = !controller.TryGetGameStatePosition(this, out var discard1); // Cannot use 'out _'.
-            bool unknownRotation = !controller.TryGetGameStateRotation(this, out var discard2); // Cannot use 'out _'.
-            bool unknownScale = !controller.TryGetGameStateScale(this, out var discard3); // Cannot use 'out _'.
+            bool unknownPosition = !controller.TryGetGameStatePosition(entityData, out var discard1); // Cannot use 'out _'.
+            bool unknownRotation = !controller.TryGetGameStateRotation(entityData, out var discard2); // Cannot use 'out _'.
+            bool unknownScale = !controller.TryGetGameStateScale(entityData, out var discard3); // Cannot use 'out _'.
 
             lockstep.WriteFlags(unknownPosition, unknownRotation, unknownScale);
             Transform entityTransform = entity.transform;
@@ -442,88 +300,92 @@ namespace JanSharp
                 lockstep.WriteVector3(entityTransform.localScale);
         }
 
-        public void ReadPotentiallyUnknownTransformValues()
+        public void ReadPotentiallyUnknownTransformValues(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log("[EntitySystemDebug] EntityData  ReadPotentiallyUnknownTransformValues");
+            Debug.Log("[EntitySystemDebug] EntityDataLogic  ReadPotentiallyUnknownTransformValues");
 #endif
             lockstep.ReadFlags(out bool unknownPosition, out bool unknownRotation, out bool unknownScale);
             if (unknownPosition)
-                position = lockstep.ReadVector3();
+                entityData.position = lockstep.ReadVector3();
             if (unknownRotation)
-                rotation = lockstep.ReadQuaternion();
+                entityData.rotation = lockstep.ReadQuaternion();
             if (unknownScale)
-                scale = lockstep.ReadVector3();
+                entityData.scale = lockstep.ReadVector3();
         }
 
-        public void TakeControlOfTransformSync(EntityTransformController controller)
+        public void TakeControlOfTransformSync(EntityData entityData, EntityTransformController controller)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log("[EntitySystemDebug] EntityData  TakeControlOfTransformSync");
+            Debug.Log("[EntitySystemDebug] EntityDataLogic  TakeControlOfTransformSync");
 #endif
-            if (!noTransformSync)
+            if (!entityData.noTransformSync)
             {
-                noTransformSync = true;
-                lastKnownTransformStateTick = lockstep.CurrentTick;
-                transformSyncController = controller;
+                entityData.noTransformSync = true;
+                entityData.lastKnownTransformStateTick = lockstep.CurrentTick;
+                entityData.transformSyncController = controller;
+                return;
             }
-            else if (controller != transformSyncController)
+            EntityTransformController prevController = entityData.transformSyncController;
+            if (controller != prevController)
             {
-                EntityTransformController prevController = transformSyncController;
-                transformSyncController = controller;
-                prevController.OnControlTakenOver(this, controller);
+                entityData.transformSyncController = controller;
+                prevController.OnControlTakenOver(entityData, controller);
             }
         }
 
         /// <param name="releasingController">Only give back control if this matches the current controller.
         /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
         public void GiveBackControlOfTransformSync(
+            EntityData entityData,
             EntityTransformController releasingController,
             Vector3 position,
             Quaternion rotation,
             Vector3 scale)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log("[EntitySystemDebug] EntityData  GiveBackControlOfTransformSync");
+            Debug.Log("[EntitySystemDebug] EntityDataLogic  GiveBackControlOfTransformSync");
 #endif
-            if (!noTransformSync || (releasingController != null && transformSyncController != releasingController))
+            if (!entityData.noTransformSync || (releasingController != null && entityData.transformSyncController != releasingController))
                 return;
-            noTransformSync = false;
-            lastKnownTransformStateTick = 0u;
-            this.position = position;
-            this.rotation = rotation;
-            this.scale = scale;
-            EntityTransformController prevController = transformSyncController;
-            transformSyncController = null;
+            entityData.noTransformSync = false;
+            entityData.lastKnownTransformStateTick = 0u;
+            entityData.position = position;
+            entityData.rotation = rotation;
+            entityData.scale = scale;
+            EntityTransformController prevController = entityData.transformSyncController;
+            entityData.transformSyncController = null;
             if (releasingController == null)
-                prevController.OnControlLost(this);
+                prevController.OnControlLost(entityData);
         }
 
-        public void SetTransformSyncControllerDueToDeserialization(EntityTransformController controller)
+        public void SetTransformSyncControllerDueToDeserialization(EntityData entityData, EntityTransformController controller)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log("[EntitySystemDebug] EntityData  SetTransformSyncControllerDueToDeserialization");
+            Debug.Log("[EntitySystemDebug] EntityDataLogic  SetTransformSyncControllerDueToDeserialization");
 #endif
-            if (!noTransformSync)
+            if (!entityData.noTransformSync)
             {
                 Debug.LogError($"[EntitySystem] Attempt to SetTransformSyncControllerDueToDeserialization when "
                     + $"noTransformSync is false, aka should not be any transform sync controller.");
                 return;
             }
-            if (transformSyncController != null)
+            if (entityData.transformSyncController != null)
             {
                 Debug.LogError($"[EntitySystem] Attempt to SetTransformSyncControllerDueToDeserialization when "
                     + $"a different system has already set a controller. One of these systems is misbehaving.");
                 return;
             }
-            transformSyncController = controller;
+            entityData.transformSyncController = controller;
         }
 
-        private void SerializeTransformValues(bool isExport)
+        private void SerializeTransformValues(EntityData entityData, bool isExport)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  SerializeTransformValues");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  SerializeTransformValues");
 #endif
+            Entity entity = entityData.entity;
+            bool noTransformSync = entityData.noTransformSync;
             if (isExport && noTransformSync && entity != null)
             {
                 // Exports can actually use non game state safe data.
@@ -536,141 +398,153 @@ namespace JanSharp
                 return;
             }
 
-            lockstep.WriteVector3(position);
-            lockstep.WriteQuaternion(rotation);
-            lockstep.WriteVector3(scale);
+            lockstep.WriteVector3(entityData.position);
+            lockstep.WriteQuaternion(entityData.rotation);
+            lockstep.WriteVector3(entityData.scale);
 
             if (!noTransformSync) // For both serialization and exports.
             { } // Weird empty block just to match the conditions in the deserialize function exactly.
             else if (!isExport)
-                lockstep.WriteSmallUInt(lastKnownTransformStateTick);
+                lockstep.WriteSmallUInt(entityData.lastKnownTransformStateTick);
             else
-                lockstep.WriteSmallUInt(lockstep.CurrentTick - lastKnownTransformStateTick); // ticksAgo
+                lockstep.WriteSmallUInt(lockstep.CurrentTick - entityData.lastKnownTransformStateTick); // ticksAgo
         }
 
-        private void DeserializeTransformValues(bool isImport)
+        private void DeserializeTransformValues(EntityData entityData, bool isImport)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  DeserializeTransformValues");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  DeserializeTransformValues");
 #endif
-            position = lockstep.ReadVector3();
-            rotation = lockstep.ReadQuaternion();
-            scale = lockstep.ReadVector3();
+            entityData.position = lockstep.ReadVector3();
+            entityData.rotation = lockstep.ReadQuaternion();
+            entityData.scale = lockstep.ReadVector3();
 
-            if (!noTransformSync)
-                lastKnownTransformStateTick = 0u;
+            if (!entityData.noTransformSync)
+                entityData.lastKnownTransformStateTick = 0u;
             else if (!isImport)
-                lastKnownTransformStateTick = lockstep.ReadSmallUInt();
+                entityData.lastKnownTransformStateTick = lockstep.ReadSmallUInt();
             else
             {
                 uint ticksAgo = lockstep.ReadSmallUInt();
                 uint currentTick = lockstep.CurrentTick;
-                lastKnownTransformStateTick = ticksAgo > currentTick ? 0u : currentTick - ticksAgo;
+                entityData.lastKnownTransformStateTick = ticksAgo > currentTick ? 0u : currentTick - ticksAgo;
             }
-            transformSyncController = null; // Systems must restore and set this on deserialization.
+            entityData.transformSyncController = null; // Systems must restore and set this on deserialization.
             // See SetTransformSyncControllerDueToDeserialization.
         }
 
-        public void Serialize(bool isExport)
+        public void Serialize(EntityData entityData, bool isExport)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  Serialize");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  Serialize");
 #endif
-            lockstep.WriteFlags(noTransformSync, hidden);
-            SerializeTransformValues(isExport);
-            entitySystem.WritePlayerDataRef(CreatedByPlayerData);
-            entitySystem.WritePlayerDataRef(LastUserPlayerData);
+            lockstep.WriteFlags(entityData.noTransformSync, entityData.hidden);
+            SerializeTransformValues(entityData, isExport);
+            entitySystem.WritePlayerDataRef(entityData.CreatedByPlayerData);
+            entitySystem.WritePlayerDataRef(entityData.LastUserPlayerData);
+
+            EntityData parentEntity = entityData.parentEntity;
+            EntityData[] childEntities = entityData.childEntities;
             lockstep.WriteSmallUInt(parentEntity == null ? 0u : parentEntity.id);
             lockstep.WriteSmallUInt((uint)childEntities.Length);
             foreach (EntityData child in childEntities)
                 lockstep.WriteSmallUInt(child.id);
+
+            EntityExtensionData[] allExtensionData = entityData.allExtensionData;
             if (isExport)
                 lockstep.WriteSmallUInt((uint)allExtensionData.Length);
             foreach (EntityExtensionData extensionData in allExtensionData)
                 lockstep.WriteCustomClass(extensionData, isExport);
         }
 
-        public void Deserialize(bool isImport, uint importedDataVersion)
+        public void Deserialize(EntityData entityData, bool isImport, uint importedDataVersion)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  Deserialize");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  Deserialize");
 #endif
-            lockstep.ReadFlags(out noTransformSync, out hidden);
-            DeserializeTransformValues(isImport);
-            CreatedByPlayerData = entitySystem.ReadPlayerDataRef(isImport);
-            LastUserPlayerData = entitySystem.ReadPlayerDataRef(isImport);
-            unresolvedParentEntityId = lockstep.ReadSmallUInt();
+            lockstep.ReadFlags(out entityData.noTransformSync, out entityData.hidden);
+            DeserializeTransformValues(entityData, isImport);
+            entityData.CreatedByPlayerData = entitySystem.ReadPlayerDataRef(isImport);
+            entityData.LastUserPlayerData = entitySystem.ReadPlayerDataRef(isImport);
+
+            entityData.unresolvedParentEntityId = lockstep.ReadSmallUInt();
             int childEntitiesLength = (int)lockstep.ReadSmallUInt();
-            unresolvedChildEntitiesIds = new uint[childEntitiesLength];
+            uint[] unresolvedChildEntitiesIds = new uint[childEntitiesLength];
+            entityData.unresolvedChildEntitiesIds = unresolvedChildEntitiesIds;
             for (int i = 0; i < childEntitiesLength; i++)
                 unresolvedChildEntitiesIds[i] = lockstep.ReadSmallUInt();
+
             if (!isImport)
             {
-                ResolveParentEntityId();
-                ResolveChildEntityIds();
-                if (!isInitialized)
-                    InitAllExtensionDataBeforeDeserialization();
-                DeserializeAllExtensionData();
+                ResolveParentEntityId(entityData);
+                ResolveChildEntityIds(entityData);
+                if (!entityData.isInitialized)
+                    InitAllExtensionDataBeforeDeserialization(entityData);
+                DeserializeAllExtensionData(entityData);
             }
             else
             {
-                ResolveImportedParentEntityId();
-                ResolveImportedChildEntityIds();
-                latencyHiddenUniqueIds.Clear();
-                if (!isInitialized)
-                    InitAllExtensionDataBeforeDeserialization();
-                ImportAllExtensionData();
+                ResolveImportedParentEntityId(entityData);
+                ResolveImportedChildEntityIds(entityData);
+                entityData.latencyHiddenUniqueIds.Clear();
+                if (!entityData.isInitialized)
+                    InitAllExtensionDataBeforeDeserialization(entityData);
+                ImportAllExtensionData(entityData);
             }
 
-            if (noTransformSync && transformSyncController == null)
+            if (entityData.noTransformSync && entityData.transformSyncController == null)
             {
-                Debug.LogError($"[EntitySystem] An EntityData had {nameof(noTransformSync)} set to true during "
+                Debug.LogError($"[EntitySystem] An EntityData had {nameof(EntityData.noTransformSync)} set to true during "
                     + $"deserialization, however no system restored the transform sync controller which is "
                     + $"responsible for managing this EntityData. Use {nameof(SetTransformSyncControllerDueToDeserialization)} "
                     + $"inside of the Deserialize function of an EntityExtensionData.");
                 // To prevent runtime errors at least, but this is not guaranteed to
                 // actually resolve this error case in a game state safe manner.
-                noTransformSync = false;
-                lastKnownTransformStateTick = 0u;
+                entityData.noTransformSync = false;
+                entityData.lastKnownTransformStateTick = 0u;
             }
         }
 
-        private void ResolveParentEntityId()
+        private void ResolveParentEntityId(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  ResolveParentEntityId");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  ResolveParentEntityId");
 #endif
-            entitySystem.TryGetEntityData(unresolvedParentEntityId, out parentEntity);
-            unresolvedParentEntityId = 0u;
+            entitySystem.TryGetEntityData(entityData.unresolvedParentEntityId, out entityData.parentEntity);
+            entityData.unresolvedParentEntityId = 0u;
         }
 
-        private void ResolveChildEntityIds()
+        private void ResolveChildEntityIds(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  ResolveChildEntityIds");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  ResolveChildEntityIds");
 #endif
+            uint[] unresolvedChildEntitiesIds = entityData.unresolvedChildEntitiesIds;
             int count = unresolvedChildEntitiesIds.Length;
-            childEntities = new EntityData[count];
+            EntityData[] childEntities = new EntityData[count];
+            entityData.childEntities = childEntities;
             for (int i = 0; i < count; i++)
                 childEntities[i] = entitySystem.GetEntityData(unresolvedChildEntitiesIds[i]);
-            unresolvedChildEntitiesIds = null;
+            entityData.unresolvedChildEntitiesIds = null;
         }
 
-        private void ResolveImportedParentEntityId()
+        private void ResolveImportedParentEntityId(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  ResolveImportedParentEntityId");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  ResolveImportedParentEntityId");
 #endif
-            entitySystem.TryGetRemappedImportedEntityData(unresolvedParentEntityId, out parentEntity);
-            unresolvedParentEntityId = 0u;
+            entitySystem.TryGetRemappedImportedEntityData(entityData.unresolvedParentEntityId, out entityData.parentEntity);
+            entityData.unresolvedParentEntityId = 0u;
         }
 
-        private void ResolveImportedChildEntityIds()
+        private void ResolveImportedChildEntityIds(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  ResolveImportedChildEntityIds");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  ResolveImportedChildEntityIds");
 #endif
-            childEntities = new EntityData[unresolvedChildEntitiesIds.Length];
+            uint[] unresolvedChildEntitiesIds = entityData.unresolvedChildEntitiesIds;
+            EntityData[] childEntities = new EntityData[unresolvedChildEntitiesIds.Length];
+            entityData.childEntities = childEntities;
             int i = 0;
             foreach (uint childId in unresolvedChildEntitiesIds)
                 if (entitySystem.TryGetRemappedImportedEntityData(childId, out EntityData data))
@@ -681,56 +555,62 @@ namespace JanSharp
                 System.Array.Copy(childEntities, shortenedList, i);
                 childEntities = shortenedList;
             }
-            unresolvedChildEntitiesIds = null;
+            entityData.unresolvedChildEntitiesIds = null;
         }
 
-        private void DeserializeAllExtensionData()
+        private void DeserializeAllExtensionData(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  DeserializeAllExtensionData");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  DeserializeAllExtensionData");
 #endif
-            foreach (EntityExtensionData extensionData in allExtensionData)
+            foreach (EntityExtensionData extensionData in entityData.allExtensionData)
                 lockstep.ReadCustomClass(extensionData, isImport: false);
         }
 
-        private void ImportAllExtensionData()
+        private void ImportAllExtensionData(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  ImportAllExtensionData");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  ImportAllExtensionData");
 #endif
             int length = (int)lockstep.ReadSmallUInt();
-            if (IsDummyEntityDataForImport)
+            if (IsDummyEntityDataForImport(entityData))
             {
                 for (int i = 0; i < length; i++)
                     lockstep.SkipCustomClass(out var discard1, out var discard2); // Cannot use 'out _'.
                 return;
             }
+            EntityExtensionData[] allExtensionData = entityData.allExtensionData;
             for (int i = 0; i < length; i++)
             {
-                string newExtensionClassName = importedMetadata.resolvedExtensionClassNames[i];
+                string newExtensionClassName = entityData.importedMetadata.resolvedExtensionClassNames[i];
                 if (newExtensionClassName == null)
                 {
                     lockstep.SkipCustomClass(out var discard1, out var discard2); // Cannot use 'out _'.
                     continue;
                 }
-                int index = importedMetadata.resolvedExtensionIndexes[i];
+                int index = entityData.importedMetadata.resolvedExtensionIndexes[i];
                 EntityExtensionData extensionData = allExtensionData[index];
                 if (!lockstep.ReadCustomClass(extensionData, isImport: true))
                     extensionData.OnImportedWithoutDeserialization();
             }
         }
 
+        // Disgusting micro optimization, by using these we ultimately save on one GetProgramVariable call for each of them.
+        private Vector3 incomingPosition;
+        private Quaternion incomingRotation;
+        private Vector3 incomingScale;
+
         /// <summary>
         /// <para>Send function is here <see cref="Entity.SendTransformChangeIA"/>.</para>
         /// </summary>
-        public void OnTransformChangeIA()
+        public void OnTransformChangeIA(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  OnTransformChangeIA");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  OnTransformChangeIA");
 #endif
-            if (noTransformSync)
+            if (entityData.noTransformSync)
             {
-                MarkLatencyHiddenUniqueIdAsProcessed();
+                MarkLatencyHiddenUniqueIdAsProcessed(entityData);
                 return;
             }
 
@@ -740,13 +620,25 @@ namespace JanSharp
                 out bool scaleChange, out bool discontinuousScaleChange);
 
             if (positionChange)
-                position = lockstep.ReadVector3();
-            if (rotationChange)
-                rotation = lockstep.ReadQuaternion();
-            if (scaleChange)
-                scale = lockstep.ReadVector3();
+            {
+                incomingPosition = lockstep.ReadVector3();
+                entityData.position = incomingPosition;
+            }
 
-            if (!ShouldApplyReceivedIAToLatencyState() || entity == null)
+            if (rotationChange)
+            {
+                incomingRotation = lockstep.ReadQuaternion();
+                entityData.rotation = incomingRotation;
+            }
+
+            if (scaleChange)
+            {
+                incomingScale = lockstep.ReadVector3();
+                entityData.scale = incomingScale;
+            }
+
+            Entity entity = entityData.entity;
+            if (!ShouldApplyReceivedIAToLatencyState(entityData) || entity == null)
                 return;
 
             Transform entityTransform = entity.transform;
@@ -754,61 +646,35 @@ namespace JanSharp
             if (positionChange)
             {
                 if (!discontinuousPositionChange)
-                    interpolation.LerpWorldPosition(entityTransform, position, Entity.TransformChangeInterpolationDuration);
+                    interpolation.LerpWorldPosition(entityTransform, incomingPosition, Entity.TransformChangeInterpolationDuration);
                 else
                 {
                     interpolation.CancelPositionInterpolation(entityTransform);
-                    entityTransform.position = position;
+                    entityTransform.position = incomingPosition;
                 }
             }
 
             if (rotationChange)
             {
                 if (!discontinuousRotationChange)
-                    interpolation.LerpWorldRotation(entityTransform, rotation, Entity.TransformChangeInterpolationDuration);
+                    interpolation.LerpWorldRotation(entityTransform, incomingRotation, Entity.TransformChangeInterpolationDuration);
                 else
                 {
                     interpolation.CancelRotationInterpolation(entityTransform);
-                    entityTransform.rotation = rotation;
+                    entityTransform.rotation = incomingRotation;
                 }
             }
 
             if (scaleChange)
             {
                 if (!discontinuousScaleChange)
-                    interpolation.LerpLocalScale(entityTransform, scale, Entity.TransformChangeInterpolationDuration);
+                    interpolation.LerpLocalScale(entityTransform, incomingScale, Entity.TransformChangeInterpolationDuration);
                 else
                 {
                     interpolation.CancelScaleInterpolation(entityTransform);
-                    entityTransform.localScale = scale;
+                    entityTransform.localScale = incomingScale;
                 }
             }
-        }
-    }
-
-    public static class EntityDataExtensions
-    {
-        public static int IndexOfExtensionData(this EntityData entityData, string extensionDataClassName, int startIndex = 0)
-            => System.Array.IndexOf(entityData.entityPrototype.ExtensionDataClassNames, extensionDataClassName, startIndex);
-
-        public static EntityExtensionData GetExtensionDataDynamic(this EntityData entityData, string extensionDataClassName, int startIndex = 0)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  GetExtensionDataDynamic");
-#endif
-            int extensionIndex = System.Array.IndexOf(entityData.entityPrototype.ExtensionDataClassNames, extensionDataClassName, startIndex);
-            return extensionIndex < 0 ? null : entityData.allExtensionData[extensionIndex];
-        }
-
-        public static T GetExtensionData<T>(this EntityData entityData, string extensionDataClassName, int startIndex = 0)
-            where T : EntityExtensionData
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityData  GetExtensionData");
-#endif
-            // Same as GetExtensionDataDynamic.
-            int extensionIndex = System.Array.IndexOf(entityData.entityPrototype.ExtensionDataClassNames, extensionDataClassName, startIndex);
-            return (T)(extensionIndex < 0 ? null : entityData.allExtensionData[extensionIndex]);
         }
     }
 }

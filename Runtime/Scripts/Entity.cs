@@ -11,6 +11,7 @@ namespace JanSharp
         [HideInInspector][SingletonReference] public EntitySystemAPI entitySystem;
         [HideInInspector][SingletonReference] public WannaBeClassesManager wannaBeClasses;
         [HideInInspector][SingletonReference] public InterpolationManager interpolation;
+        [HideInInspector][SerializeField][SingletonReference] private Internal.EntityDataLogic entityDataLogic;
         [System.NonSerialized] public EntityPrototype prototype;
         [System.NonSerialized] public EntityData entityData;
         [System.NonSerialized] public int instanceIndex;
@@ -67,7 +68,7 @@ namespace JanSharp
             if (this.entityData != null)
                 Debug.LogError($"[EntitySystemDebug] Attempt to InitFromEntityData an Entity multiple times.");
 #endif
-            entityData.SetEntity(this);
+            entityDataLogic.SetEntity(entityData, this);
             ApplyEntityDataWithoutExtensions();
             EntityExtensionData[] allExtensionData = entityData.allExtensionData;
             int length = extensions.Length;
@@ -75,7 +76,7 @@ namespace JanSharp
                 allExtensionData[i].SetEntityAndExtension(this, extensions[i]);
             for (int i = 0; i < length; i++)
                 extensions[i].AssociateWithExtensionData();
-            entityData.OnAssociatedWithEntity();
+            entityDataLogic.OnAssociatedWithEntity(entityData);
         }
 
         private void ApplyEntityDataWithoutExtensions()

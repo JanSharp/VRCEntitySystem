@@ -55,6 +55,8 @@
 - [x] some form of import export options, even if it is just an toggle to say "export all entities or not"
 - [ ] some kind of respawn system for items that fell off the world
 - [ ] preferably make the entity and entity data files and any extensions smaller for faster instantiation
+  - [x] entity data
+  - [ ] entity
 - [x] add an EntitySystemAPI class
 - [x] EntityPrefabInsts and DefaultEntityInsts do not get their game object names updated when the prefab name changed
 - [ ] add a game state variant of creating entities - without this, the InitFromDefault xml annotations are actually wrong, it is always game state unsafe currently

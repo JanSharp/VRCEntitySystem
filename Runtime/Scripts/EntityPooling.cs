@@ -2,13 +2,14 @@
 using UnityEngine;
 using VRC.SDK3.Data;
 
-namespace JanSharp
+namespace JanSharp.Internal
 {
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
     [SingletonScript("d627f7fa95da90f1f87280f822155c9d")] // Runtime/Prefabs/EntitySystem.prefab
     public class EntityPooling : UdonSharpBehaviour
     {
         [HideInInspector][SerializeField][SingletonReference] private EntitySystemAPI entitySystem;
+        [HideInInspector][SerializeField][SingletonReference] private EntityDataLogic entityDataLogic;
         [HideInInspector][SerializeField][SingletonReference] private UpdateManager updateManager;
         /// <summary>Required by the <see cref="UpdateManager"/>.</summary>
         [System.NonSerialized] public int customUpdateInternalIndex;
@@ -76,7 +77,7 @@ namespace JanSharp
             if (entity == null)
                 return;
             ReturnEntity(entity);
-            entityData.OnDisassociateFromEntity();
+            entityDataLogic.OnDisassociateFromEntity(entityData);
             entityData.entity = null;
             entity.entityData = null;
         }

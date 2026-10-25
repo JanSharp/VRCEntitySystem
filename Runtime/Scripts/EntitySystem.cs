@@ -32,6 +32,7 @@ namespace JanSharp.Internal
         private double maxWorkMSPerFrame;
 
         [HideInInspector][SerializeField][SingletonReference] private EntityPooling pooling;
+        [HideInInspector][SerializeField][SingletonReference] private EntityDataLogic entityDataLogic;
         [HideInInspector][SerializeField][SingletonReference] private WannaBeClassesManager wannaBeClasses;
         [HideInInspector][SerializeField][SingletonReference] private PlayerDataManagerAPI playerDataManager;
 
@@ -246,9 +247,9 @@ namespace JanSharp.Internal
             uint id = preInstantiatedEntityInstanceIds[index];
             EntityPrototype prototype = preInstantiatedEntityInstancePrototypes[index];
             EntityData entityData = preInstantiatedEntityData[index];
-            entityData.WannaBeConstructor(prototype, InvalidUniqueId, id);
+            entityDataLogic.WannaBeConstructor(entityData, prototype, InvalidUniqueId, id);
             RegisterEntityDataAndId(entityData);
-            entityData.InitFromPreInstantiated(entity);
+            entityDataLogic.InitFromPreInstantiated(entityData, entity);
             entity.AssociateWithEntityData(entityData);
             return entityData;
         }
@@ -313,8 +314,8 @@ namespace JanSharp.Internal
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  NewEntityData");
 #endif
-            EntityData entityData = wannaBeClasses.New<EntityData>(nameof(EntityData))
-                .WannaBeConstructor(prototype, uniqueId, id);
+            EntityData entityData = wannaBeClasses.New<EntityData>(nameof(EntityData));
+            entityDataLogic.WannaBeConstructor(entityData, prototype, uniqueId, id);
             if (uniqueId != InvalidUniqueId)
                 entityDataByUniqueId.Add(uniqueId, entityData);
             if (id != InvalidId) // Having an id means this is in a game state safe context.
@@ -446,7 +447,7 @@ namespace JanSharp.Internal
             playerData.GainCreated(entityData);
             playerData.GainLastUsed(entityData);
 
-            entityData.OnEntityDataCreated();
+            entityDataLogic.OnEntityDataCreated(entityData);
             if (!onEntityCreatedGetsRaisedLater)
                 RaiseOnEntityCreated(entityData);
             return entityData;
@@ -491,7 +492,7 @@ namespace JanSharp.Internal
             Debug.Log($"[EntitySystemDebug] EntitySystem  CreateDefaultEntity");
 #endif
             EntityData entityData = NewEntityData(prototype, uniqueId, id);
-            entityData.InitFromDefault(position, rotation, prototype.DefaultScale, createdByPlayerData, createdByPlayerData);
+            entityDataLogic.InitFromDefault(entityData, position, rotation, prototype.DefaultScale, createdByPlayerData, createdByPlayerData);
             pooling.RequestEntity(entityData, highPriority);
             return entityData;
         }
@@ -605,7 +606,7 @@ namespace JanSharp.Internal
 #endif
             if (!TryReadEntityDataRef(out EntityData entityData, isImport: false))
                 return;
-            entityData.OnTransformChangeIA();
+            entityDataLogic.OnTransformChangeIA(entityData);
         }
 
         public override void SendDestroyEntityIA(EntityData entityData)
@@ -721,7 +722,7 @@ namespace JanSharp.Internal
             if (entityData.uniqueId != InvalidUniqueId)
                 entityDataByUniqueId.Remove(entityData.uniqueId);
             DeregisterEntityDataAndId(entityData);
-            entityData.OnEntityDataDestroyed();
+            entityDataLogic.OnEntityDataDestroyed(entityData);
             RaiseOnEntityDestroyed(entityData);
             entityData.DecrementRefsCount();
         }
@@ -1051,7 +1052,7 @@ namespace JanSharp.Internal
 #endif
             for (int i = suspendedIndexInArray; i < allEntityDataCount; i++)
             {
-                allEntityData[i].Serialize(isExport: true);
+                entityDataLogic.Serialize(allEntityData[i], isExport: true);
                 if (SerializationIsRunningLong())
                 {
                     suspendedIndexInArray = i + 1;
@@ -1088,10 +1089,10 @@ namespace JanSharp.Internal
                 EntityData entityData = allImportedEntityData[i];
                 if (entityData == null)
                 {
-                    readAndCreateImportedEntitiesDummy.Deserialize(isImport: true, importedDataVersion);
+                    entityDataLogic.Deserialize(readAndCreateImportedEntitiesDummy, isImport: true, importedDataVersion);
                     continue;
                 }
-                entityData.Deserialize(isImport: true, importedDataVersion);
+                entityDataLogic.Deserialize(entityData, isImport: true, importedDataVersion);
                 if (entityData.entity != null)
                     entityData.entity.ApplyEntityData();
                 else
@@ -1124,7 +1125,7 @@ namespace JanSharp.Internal
             if (!IsPreInstantiatedEntityId(entityData.id, isImport: false))
                 lockstep.WriteULong(entityData.uniqueId);
             lockstep.WriteSmallUInt(entityData.entityPrototype.Id);
-            entityData.Serialize(isExport);
+            entityDataLogic.Serialize(entityData, isExport);
         }
 
         private EntityData ReadEntityData()
@@ -1156,7 +1157,7 @@ namespace JanSharp.Internal
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityDataIntoNewEntity");
 #endif
             readEntityDataIntoNewEntityEntityData = NewEntityData(prototype, uniqueId, id);
-            readEntityDataIntoNewEntityEntityData.Deserialize(isImport: false, importedDataVersion: 0u);
+            entityDataLogic.Deserialize(readEntityDataIntoNewEntityEntityData, isImport: false, importedDataVersion: 0u);
             pooling.RequestEntity(readEntityDataIntoNewEntityEntityData);
             return readEntityDataIntoNewEntityEntityData;
         }
@@ -1178,9 +1179,9 @@ namespace JanSharp.Internal
 
             EntityPrototype prototype = preInstantiatedEntityInstancePrototypes[index];
             EntityData entityData = preInstantiatedEntityData[index];
-            entityData.WannaBeConstructor(prototype, InvalidUniqueId, id);
+            entityDataLogic.WannaBeConstructor(entityData, prototype, InvalidUniqueId, id);
             RegisterEntityDataAndId(entityData);
-            entityData.Deserialize(isImport: false, importedDataVersion: 0u);
+            entityDataLogic.Deserialize(entityData, isImport: false, importedDataVersion: 0u);
 
             Entity entity = preInstantiatedEntityInstances[index];
             if (entity != null)
