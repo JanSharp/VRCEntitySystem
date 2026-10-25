@@ -8,11 +8,10 @@ namespace JanSharp.Internal
     [SingletonScript("d627f7fa95da90f1f87280f822155c9d")] // Runtime/Prefabs/EntitySystem.prefab
     public class EntityDataLogic : UdonSharpBehaviour
     {
-        [HideInInspector][SingletonReference] public LockstepAPI lockstep;
-        [HideInInspector][SingletonReference] public EntitySystemAPI entitySystem;
-        [HideInInspector][SingletonReference] public InterpolationManager interpolation;
-        [HideInInspector][SingletonReference] public PlayerDataManagerAPI playerDataManager;
-        [HideInInspector][SingletonReference] public WannaBeClassesManager wannaBeClasses;
+        [HideInInspector][SerializeField][SingletonReference] private LockstepAPI lockstep;
+        [HideInInspector][SerializeField][SingletonReference] private EntitySystemAPI entitySystem;
+        [HideInInspector][SerializeField][SingletonReference] private InterpolationManager interpolation;
+        [HideInInspector][SerializeField][SingletonReference] private WannaBeClassesManager wannaBeClasses;
 
         private bool IsDummyEntityDataForImport(EntityData entityData) => entityData.entityPrototype == null;
 
