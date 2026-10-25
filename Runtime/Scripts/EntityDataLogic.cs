@@ -176,7 +176,7 @@ namespace JanSharp.Internal
         public bool ShouldApplyReceivedIAToLatencyState(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityDataLogic  ShouldApplyReceivedIAToLatencyState - uniqueId: 0x{lockstep.SendingUniqueId:x16}, latencyHiddenUniqueIds.Count: {entityData.latencyHiddenUniqueIds.Count}");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  ShouldApplyReceivedIAToLatencyState - uniqueId: 0x{lockstep.SendingUniqueId:x16}, entityData.latencyHiddenUniqueIds.Count: {entityData.latencyHiddenUniqueIds.Count}");
 #endif
             DataDictionary latencyHiddenUniqueIds = entityData.latencyHiddenUniqueIds;
             if (latencyHiddenUniqueIds.Count == 0)
