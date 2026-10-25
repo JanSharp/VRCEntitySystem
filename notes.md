@@ -54,9 +54,9 @@
 - [ ] removing a pre instantiated entity can cause the entity system to get stuck in an infinite loop in the on build handlers. The pre instantiated entity in question is the last and only one of a given prototype which is also the only prototype that is using some unique entity extension
 - [x] some form of import export options, even if it is just an toggle to say "export all entities or not"
 - [ ] some kind of respawn system for items that fell off the world
-- [ ] preferably make the entity and entity data files and any extensions smaller for faster instantiation
+- [x] preferably make the entity and entity data files and any extensions smaller for faster instantiation
   - [x] entity data
-  - [ ] entity
+  - [x] ~~entity~~ there is not much to move out of there, it would be adding more runtime overhead with the added Get/SetProgramVariable calls than I am willing to accept
 - [x] add an EntitySystemAPI class
 - [x] EntityPrefabInsts and DefaultEntityInsts do not get their game object names updated when the prefab name changed
 - [ ] add a game state variant of creating entities - without this, the InitFromDefault xml annotations are actually wrong, it is always game state unsafe currently
