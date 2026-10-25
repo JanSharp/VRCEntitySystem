@@ -296,12 +296,13 @@ namespace JanSharp
 
             int startPosition = lockstep.WriteStreamPosition;
 
+            Transform t = this.transform;
             if (flaggedForPositionChange)
-                lockstep.WriteVector3(this.transform.position);
+                lockstep.WriteVector3(t.position);
             if (flaggedForRotationChange)
-                lockstep.WriteQuaternion(this.transform.rotation);
+                lockstep.WriteQuaternion(t.rotation);
             if (flaggedForScaleChange)
-                lockstep.WriteVector3(this.transform.localScale);
+                lockstep.WriteVector3(t.localScale);
             ResetTransformChangeFlags();
 
             if (lockstep.WriteStreamPosition == startPosition)
