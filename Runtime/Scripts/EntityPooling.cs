@@ -8,7 +8,7 @@ namespace JanSharp.Internal
     [SingletonScript("d627f7fa95da90f1f87280f822155c9d")] // Runtime/Prefabs/EntitySystem.prefab
     public class EntityPooling : UdonSharpBehaviour
     {
-        [HideInInspector][SerializeField][SingletonReference] private EntitySystemAPI entitySystem;
+        [HideInInspector][SerializeField][SingletonReference] private EntitySystem entitySystem;
         [HideInInspector][SerializeField][SingletonReference] private EntityDataLogic entityDataLogic;
         [HideInInspector][SerializeField][SingletonReference] private EntityLogic entityLogic;
         [HideInInspector][SerializeField][SingletonReference] private UpdateManager updateManager;
@@ -24,6 +24,14 @@ namespace JanSharp.Internal
         private EntityData[] requestQueue = new EntityData[ArrQueue.MinCapacity];
         private int rqStartIndex = 0;
         private int rqCount = 0;
+
+        ///cSpell:ignore rwcq
+
+        private object[][] requestsWithCallbackQueue = new object[ArrQueue.MinCapacity][];
+        private int rwcqStartIndex = 0;
+        private int rwcqCount = 0;
+
+        public bool isInTheMiddleOfCreatingAnEntity = false;
 
         private DataDictionary pooledEntities = new DataDictionary();
 
@@ -44,16 +52,6 @@ namespace JanSharp.Internal
         }
 
         public void RequestEntity(EntityData entityData, bool highPriority = false)
-        {
-            RequestEntity(entityData, entityData.position, entityData.rotation, entityData.scale, highPriority);
-        }
-
-        public void RequestEntity(
-            EntityData entityData,
-            Vector3 position,
-            Quaternion rotation,
-            Vector3 scale,
-            bool highPriority = false)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  RequestEntity");
@@ -109,25 +107,80 @@ namespace JanSharp.Internal
             for (int i = 0; i < MaxRequestsToCheckPerFrame; i++)
             {
                 EntityData entityData = ArrQueue.Dequeue(ref requestQueue, ref rqStartIndex, ref rqCount);
-                bool didCreate = TryCreateEntity(entityData);
+                if (!IsMissingEntity(entityData))
+                {
+                    entityData.DecrementRefsCount();
+                    continue;
+                }
+                CreateEntityAvoidingRecursion(entityData, null, null, null);
                 entityData.DecrementRefsCount();
                 if (rqCount == 0)
-                {
                     updateManager.Deregister(this);
-                    break;
-                }
-                if (didCreate)
-                    break;
+                break;
             }
         }
 
-        public bool TryCreateEntity(EntityData entityData)
+        public bool IsMissingEntity(EntityData entityData)
+        {
+            return !entityData.entityIsDestroyed && entityData.entity == null;
+        }
+
+        public void CreateEntityAvoidingRecursion(
+            EntityData entityData,
+            UdonSharpBehaviour callbackInst,
+            string callbackEventName,
+            object callbackCustomData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityPooling  TryCreateEntity");
+            Debug.Log($"[EntitySystemDebug] EntityPooling  CreateEntityAvoidingRecursion");
 #endif
-            if (entityData.entityIsDestroyed || entityData.entity != null)
-                return false;
+            if (isInTheMiddleOfCreatingAnEntity)
+            {
+                entityData.IncrementRefsCount();
+                ArrQueue.Enqueue(ref requestsWithCallbackQueue, ref rwcqStartIndex, ref rwcqCount, new object[]
+                {
+                    entityData,
+                    callbackInst,
+                    callbackEventName,
+                    callbackCustomData,
+                });
+                return;
+            }
+
+            // Must use locals since parameters would be overwritten when CreateEntityAvoidingRecursion
+            // gets called in the middle of entity creation.
+            EntityData localEntityData = entityData;
+            UdonSharpBehaviour localCallbackInst = callbackInst;
+            string localCallbackEventName = callbackEventName;
+            object localCallbackCustomData = callbackCustomData;
+
+            localEntityData.IncrementRefsCount();
+            CreateEntity(localEntityData);
+            if (localCallbackInst != null)
+                entitySystem.RaiseEnsureEntityExistsCallback(localEntityData, localCallbackInst, localCallbackEventName, localCallbackCustomData);
+            localEntityData.DecrementRefsCount();
+
+            while (rwcqCount != 0)
+            {
+                object[] request = ArrQueue.Dequeue(ref requestsWithCallbackQueue, ref rwcqStartIndex, ref rwcqCount);
+                localEntityData = (EntityData)request[0];
+                localCallbackInst = (UdonSharpBehaviour)request[1];
+                localCallbackEventName = (string)request[2];
+                localCallbackCustomData = request[3];
+
+                CreateEntity(localEntityData);
+                if (localCallbackInst != null)
+                    entitySystem.RaiseEnsureEntityExistsCallback(localEntityData, localCallbackInst, localCallbackEventName, localCallbackCustomData);
+                localEntityData.DecrementRefsCount();
+            }
+        }
+
+        private void CreateEntity(EntityData entityData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityPooling  CreateEntity");
+#endif
+            isInTheMiddleOfCreatingAnEntity = true;
             EntityPrototype prototype = entityData.entityPrototype;
             DataList pooled = pooledEntities[prototype.Id].DataList;
             int pooledCount = pooled.Count;
@@ -146,7 +199,7 @@ namespace JanSharp.Internal
                 GameObject entityGo = Instantiate(prototype.EntityPrefabInst);
 #if ENTITY_SYSTEM_STOPWATCH
                 sw.Stop();
-                Debug.Log($"[EntitySystemDebug] [sw] EntityPooling  TryCreateEntity (inner) - instantiateMs: {sw.Elapsed.TotalMilliseconds:f3}");
+                Debug.Log($"[EntitySystemDebug] [sw] EntityPooling  CreateEntity (inner) - instantiateMs: {sw.Elapsed.TotalMilliseconds:f3}");
 #endif
                 entity = entityGo.GetComponent<Entity>();
                 entityLogic.OnInstantiate(entity, prototype, isDefaultInstance: false);
@@ -157,7 +210,7 @@ namespace JanSharp.Internal
             t.localScale = entityData.LastKnownScale;
             entity.gameObject.SetActive(true);
             entityLogic.AssociateWithEntityData(entity, entityData);
-            return true;
+            isInTheMiddleOfCreatingAnEntity = false;
         }
     }
 }

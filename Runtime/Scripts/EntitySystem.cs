@@ -498,13 +498,43 @@ namespace JanSharp.Internal
             return entityData;
         }
 
-        public override Entity EnsureEntityExistsForEntityData(EntityData entityData)
+        public override void EnsureEntityExistsForEntityData(
+            EntityData entityData,
+            UdonSharpBehaviour callbackInst,
+            string callbackEventName,
+            object callbackCustomData = null)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  EnsureEntityExistsForEntityData");
 #endif
-            pooling.TryCreateEntity(entityData);
-            return entityData.entity;
+            // Do this check early in here rather than inside of CreateEntityAvoidingRecursion as a micro optimization,
+            // reducing the amount of SetProgramVariable calls when the entity already exists.
+            // Udon is a great language.
+            if (!pooling.IsMissingEntity(entityData))
+            {
+                RaiseEnsureEntityExistsCallback(entityData, callbackInst, callbackEventName, callbackCustomData);
+                return;
+            }
+            pooling.CreateEntityAvoidingRecursion(entityData, callbackInst, callbackEventName, callbackCustomData);
+        }
+
+        private EntityData callbackEntityData;
+        public override EntityData CallbackEntityData => callbackEntityData;
+        private object callbackCustomData;
+        public override object CallbackCustomData => callbackCustomData;
+
+        public void RaiseEnsureEntityExistsCallback(
+            EntityData entityData,
+            UdonSharpBehaviour callbackInst,
+            string callbackEventName,
+            object callbackCustomData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  RaiseEnsureEntityExistsCallback");
+#endif
+            callbackEntityData = entityData;
+            this.callbackCustomData = callbackCustomData;
+            callbackInst.SendCustomEvent(callbackEventName);
         }
 
         public override void WriteEntityPrototypeRef(EntityPrototype prototype)

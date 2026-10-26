@@ -1,3 +1,4 @@
+using UdonSharp;
 using UnityEngine;
 
 namespace JanSharp
@@ -49,7 +50,27 @@ namespace JanSharp
         public abstract EntityData ReadEntityInCustomCreateEntityIA(bool onEntityCreatedGetsRaisedLater = false);
         public abstract void RaiseOnEntityCreatedInCustomCreateEntityIA(EntityData entityData);
 
-        public abstract Entity EnsureEntityExistsForEntityData(EntityData entityData);
+        /// <summary>
+        /// <para>Read <see cref="CallbackEntityData"/> and <see cref="CallbackCustomData"/> inside of the
+        /// callback event as defined by <paramref name="callbackInst"/> and
+        /// <paramref name="callbackEventName"/> in order to know which entity has been created, as well as
+        /// what <paramref name="callbackCustomData"/> was passed to this function at the time of calling
+        /// it.</para>
+        /// <para>This uses a callback in order to avoid recursion in the middle of the entity creation
+        /// process.</para>
+        /// </summary>
+        /// <param name="entityData"></param>
+        /// <param name="callbackInst"></param>
+        /// <param name="callbackEventName"></param>
+        /// <param name="callbackCustomData"></param>
+        public abstract void EnsureEntityExistsForEntityData(
+            EntityData entityData,
+            UdonSharpBehaviour callbackInst,
+            string callbackEventName,
+            object callbackCustomData = null);
+
+        public abstract EntityData CallbackEntityData { get; }
+        public abstract object CallbackCustomData { get; }
 
         public abstract void WriteEntityPrototypeRef(EntityPrototype prototype);
         public abstract bool TryReadEntityPrototypeRef(out EntityPrototype prototype);
