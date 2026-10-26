@@ -49,6 +49,8 @@ namespace JanSharp
         public abstract EntityData ReadEntityInCustomCreateEntityIA(bool onEntityCreatedGetsRaisedLater = false);
         public abstract void RaiseOnEntityCreatedInCustomCreateEntityIA(EntityData entityData);
 
+        public abstract Entity EnsureEntityExistsForEntityData(EntityData entityData);
+
         public abstract void WriteEntityPrototypeRef(EntityPrototype prototype);
         public abstract bool TryReadEntityPrototypeRef(out EntityPrototype prototype);
         public abstract bool TryReadEntityPrototypeRef(out EntityPrototype prototype, bool isImport);

@@ -498,6 +498,15 @@ namespace JanSharp.Internal
             return entityData;
         }
 
+        public override Entity EnsureEntityExistsForEntityData(EntityData entityData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  EnsureEntityExistsForEntityData");
+#endif
+            pooling.TryCreateEntity(entityData);
+            return entityData.entity;
+        }
+
         public override void WriteEntityPrototypeRef(EntityPrototype prototype)
         {
 #if ENTITY_SYSTEM_DEBUG

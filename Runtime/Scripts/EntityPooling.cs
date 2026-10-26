@@ -16,8 +16,8 @@ namespace JanSharp.Internal
         [System.NonSerialized] public int customUpdateInternalIndex;
 
         /// <summary>
-        /// <para>The amount of requests to check, looking for a not already destroyed entity to
-        /// create.</para>
+        /// <para>The amount of requests to check, looking for a not already destroyed nor already created
+        /// entity to create.</para>
         /// </summary>
         private const int MaxRequestsToCheckPerFrame = 10;
 
@@ -109,7 +109,7 @@ namespace JanSharp.Internal
             for (int i = 0; i < MaxRequestsToCheckPerFrame; i++)
             {
                 EntityData entityData = ArrQueue.Dequeue(ref requestQueue, ref rqStartIndex, ref rqCount);
-                bool didCreate = TryProcessRequest(entityData);
+                bool didCreate = TryCreateEntity(entityData);
                 entityData.DecrementRefsCount();
                 if (rqCount == 0)
                 {
@@ -121,12 +121,12 @@ namespace JanSharp.Internal
             }
         }
 
-        private bool TryProcessRequest(EntityData entityData)
+        public bool TryCreateEntity(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityPooling  ProcessRequest");
+            Debug.Log($"[EntitySystemDebug] EntityPooling  TryCreateEntity");
 #endif
-            if (entityData.entityIsDestroyed)
+            if (entityData.entityIsDestroyed || entityData.entity != null)
                 return false;
             EntityPrototype prototype = entityData.entityPrototype;
             DataList pooled = pooledEntities[prototype.Id].DataList;
@@ -146,7 +146,7 @@ namespace JanSharp.Internal
                 GameObject entityGo = Instantiate(prototype.EntityPrefabInst);
 #if ENTITY_SYSTEM_STOPWATCH
                 sw.Stop();
-                Debug.Log($"[EntitySystemDebug] [sw] EntityPooling  ProcessRequest (inner) - instantiateMs: {sw.Elapsed.TotalMilliseconds:f3}");
+                Debug.Log($"[EntitySystemDebug] [sw] EntityPooling  TryCreateEntity (inner) - instantiateMs: {sw.Elapsed.TotalMilliseconds:f3}");
 #endif
                 entity = entityGo.GetComponent<Entity>();
                 entityLogic.OnInstantiate(entity, prototype, isDefaultInstance: false);
