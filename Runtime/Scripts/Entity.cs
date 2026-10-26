@@ -9,9 +9,8 @@ namespace JanSharp
     {
         [HideInInspector][SingletonReference] public LockstepAPI lockstep;
         [HideInInspector][SingletonReference] public EntitySystemAPI entitySystem;
-        [HideInInspector][SingletonReference] public WannaBeClassesManager wannaBeClasses;
-        [HideInInspector][SingletonReference] public InterpolationManager interpolation;
-        [HideInInspector][SerializeField][SingletonReference] private Internal.EntityDataLogic entityDataLogic;
+        [HideInInspector][SerializeField][SingletonReference] private Internal.EntityLogic logic;
+
         [System.NonSerialized] public EntityPrototype prototype;
         [System.NonSerialized] public EntityData entityData;
         [System.NonSerialized] public int instanceIndex;
@@ -34,172 +33,29 @@ namespace JanSharp
         public const float TimeBetweenTransformChangeIAs = 0.2f;
         public const float TransformChangeInterpolationDuration = TimeBetweenTransformChangeIAs + 0.1f;
 
-        public void OnInstantiate(
-            EntityPrototype prototype,
-            bool isDefaultInstance)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  OnInstantiate");
-#endif
-            this.prototype = prototype;
-            int length = extensions.Length;
-            for (int i = 0; i < length; i++)
-                extensions[i].InternalSetup(i, this);
-            if (isDefaultInstance)
-                for (int i = 0; i < length; i++)
-                    extensions[i].OnInstantiateDefaultInstance();
-            else
-                for (int i = 0; i < length; i++)
-                    extensions[i].OnInstantiate();
-        }
+        public void SendDestroyEntityIA() => entitySystem.SendDestroyEntityIA(entityData);
 
-        public void SendDestroyEntityIA()
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  SendDestroyEntityIA");
-#endif
-            entitySystem.SendDestroyEntityIA(entityData);
-        }
+        public void ApplyEntityData() => logic.ApplyEntityData(this);
 
-        public void AssociateWithEntityData(EntityData entityData)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  AssociateWithEntityData");
-            if (this.entityData != null)
-                Debug.LogError($"[EntitySystemDebug] Attempt to InitFromEntityData an Entity multiple times.");
-#endif
-            entityDataLogic.SetEntity(entityData, this);
-            ApplyEntityDataWithoutExtensions();
-            EntityExtensionData[] allExtensionData = entityData.allExtensionData;
-            int length = extensions.Length;
-            for (int i = 0; i < length; i++)
-                allExtensionData[i].SetEntityAndExtension(this, extensions[i]);
-            for (int i = 0; i < length; i++)
-                extensions[i].AssociateWithExtensionData();
-            entityDataLogic.OnAssociatedWithEntity(entityData);
-        }
-
-        private void ApplyEntityDataWithoutExtensions()
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityDataWithoutExtensions - noTransformSync: {noTransformSync}, entityData.noTransformSync: {entityData.noTransformSync}");
-#endif
-            Transform t = this.transform;
-            if (!noTransformSync && !entityData.noTransformSync)
-            {
-                interpolation.CancelPositionInterpolation(t);
-                interpolation.CancelRotationInterpolation(t);
-                interpolation.CancelScaleInterpolation(t);
-                t.position = entityData.position;
-                t.rotation = entityData.rotation;
-                t.localScale = entityData.scale;
-            }
-            // TODO: what to do about hidden?
-            // TODO: handle parent entity
-            // TODO: handle child entities
-        }
-
-        public void ApplyEntityData()
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityData");
-#endif
-            ApplyEntityDataWithoutExtensions();
-            foreach (EntityExtension extension in extensions)
-                extension.ApplyExtensionData();
-        }
-
-        public void DisassociateFromEntityDataAndReset(Entity defaultEntityInst)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  DisassociateFromEntityDataAndReset");
-#endif
-            // TODO: this probably needs to do more
-            var defaultExtensions = defaultEntityInst.extensions;
-            for (int i = 0; i < extensions.Length; i++)
-            {
-                EntityExtension extension = extensions[i];
-                extension.DisassociateFromExtensionDataAndReset(defaultExtensions[i]);
-                extension.entityData = null;
-                extension.extensionData = null;
-            }
-            entityData = null;
-        }
-
-        public void OnDestroyEntity()
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  OnDestroyEntity");
-#endif
-        }
-
-        public void TakeControlOfTransformSync(EntityTransformController controller)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log("[EntitySystemDebug] Entity  TakeControlOfTransformSync");
-#endif
-            if (!noTransformSync)
-            {
-                noTransformSync = true;
-                transformSyncController = controller;
-                return;
-            }
-            if (controller == transformSyncController)
-                return;
-            EntityTransformController prevController = transformSyncController;
-            transformSyncController = controller;
-            prevController.OnLatencyControlTakenOver(this, controller);
-        }
+        public void TakeControlOfTransformSync(EntityTransformController controller) => logic.TakeControlOfTransformSync(this, controller);
 
         /// <param name="releasingController">Only give back control if this matches the current controller.
         /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
-        public void GiveBackControlOfTransformSync(EntityTransformController releasingController, Vector3 position, Quaternion rotation, Vector3 scale, float interpolationDuration = TransformChangeInterpolationDuration)
+        public void GiveBackControlOfTransformSync(
+            EntityTransformController releasingController,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            float interpolationDuration = TransformChangeInterpolationDuration)
         {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log("[EntitySystemDebug] Entity  GiveBackControlOfTransformSync");
-#endif
-            if (!noTransformSync || (releasingController != null && transformSyncController != releasingController))
-                return;
-            noTransformSync = false;
-            EntityTransformController prevController = transformSyncController;
-            transformSyncController = null;
-            if (releasingController == null)
-                prevController.OnLatencyControlLost(this);
-
-            Transform t = this.transform;
-
-            bool doInterpolate = interpolationDuration > 0f;
-
-            if (t.position == position)
-                interpolation.CancelPositionInterpolation(t);
-            else if (doInterpolate)
-                interpolation.LerpWorldPosition(t, position, interpolationDuration);
-            else
-            {
-                interpolation.CancelPositionInterpolation(t);
-                t.position = position;
-            }
-
-            if (t.rotation == rotation)
-                interpolation.CancelRotationInterpolation(t);
-            else if (doInterpolate)
-                interpolation.LerpWorldRotation(t, rotation, interpolationDuration);
-            else
-            {
-                interpolation.CancelRotationInterpolation(t);
-                t.rotation = rotation;
-            }
-
-            if (t.localScale == scale)
-                interpolation.CancelScaleInterpolation(t);
-            else if (doInterpolate)
-                interpolation.LerpLocalScale(t, scale, interpolationDuration);
-            else
-            {
-                interpolation.CancelScaleInterpolation(t);
-                t.localScale = scale;
-            }
+            // The amount of wasted SetProgramVariable calls eww.
+            // Udon and its stupid eternity it takes to instantiate scripts, causing me to do this.
+            // I am disgusted.
+            logic.GiveBackControlOfTransformSync(this, releasingController, position, rotation, scale, interpolationDuration);
         }
+
+        // The rest of the logic below is kept in this file, even though that makes instantiation slower,
+        // because the increased runtime cost of added Get/SetProgramVariable calls at runtime are not worth it.
 
         private void EnqueueTransformChangeIA()
         {

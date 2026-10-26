@@ -1,50 +1,28 @@
 ﻿using UdonSharp;
 using UnityEngine;
 
-namespace JanSharp
+namespace JanSharp.Internal
 {
-    [DisallowMultipleComponent]
     [UdonBehaviourSyncMode(BehaviourSyncMode.None)]
-    public class Entity : UdonSharpBehaviour
+    [SingletonScript("d627f7fa95da90f1f87280f822155c9d")] // Runtime/Prefabs/EntitySystem.prefab
+    public class EntityLogic : UdonSharpBehaviour
     {
-        [HideInInspector][SingletonReference] public LockstepAPI lockstep;
-        [HideInInspector][SingletonReference] public EntitySystemAPI entitySystem;
-        [HideInInspector][SingletonReference] public WannaBeClassesManager wannaBeClasses;
-        [HideInInspector][SingletonReference] public InterpolationManager interpolation;
-        [HideInInspector][SerializeField][SingletonReference] private Internal.EntityDataLogic entityDataLogic;
-        [System.NonSerialized] public EntityPrototype prototype;
-        [System.NonSerialized] public EntityData entityData;
-        [System.NonSerialized] public int instanceIndex;
-
-        [System.NonSerialized] public bool noTransformSync;
-        [System.NonSerialized] public EntityTransformController transformSyncController;
-
-        [Tooltip("Updated automatically when entering play mode or building the world.\n"
-            + "Prefabs which are not used in a scene will not be updated. There's no need.")]
-        public EntityExtension[] extensions;
-
-        private bool transformChangeIAIsQueued = false;
-        private bool flaggedForPositionChange = false;
-        private bool flaggedForDiscontinuousPositionChange = false;
-        private bool flaggedForRotationChange = false;
-        private bool flaggedForDiscontinuousRotationChange = false;
-        private bool flaggedForScaleChange = false;
-        private bool flaggedForDiscontinuousScaleChange = false;
-        private float timeAtLastTransformChangeIA = 0f;
-        public const float TimeBetweenTransformChangeIAs = 0.2f;
-        public const float TransformChangeInterpolationDuration = TimeBetweenTransformChangeIAs + 0.1f;
+        [HideInInspector][SerializeField][SingletonReference] private InterpolationManager interpolation;
+        [HideInInspector][SerializeField][SingletonReference] private EntityDataLogic entityDataLogic;
 
         public void OnInstantiate(
+            Entity entity,
             EntityPrototype prototype,
             bool isDefaultInstance)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  OnInstantiate");
+            Debug.Log($"[EntitySystemDebug] EntityLogic  OnInstantiate");
 #endif
-            this.prototype = prototype;
+            entity.prototype = prototype;
+            EntityExtension[] extensions = entity.extensions;
             int length = extensions.Length;
             for (int i = 0; i < length; i++)
-                extensions[i].InternalSetup(i, this);
+                extensions[i].InternalSetup(i, entity);
             if (isDefaultInstance)
                 for (int i = 0; i < length; i++)
                     extensions[i].OnInstantiateDefaultInstance();
@@ -53,40 +31,34 @@ namespace JanSharp
                     extensions[i].OnInstantiate();
         }
 
-        public void SendDestroyEntityIA()
+        public void AssociateWithEntityData(Entity entity, EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  SendDestroyEntityIA");
-#endif
-            entitySystem.SendDestroyEntityIA(entityData);
-        }
-
-        public void AssociateWithEntityData(EntityData entityData)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  AssociateWithEntityData");
-            if (this.entityData != null)
+            Debug.Log($"[EntitySystemDebug] EntityLogic  AssociateWithEntityData");
+            if (entity.entityData != null)
                 Debug.LogError($"[EntitySystemDebug] Attempt to InitFromEntityData an Entity multiple times.");
 #endif
-            entityDataLogic.SetEntity(entityData, this);
-            ApplyEntityDataWithoutExtensions();
+            entityDataLogic.SetEntity(entityData, entity);
+            ApplyEntityDataWithoutExtensions(entity);
             EntityExtensionData[] allExtensionData = entityData.allExtensionData;
+            EntityExtension[] extensions = entity.extensions;
             int length = extensions.Length;
             for (int i = 0; i < length; i++)
-                allExtensionData[i].SetEntityAndExtension(this, extensions[i]);
+                allExtensionData[i].SetEntityAndExtension(entity, extensions[i]);
             for (int i = 0; i < length; i++)
                 extensions[i].AssociateWithExtensionData();
             entityDataLogic.OnAssociatedWithEntity(entityData);
         }
 
-        private void ApplyEntityDataWithoutExtensions()
+        private void ApplyEntityDataWithoutExtensions(Entity entity)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityDataWithoutExtensions - noTransformSync: {noTransformSync}, entityData.noTransformSync: {entityData.noTransformSync}");
+            Debug.Log($"[EntitySystemDebug] EntityLogic  ApplyEntityDataWithoutExtensions - entity.noTransformSync: {entity.noTransformSync}, entity.entityData.noTransformSync: {entity.entityData.noTransformSync}");
 #endif
-            Transform t = this.transform;
-            if (!noTransformSync && !entityData.noTransformSync)
+            EntityData entityData = entity.entityData;
+            if (!entity.noTransformSync && !entityData.noTransformSync)
             {
+                Transform t = entity.transform;
                 interpolation.CancelPositionInterpolation(t);
                 interpolation.CancelRotationInterpolation(t);
                 interpolation.CancelScaleInterpolation(t);
@@ -99,23 +71,24 @@ namespace JanSharp
             // TODO: handle child entities
         }
 
-        public void ApplyEntityData()
+        public void ApplyEntityData(Entity entity)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityData");
+            Debug.Log($"[EntitySystemDebug] EntityLogic  ApplyEntityData");
 #endif
-            ApplyEntityDataWithoutExtensions();
-            foreach (EntityExtension extension in extensions)
+            ApplyEntityDataWithoutExtensions(entity);
+            foreach (EntityExtension extension in entity.extensions)
                 extension.ApplyExtensionData();
         }
 
-        public void DisassociateFromEntityDataAndReset(Entity defaultEntityInst)
+        public void DisassociateFromEntityDataAndReset(Entity entity, Entity defaultEntityInst)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  DisassociateFromEntityDataAndReset");
+            Debug.Log($"[EntitySystemDebug] EntityLogic  DisassociateFromEntityDataAndReset");
 #endif
             // TODO: this probably needs to do more
-            var defaultExtensions = defaultEntityInst.extensions;
+            EntityExtension[] defaultExtensions = defaultEntityInst.extensions;
+            EntityExtension[] extensions = entity.extensions;
             for (int i = 0; i < extensions.Length; i++)
             {
                 EntityExtension extension = extensions[i];
@@ -123,50 +96,49 @@ namespace JanSharp
                 extension.entityData = null;
                 extension.extensionData = null;
             }
-            entityData = null;
+            entity.entityData = null;
         }
 
-        public void OnDestroyEntity()
+        public void TakeControlOfTransformSync(Entity entity, EntityTransformController controller)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  OnDestroyEntity");
+            Debug.Log("[EntitySystemDebug] EntityLogic  TakeControlOfTransformSync");
 #endif
-        }
-
-        public void TakeControlOfTransformSync(EntityTransformController controller)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log("[EntitySystemDebug] Entity  TakeControlOfTransformSync");
-#endif
-            if (!noTransformSync)
+            if (!entity.noTransformSync)
             {
-                noTransformSync = true;
-                transformSyncController = controller;
+                entity.noTransformSync = true;
+                entity.transformSyncController = controller;
                 return;
             }
-            if (controller == transformSyncController)
+            EntityTransformController prevController = entity.transformSyncController;
+            if (controller == prevController)
                 return;
-            EntityTransformController prevController = transformSyncController;
-            transformSyncController = controller;
-            prevController.OnLatencyControlTakenOver(this, controller);
+            entity.transformSyncController = controller;
+            prevController.OnLatencyControlTakenOver(entity, controller);
         }
 
         /// <param name="releasingController">Only give back control if this matches the current controller.
         /// Unless the given controller is <see langword="null"/>, then it gives back regardless.</param>
-        public void GiveBackControlOfTransformSync(EntityTransformController releasingController, Vector3 position, Quaternion rotation, Vector3 scale, float interpolationDuration = TransformChangeInterpolationDuration)
+        public void GiveBackControlOfTransformSync(
+            Entity entity,
+            EntityTransformController releasingController,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            float interpolationDuration)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log("[EntitySystemDebug] Entity  GiveBackControlOfTransformSync");
+            Debug.Log("[EntitySystemDebug] EntityLogic  GiveBackControlOfTransformSync");
 #endif
-            if (!noTransformSync || (releasingController != null && transformSyncController != releasingController))
+            if (!entity.noTransformSync || (releasingController != null && entity.transformSyncController != releasingController))
                 return;
-            noTransformSync = false;
-            EntityTransformController prevController = transformSyncController;
-            transformSyncController = null;
+            entity.noTransformSync = false;
+            EntityTransformController prevController = entity.transformSyncController;
+            entity.transformSyncController = null;
             if (releasingController == null)
-                prevController.OnLatencyControlLost(this);
+                prevController.OnLatencyControlLost(entity);
 
-            Transform t = this.transform;
+            Transform t = entity.transform;
 
             bool doInterpolate = interpolationDuration > 0f;
 
@@ -199,146 +171,6 @@ namespace JanSharp
                 interpolation.CancelScaleInterpolation(t);
                 t.localScale = scale;
             }
-        }
-
-        private void EnqueueTransformChangeIA()
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  EnqueueTransformChangeIA");
-#endif
-            if (transformChangeIAIsQueued)
-                return;
-            transformChangeIAIsQueued = true;
-            float timeUntilNextMovementIA = TimeBetweenTransformChangeIAs - (Time.time - timeAtLastTransformChangeIA);
-            if (timeUntilNextMovementIA <= 0f)
-                SendCustomEventDelayedFrames(nameof(SendTransformChangeIA), 1);
-            else
-                SendCustomEventDelayedSeconds(nameof(SendTransformChangeIA), timeUntilNextMovementIA);
-        }
-
-        public void FlagForPositionChange(bool flagForDiscontinuity = false)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  FlagForPositionChange");
-#endif
-            if (noTransformSync)
-                return;
-            if (flagForDiscontinuity)
-                flaggedForDiscontinuousPositionChange = true;
-            flaggedForPositionChange = true;
-            EnqueueTransformChangeIA();
-        }
-
-        public void FlagForRotationChange(bool flagForDiscontinuity = false)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  FlagForRotationChange");
-#endif
-            if (noTransformSync)
-                return;
-            if (flagForDiscontinuity)
-                flaggedForDiscontinuousRotationChange = true;
-            flaggedForRotationChange = true;
-            EnqueueTransformChangeIA();
-        }
-
-        public void FlagForPositionAndRotationChange(bool flagForDiscontinuity = false)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  FlagForPositionAndRotationChange");
-#endif
-            FlagForPositionChange(flagForDiscontinuity);
-            FlagForRotationChange(flagForDiscontinuity);
-        }
-
-        public void FlagForScaleChange(bool flagForDiscontinuity = false)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  FlagForScaleChange");
-#endif
-            if (noTransformSync)
-                return;
-            if (flagForDiscontinuity)
-                flaggedForDiscontinuousScaleChange = true;
-            if (flaggedForScaleChange)
-                return;
-            flaggedForScaleChange = true;
-            EnqueueTransformChangeIA();
-        }
-
-        private void ResetTransformChangeFlags()
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  ResetTransformChangeFlags");
-#endif
-            transformChangeIAIsQueued = false;
-            flaggedForPositionChange = false;
-            flaggedForDiscontinuousPositionChange = false;
-            flaggedForRotationChange = false;
-            flaggedForDiscontinuousRotationChange = false;
-            flaggedForScaleChange = false;
-            flaggedForDiscontinuousScaleChange = false;
-        }
-
-        /// <summary>
-        /// <para>Input action handler is here: <see cref="EntityData.OnTransformChangeIA"/>.</para>
-        /// </summary>
-        public void SendTransformChangeIA()
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  SendTransformChangeIA");
-#endif
-            entitySystem.WriteEntityDataRef(entityData);
-            lockstep.WriteFlags(
-                flaggedForPositionChange, flaggedForDiscontinuousPositionChange,
-                flaggedForRotationChange, flaggedForDiscontinuousRotationChange,
-                flaggedForScaleChange, flaggedForDiscontinuousScaleChange);
-
-            int startPosition = lockstep.WriteStreamPosition;
-
-            Transform t = this.transform;
-            if (flaggedForPositionChange)
-                lockstep.WriteVector3(t.position);
-            if (flaggedForRotationChange)
-                lockstep.WriteQuaternion(t.rotation);
-            if (flaggedForScaleChange)
-                lockstep.WriteVector3(t.localScale);
-            ResetTransformChangeFlags();
-
-            if (lockstep.WriteStreamPosition == startPosition)
-            {
-                lockstep.ResetWriteStream();
-                return;
-            }
-
-            timeAtLastTransformChangeIA = Time.time;
-            entityData.RegisterLatencyHiddenUniqueId(((Internal.EntitySystem)entitySystem).SendTransformChangeIA());
-        }
-    }
-
-    public static class EntityExtensions
-    {
-        public static int IndexOfExtension(this Entity entity, string extensionDataClassName, int startIndex = 0)
-            => System.Array.IndexOf(entity.prototype.ExtensionDataClassNames, extensionDataClassName, startIndex);
-
-        public static EntityExtension GetExtensionDynamic(this Entity entity, string extensionDataClassName, int startIndex = 0)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  GetExtensionDynamic");
-#endif
-            int extensionIndex = System.Array.IndexOf(entity.prototype.ExtensionDataClassNames, extensionDataClassName, startIndex);
-            return extensionIndex < 0 ? null : entity.extensions[extensionIndex];
-        }
-
-        public static T GetExtension<T>(this Entity entity, string extensionDataClassName, int startIndex = 0)
-            where T : EntityExtension
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] Entity  GetExtension");
-#endif
-            // Same as GetExtensionDynamic.
-            int extensionIndex = System.Array.IndexOf(entity.prototype.ExtensionDataClassNames, extensionDataClassName, startIndex);
-            return (T)(extensionIndex < 0 ? null : entity.extensions[extensionIndex]);
         }
     }
 }

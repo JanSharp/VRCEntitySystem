@@ -12,6 +12,7 @@ namespace JanSharp.Internal
         [HideInInspector][SerializeField][SingletonReference] private EntitySystemAPI entitySystem;
         [HideInInspector][SerializeField][SingletonReference] private InterpolationManager interpolation;
         [HideInInspector][SerializeField][SingletonReference] private WannaBeClassesManager wannaBeClasses;
+        [HideInInspector][SerializeField][SingletonReference] private EntityLogic entityLogic;
 
         private bool IsDummyEntityDataForImport(EntityData entityData) => entityData.entityPrototype == null;
 
@@ -193,7 +194,7 @@ namespace JanSharp.Internal
             latencyHiddenUniqueIds.Clear();
             Entity entity = entityData.entity;
             if (entity != null)
-                entity.ApplyEntityData();
+                entityLogic.ApplyEntityData(entity);
             return false; // Already got applied by the above.
         }
 
@@ -233,7 +234,7 @@ namespace JanSharp.Internal
             latencyHiddenUniqueIds.Clear();
             Entity entity = entityData.entity;
             if (entity != null)
-                entity.ApplyEntityData();
+                entityLogic.ApplyEntityData(entity);
             return true;
         }
 
@@ -258,7 +259,7 @@ namespace JanSharp.Internal
             latencyHiddenUniqueIds.Clear();
             Entity entity = entityData.entity;
             if (entity != null)
-                entity.ApplyEntityData();
+                entityLogic.ApplyEntityData(entity);
             return true;
         }
 

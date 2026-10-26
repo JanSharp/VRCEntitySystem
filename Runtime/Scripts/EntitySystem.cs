@@ -33,6 +33,7 @@ namespace JanSharp.Internal
 
         [HideInInspector][SerializeField][SingletonReference] private EntityPooling pooling;
         [HideInInspector][SerializeField][SingletonReference] private EntityDataLogic entityDataLogic;
+        [HideInInspector][SerializeField][SingletonReference] private EntityLogic entityLogic;
         [HideInInspector][SerializeField][SingletonReference] private WannaBeClassesManager wannaBeClasses;
         [HideInInspector][SerializeField][SingletonReference] private PlayerDataManagerAPI playerDataManager;
 
@@ -198,7 +199,7 @@ namespace JanSharp.Internal
             {
                 entityPrototypesById.Add(prototype.Id, prototype);
                 entityPrototypesByName.Add(prototype.PrototypeName, prototype);
-                prototype.DefaultEntityInst.OnInstantiate(prototype, isDefaultInstance: true);
+                entityLogic.OnInstantiate(prototype.DefaultEntityInst, prototype, isDefaultInstance: true);
             }
         }
 
@@ -212,7 +213,7 @@ namespace JanSharp.Internal
             {
                 Entity entity = preInstantiatedEntityInstances[i];
                 EntityPrototype prototype = preInstantiatedEntityInstancePrototypes[i];
-                entity.OnInstantiate(prototype, isDefaultInstance: false);
+                entityLogic.OnInstantiate(entity, prototype, isDefaultInstance: false);
             }
         }
 
@@ -250,7 +251,7 @@ namespace JanSharp.Internal
             entityDataLogic.WannaBeConstructor(entityData, prototype, InvalidUniqueId, id);
             RegisterEntityDataAndId(entityData);
             entityDataLogic.InitFromPreInstantiated(entityData, entity);
-            entity.AssociateWithEntityData(entityData);
+            entityLogic.AssociateWithEntityData(entity, entityData);
             return entityData;
         }
 
@@ -1094,7 +1095,7 @@ namespace JanSharp.Internal
                 }
                 entityDataLogic.Deserialize(entityData, isImport: true, importedDataVersion);
                 if (entityData.entity != null)
-                    entityData.entity.ApplyEntityData();
+                    entityLogic.ApplyEntityData(entityData.entity);
                 else
                     pooling.RequestEntity(entityData);
             }
@@ -1186,7 +1187,7 @@ namespace JanSharp.Internal
             Entity entity = preInstantiatedEntityInstances[index];
             if (entity != null)
             {
-                entity.AssociateWithEntityData(entityData);
+                entityLogic.AssociateWithEntityData(entity, entityData);
                 return entityData;
             }
 

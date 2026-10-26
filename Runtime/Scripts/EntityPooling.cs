@@ -10,6 +10,7 @@ namespace JanSharp.Internal
     {
         [HideInInspector][SerializeField][SingletonReference] private EntitySystemAPI entitySystem;
         [HideInInspector][SerializeField][SingletonReference] private EntityDataLogic entityDataLogic;
+        [HideInInspector][SerializeField][SingletonReference] private EntityLogic entityLogic;
         [HideInInspector][SerializeField][SingletonReference] private UpdateManager updateManager;
         /// <summary>Required by the <see cref="UpdateManager"/>.</summary>
         [System.NonSerialized] public int customUpdateInternalIndex;
@@ -88,7 +89,7 @@ namespace JanSharp.Internal
             Debug.Log($"[EntitySystemDebug] EntityPooling  ReturnEntity - entity");
 #endif
             entity.gameObject.SetActive(false);
-            entity.DisassociateFromEntityDataAndReset(entity.prototype.DefaultEntityInst);
+            entityLogic.DisassociateFromEntityDataAndReset(entity, entity.prototype.DefaultEntityInst);
             pooledEntities[entity.prototype.Id].DataList.Add(entity);
         }
 
@@ -148,14 +149,14 @@ namespace JanSharp.Internal
                 Debug.Log($"[EntitySystemDebug] [sw] EntityPooling  ProcessRequest (inner) - instantiateMs: {sw.Elapsed.TotalMilliseconds:f3}");
 #endif
                 entity = entityGo.GetComponent<Entity>();
-                entity.OnInstantiate(prototype, isDefaultInstance: false);
+                entityLogic.OnInstantiate(entity, prototype, isDefaultInstance: false);
             }
             Transform t = entity.transform;
             t.position = entityData.LastKnownPosition;
             t.rotation = entityData.LastKnownRotation;
             t.localScale = entityData.LastKnownScale;
             entity.gameObject.SetActive(true);
-            entity.AssociateWithEntityData(entityData);
+            entityLogic.AssociateWithEntityData(entity, entityData);
             return true;
         }
     }
