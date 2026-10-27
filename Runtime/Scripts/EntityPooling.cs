@@ -208,8 +208,8 @@ namespace JanSharp.Internal
                 entityLogic.OnInstantiate(entity, prototype, isDefaultInstance: false);
             }
             Transform t = entity.transform;
-            t.position = entityData.LastKnownPosition;
-            t.rotation = entityData.LastKnownRotation;
+            t.localPosition = entityData.LastKnownPosition;
+            t.localRotation = entityData.LastKnownRotation;
             t.localScale = entityData.LastKnownScale;
             entity.gameObject.SetActive(true);
             entityLogic.AssociateWithEntityData(entity, entityData);

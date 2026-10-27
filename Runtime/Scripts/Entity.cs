@@ -150,7 +150,8 @@ namespace JanSharp
         }
 
         /// <summary>
-        /// <para>Input action handler is here: <see cref="EntityData.OnTransformChangeIA"/>.</para>
+        /// <para>Input action handler is here:
+        /// <see cref="Internal.EntityDataLogic.OnTransformChangeIA"/>.</para>
         /// </summary>
         public void SendTransformChangeIA()
         {
@@ -167,9 +168,9 @@ namespace JanSharp
 
             Transform t = this.transform;
             if (flaggedForPositionChange)
-                lockstep.WriteVector3(t.position);
+                lockstep.WriteVector3(t.localPosition);
             if (flaggedForRotationChange)
-                lockstep.WriteQuaternion(t.rotation);
+                lockstep.WriteQuaternion(t.localRotation);
             if (flaggedForScaleChange)
                 lockstep.WriteVector3(t.localScale);
             ResetTransformChangeFlags();

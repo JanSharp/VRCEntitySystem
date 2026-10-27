@@ -241,24 +241,24 @@ namespace JanSharp.Internal
 
             bool doInterpolate = interpolationDuration > 0f;
 
-            if (t.position == position)
+            if (t.localPosition == position)
                 interpolation.CancelPositionInterpolation(t);
             else if (doInterpolate)
-                interpolation.LerpWorldPosition(t, position, interpolationDuration);
+                interpolation.LerpLocalPosition(t, position, interpolationDuration);
             else
             {
                 interpolation.CancelPositionInterpolation(t);
-                t.position = position;
+                t.localPosition = position;
             }
 
-            if (t.rotation == rotation)
+            if (t.localRotation == rotation)
                 interpolation.CancelRotationInterpolation(t);
             else if (doInterpolate)
-                interpolation.LerpWorldRotation(t, rotation, interpolationDuration);
+                interpolation.LerpLocalRotation(t, rotation, interpolationDuration);
             else
             {
                 interpolation.CancelRotationInterpolation(t);
-                t.rotation = rotation;
+                t.localRotation = rotation;
             }
 
             if (t.localScale == scale)

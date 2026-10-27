@@ -103,8 +103,8 @@ namespace JanSharp.Internal
 #endif
             entityData.isInitialized = true;
             Transform t = entity.transform;
-            entityData.position = t.position;
-            entityData.rotation = t.rotation;
+            entityData.position = t.localPosition;
+            entityData.rotation = t.localRotation;
             entityData.scale = t.localScale;
             // These 2 are null anyway, but just for clarity.
             // And it is semantically correct to use the property setter here, this is a game state safe event.
@@ -329,9 +329,9 @@ namespace JanSharp.Internal
             lockstep.WriteFlags(unknownPosition, unknownRotation, unknownScale);
             Transform entityTransform = entity.transform;
             if (unknownPosition)
-                lockstep.WriteVector3(entityTransform.position);
+                lockstep.WriteVector3(entityTransform.localPosition);
             if (unknownRotation)
-                lockstep.WriteQuaternion(entityTransform.rotation);
+                lockstep.WriteQuaternion(entityTransform.localRotation);
             if (unknownScale)
                 lockstep.WriteVector3(entityTransform.localScale);
         }
@@ -427,8 +427,8 @@ namespace JanSharp.Internal
                 // Exports can actually use non game state safe data.
                 // Imports are going to turn that data into game state safe data anyway.
                 Transform entityTransform = entity.transform;
-                lockstep.WriteVector3(entityTransform.position);
-                lockstep.WriteQuaternion(entityTransform.rotation);
+                lockstep.WriteVector3(entityTransform.localPosition);
+                lockstep.WriteQuaternion(entityTransform.localRotation);
                 lockstep.WriteVector3(entityTransform.localScale);
                 lockstep.WriteSmallUInt(0u); // ticksAgo
                 return;
@@ -469,6 +469,68 @@ namespace JanSharp.Internal
             // See SetTransformSyncControllerDueToDeserialization.
         }
 
+        private void SerializeParentEntity(EntityData entityData, bool isExport)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  SerializeParentEntity");
+#endif
+            EntityData parentEntityData = entityData.parentEntityData;
+            lockstep.WriteSmallUInt(parentEntityData == null ? EntitySystemAPI.InvalidId : parentEntityData.id);
+            if (!isExport || parentEntityData == null)
+                return;
+
+            Entity entity = entityData.entity;
+            if (entity == null)
+            {
+                lockstep.WriteFlags(false); // worldLocationIsKnown.
+                return;
+            }
+            lockstep.WriteFlags(true); // worldLocationIsKnown.
+            Transform t = entity.transform;
+            lockstep.WriteVector3(t.position);
+            lockstep.WriteQuaternion(t.rotation);
+        }
+
+        private void DeserializeParentEntity(EntityData entityData, bool isImport)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  DeserializeParentEntity");
+#endif
+            uint parentEntityId = lockstep.ReadSmallUInt();
+            if (parentEntityId == EntitySystemAPI.InvalidId)
+            {
+                entityData.parentEntityData = null;
+                return;
+            }
+            if (!isImport)
+            {
+                entitySystem.TryGetEntityData(parentEntityId, out entityData.parentEntityData);
+                return;
+            }
+
+            if (entitySystem.TryGetRemappedImportedEntityData(parentEntityId, out entityData.parentEntityData))
+                return;
+
+            // Had a parent entity when exporting but cannot resolve it when importing,
+            // try to set the world position and rotation.
+            lockstep.ReadFlags(out bool worldLocationIsKnown);
+            if (!worldLocationIsKnown)
+            {
+                // This case here is actually really bad. The local position and rotation of the entity at the
+                // time of export - relative to some entity which does not exist upon importing - will now be
+                // used as the world position and rotation of the entity.
+                // Arguably might as well destroy this entity at this point... right?
+                // Maybe it should, yea, though world location being unknown is so unlikely that I do not care right now.
+                // Realistically, the correct solution to this would be to calculate what the world location
+                // should be at the time of exporting, based on the entity data parent hierarchy and their
+                // positions, rotations and scales. Then the world location here would always be known.
+                return;
+            }
+
+            entityData.position = lockstep.ReadVector3();
+            entityData.rotation = lockstep.ReadQuaternion();
+        }
+
         private void SerializeChildEntities(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
@@ -506,7 +568,7 @@ namespace JanSharp.Internal
             entitySystem.WritePlayerDataRef(entityData.CreatedByPlayerData);
             entitySystem.WritePlayerDataRef(entityData.LastUserPlayerData);
 
-            entitySystem.WriteEntityDataRef(entityData.parentEntityData);
+            SerializeParentEntity(entityData, isExport);
             SerializeChildEntities(entityData);
 
             EntityExtensionData[] allExtensionData = entityData.allExtensionData;
@@ -526,7 +588,7 @@ namespace JanSharp.Internal
             entityData.CreatedByPlayerData = entitySystem.ReadPlayerDataRef(isImport);
             entityData.LastUserPlayerData = entitySystem.ReadPlayerDataRef(isImport);
 
-            entitySystem.TryReadEntityDataRef(out entityData.parentEntityData, isImport);
+            DeserializeParentEntity(entityData, isImport);
             DeserializeChildEntities(entityData, isImport);
 
             if (!entityData.isInitialized)
@@ -641,22 +703,22 @@ namespace JanSharp.Internal
             if (positionChange)
             {
                 if (!discontinuousPositionChange)
-                    interpolation.LerpWorldPosition(entityTransform, incomingPosition, Entity.TransformChangeInterpolationDuration);
+                    interpolation.LerpLocalPosition(entityTransform, incomingPosition, Entity.TransformChangeInterpolationDuration);
                 else
                 {
                     interpolation.CancelPositionInterpolation(entityTransform);
-                    entityTransform.position = incomingPosition;
+                    entityTransform.localPosition = incomingPosition;
                 }
             }
 
             if (rotationChange)
             {
                 if (!discontinuousRotationChange)
-                    interpolation.LerpWorldRotation(entityTransform, incomingRotation, Entity.TransformChangeInterpolationDuration);
+                    interpolation.LerpLocalRotation(entityTransform, incomingRotation, Entity.TransformChangeInterpolationDuration);
                 else
                 {
                     interpolation.CancelRotationInterpolation(entityTransform);
-                    entityTransform.rotation = incomingRotation;
+                    entityTransform.localRotation = incomingRotation;
                 }
             }
 
