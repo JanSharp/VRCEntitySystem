@@ -89,7 +89,7 @@ namespace JanSharp
         public abstract bool TryReadEntityDataRef(out EntityData entityData);
         public abstract bool TryReadEntityDataRef(out EntityData entityData, bool isImport);
 
-        public abstract void SendDestroyEntityIA(EntityData entityData);
+        public abstract void SendDestroyEntityIA(EntityData entityData, bool keepChildEntitiesAlive = false);
         public abstract void SendDestroyAllEntitiesIA();
         public abstract void DestroyEntityInGS(EntityData entityData);
 

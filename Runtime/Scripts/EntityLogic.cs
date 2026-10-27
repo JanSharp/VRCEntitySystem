@@ -7,6 +7,8 @@ namespace JanSharp.Internal
     [SingletonScript("d627f7fa95da90f1f87280f822155c9d")] // Runtime/Prefabs/EntitySystem.prefab
     public class EntityLogic : UdonSharpBehaviour
     {
+        [HideInInspector][SerializeField][SingletonReference] private LockstepAPI lockstep;
+        [HideInInspector][SerializeField][SingletonReference] private EntitySystemAPI entitySystem;
         [HideInInspector][SerializeField][SingletonReference] private InterpolationManager interpolation;
         [HideInInspector][SerializeField][SingletonReference] private EntityDataLogic entityDataLogic;
 
@@ -56,19 +58,80 @@ namespace JanSharp.Internal
             Debug.Log($"[EntitySystemDebug] EntityLogic  ApplyEntityDataWithoutExtensions - entity.noTransformSync: {entity.noTransformSync}, entity.entityData.noTransformSync: {entity.entityData.noTransformSync}");
 #endif
             EntityData entityData = entity.entityData;
+            EntityData parentEntityData = entityData.parentEntityData;
+
+            // TODO: what to do about hidden?
+
+            // The condition below is game sate unsafe, however the calling context might be game state safe.
+            // Ensure any inner logic knows it is unsafe.
+            lockstep.OpenGameStateUnsafeScope();
+
+            if (parentEntityData != null && parentEntityData.entity == null)
+            {
+                // And with this being game state unsafe, from this point until the callback runs,
+                // the game state is therefore guaranteed to not get modified.
+                entitySystem.EnsureEntityExistsForEntityData(parentEntityData, this, nameof(OnParentEntityCreated), entity);
+                return;
+            }
+
+            ResumeApplyEntityDataWithoutExtensions(entity);
+            lockstep.CloseGameStateUnsafeScope();
+        }
+
+        public void OnParentEntityCreated()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityLogic  OnParentEntityCreated");
+#endif
+            ResumeApplyEntityDataWithoutExtensions((Entity)entitySystem.CallbackCustomData);
+            lockstep.CloseGameStateUnsafeScope();
+        }
+
+        private void ResumeApplyEntityDataWithoutExtensions(Entity entity)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityLogic  ResumeApplyEntityDataWithoutExtensions");
+#endif
+            EntityData entityData = entity.entityData;
+            EntityData parentEntityData = entityData.parentEntityData;
+
+            Transform t = entity.transform;
+            EntityData prevParentEntityData = entity.parentEntityData;
+            if (prevParentEntityData != parentEntityData)
+            {
+                entity.parentEntityData = parentEntityData;
+
+                if (prevParentEntityData != null && prevParentEntityData.entity != null)
+                    RemoveFromChildEntities(prevParentEntityData.entity, entityData);
+
+                if (parentEntityData != null && parentEntityData.entity != null)
+                {
+                    AddToChildEntities(parentEntityData.entity, entityData);
+                    t.SetParent(parentEntityData.entity.transform);
+                }
+                else
+                    t.SetParent(null);
+            }
+
             if (!entity.noTransformSync && !entityData.noTransformSync)
             {
-                Transform t = entity.transform;
                 interpolation.CancelPositionInterpolation(t);
                 interpolation.CancelRotationInterpolation(t);
                 interpolation.CancelScaleInterpolation(t);
-                t.position = entityData.position;
-                t.rotation = entityData.rotation;
+                t.localPosition = entityData.position;
+                t.localRotation = entityData.rotation;
                 t.localScale = entityData.scale;
             }
-            // TODO: what to do about hidden?
-            // TODO: handle parent entity
-            // TODO: handle child entities
+        }
+
+        private void AddToChildEntities(Entity entity, EntityData childEntityData)
+        {
+            ArrList.Add(ref entity.childEntities, ref entity.childEntitiesCount, childEntityData);
+        }
+
+        private void RemoveFromChildEntities(Entity entity, EntityData childEntityData)
+        {
+            ArrList.Remove(ref entity.childEntities, ref entity.childEntitiesCount, childEntityData);
         }
 
         public void ApplyEntityData(Entity entity)
@@ -86,7 +149,11 @@ namespace JanSharp.Internal
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityLogic  DisassociateFromEntityDataAndReset");
 #endif
-            // TODO: this probably needs to do more
+            ClearParentEntity(entity);
+            ClearChildEntities(entity);
+
+            // TODO: what to do about hidden?
+
             EntityExtension[] defaultExtensions = defaultEntityInst.extensions;
             EntityExtension[] extensions = entity.extensions;
             for (int i = 0; i < extensions.Length; i++)
@@ -97,6 +164,38 @@ namespace JanSharp.Internal
                 extension.extensionData = null;
             }
             entity.entityData = null;
+        }
+
+        private void ClearParentEntity(Entity entity)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log("[EntitySystemDebug] EntityLogic  ClearParentEntity");
+#endif
+            EntityData parentEntityData = entity.parentEntityData;
+            if (parentEntityData == null)
+                return;
+            if (parentEntityData.entity != null)
+                RemoveFromChildEntities(parentEntityData.entity, entity.entityData);
+            entity.parentEntityData = null;
+            entity.transform.SetParent(null);
+        }
+
+        private void ClearChildEntities(Entity entity)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log("[EntitySystemDebug] EntityLogic  ClearChildEntities");
+#endif
+            EntityData[] childEntities = entity.childEntities;
+            int childEntitiesCount = entity.childEntitiesCount;
+            for (int i = 0; i < childEntitiesCount; i++)
+            {
+                Entity child = childEntities[i].entity;
+                if (child == null)
+                    continue;
+                child.parentEntityData = null;
+                child.transform.SetParent(null);
+            }
+            entity.childEntitiesCount = 0;
         }
 
         public void TakeControlOfTransformSync(Entity entity, EntityTransformController controller)

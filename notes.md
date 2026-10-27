@@ -74,4 +74,4 @@
 - [ ] add API for attaching and detaching child entities
   - [ ] in the game state
   - [ ] in the latency state
-  - [ ] make resetting latency state to game state also reset child attachment states... likely must reset the entire tree of entities
+  - [x] make resetting latency state to game state also reset child attachment states... ~~likely must reset the entire tree of entities~~ nope, no resetting the whole tree needed, an entity is simply only responsible for managing it's parent in the latency state, what children it has in the latency state is up to said children. And the order of child entities in the latency state does not need to match that of the game state

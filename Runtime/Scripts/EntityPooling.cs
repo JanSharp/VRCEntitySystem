@@ -81,7 +81,7 @@ namespace JanSharp.Internal
             entity.entityData = null;
         }
 
-        public void ReturnEntity(Entity entity)
+        private void ReturnEntity(Entity entity)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  ReturnEntity - entity");

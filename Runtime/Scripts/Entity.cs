@@ -33,7 +33,20 @@ namespace JanSharp
         public const float TimeBetweenTransformChangeIAs = 0.2f;
         public const float TransformChangeInterpolationDuration = TimeBetweenTransformChangeIAs + 0.1f;
 
-        public void SendDestroyEntityIA() => entitySystem.SendDestroyEntityIA(entityData);
+        // In the latency state, an entity is responsible for managing which entity is its parent entity.
+        // However the list of child entities is up to the children to update.
+        // Resetting the latency state to game state only resets the parent entity, the list of child entities
+        // may not match that of the game state, unless every child also gets reset separately.
+
+        [System.NonSerialized] public EntityData parentEntityData;
+        /// <summary>
+        /// <para>The order of this list may not match that of <see cref="EntityData.childEntities"/>, even
+        /// when the latency state otherwise matches the game state.</para>
+        /// </summary>
+        [System.NonSerialized] public EntityData[] childEntities = new EntityData[ArrList.MinCapacity];
+        [System.NonSerialized] public int childEntitiesCount = 0;
+
+        public void SendDestroyEntityIA(bool keepChildEntitiesAlive = false) => entitySystem.SendDestroyEntityIA(entityData, keepChildEntitiesAlive);
 
         public void ApplyEntityData() => logic.ApplyEntityData(this);
 

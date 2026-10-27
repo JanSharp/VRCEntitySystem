@@ -82,15 +82,15 @@ namespace JanSharp
             }
         }
         [System.NonSerialized] public bool hidden;
-        [System.NonSerialized] public EntityData parentEntity;
-        [System.NonSerialized] public EntityData[] childEntities = new EntityData[0];
+
+        [System.NonSerialized] public EntityData parentEntityData;
+        [System.NonSerialized] public EntityData[] childEntities = new EntityData[ArrList.MinCapacity];
+        [System.NonSerialized] public int childEntitiesCount = 0;
+
         // Having serialized fields in WannaBeClasses is a very bad idea, as they could end up having stale
         // previous default values. It's fine in this case as the value gets overwritten for newly created
         // entity data, and the pre instantiated ones get populated through editor scripting.
         [HideInInspector] public EntityExtensionData[] allExtensionData;
-
-        internal uint unresolvedParentEntityId;
-        internal uint[] unresolvedChildEntitiesIds;
 
         [System.NonSerialized] public EntityPrototypeMetadata importedMetadata;
 
@@ -132,18 +132,16 @@ namespace JanSharp
             createdByPlayerData = default;
             lastUserPlayerData = default;
             hidden = default;
-            parentEntity = default;
-            childEntities = new EntityData[0];
+            parentEntityData = default;
+            ArrList.Clear(ref childEntities, ref childEntitiesCount);
             allExtensionData = new EntityExtensionData[0]; // It is a serialized field, this is the default.
-            unresolvedParentEntityId = default;
-            unresolvedChildEntitiesIds = default;
             importedMetadata = default;
             latencyHiddenUniqueIds.Clear();
         }
 
         public override void WannaBeDestructor() => logic.WannaBeDestructor(this);
 
-        public void SendDestroyEntityIA() => entitySystem.SendDestroyEntityIA(this);
+        public void SendDestroyEntityIA(bool keepChildEntitiesAlive = false) => entitySystem.SendDestroyEntityIA(this, keepChildEntitiesAlive);
 
         public bool RegisterLatencyHiddenUniqueId(ulong uniqueId)
         {

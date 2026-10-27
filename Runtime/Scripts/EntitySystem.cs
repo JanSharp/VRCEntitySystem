@@ -654,27 +654,83 @@ namespace JanSharp.Internal
             entityDataLogic.OnTransformChangeIA(entityData);
         }
 
-        public override void SendDestroyEntityIA(EntityData entityData)
+        public override void SendDestroyEntityIA(EntityData entityData, bool keepChildEntitiesAlive = false)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  SendDestroyEntityIA");
 #endif
-            if (!entityData.CheckLiveliness() || entityData.entityIsDestroyed)
+            if (!entityData.CheckLiveliness())
                 return;
+
+            if (!keepChildEntitiesAlive)
+            {
+                SendDestroyEntityIncludingChildrenIA(entityData);
+                return;
+            }
+
+            // This check comes here, because when including children, some children may not yet be destroyed.
+            if (entityData.entityIsDestroyed)
+                return;
+
+            lockstep.WriteSmallUInt(1u); // 1 entity getting destroyed.
             WriteEntityDataRef(entityData);
-            lockstep.SendInputAction(destroyEntityIAId);
-            pooling.ReturnEntity(entityData); // Latency hiding.
+            lockstep.SendInputAction(destroyEntitiesIAId);
+            DestroyEntityInLS(entityData); // Latency hiding.
         }
 
-        [HideInInspector][SerializeField] private uint destroyEntityIAId;
-        [LockstepInputAction(nameof(destroyEntityIAId))]
-        public void OnDestroyEntityIA()
+        private EntityData[] destroyStack = new EntityData[ArrList.MinCapacity];
+        private int destroyStackCount = 0;
+
+        private void SendDestroyEntityIncludingChildrenIA(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  OnDestroyEntityIA");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SendDestroyEntityIncludingChildrenIA");
 #endif
-            if (TryReadEntityDataRef(out EntityData entityData, isImport: false))
-                DestroyEntityInGS(entityData);
+            // Build a stack where the nodes (entities) deepest into the tree, so the leaves, come last in the stack.
+            // This is comparable to a recursive depth first search kind of algorithm, except we cannot use recursion.
+            // We want depth first for this, because children of an entity should be destroyed first,
+            // which is why the stack ends up getting iterated in reverse (almost like popping each element).
+            ArrList.Add(ref destroyStack, ref destroyStackCount, entityData);
+            int i = 0;
+            int alreadyDestroyedCount = 0;
+            do
+            {
+                EntityData current = destroyStack[i];
+                if (current.entityIsDestroyed)
+                    alreadyDestroyedCount++; // Check children even of destroyed entities, they might contain non destroyed ones.
+                Entity entity = current.entity;
+                if (entity != null) // Prefer to use latency state if present.
+                    ArrList.AddRange(ref destroyStack, ref destroyStackCount, entity.childEntities, entity.childEntitiesCount);
+                else
+                    ArrList.AddRange(ref destroyStack, ref destroyStackCount, current.childEntities, current.childEntitiesCount);
+            }
+            while (++i < destroyStackCount);
+
+            lockstep.WriteSmallUInt((uint)(destroyStackCount - alreadyDestroyedCount));
+            while (--i >= 0)
+            {
+                EntityData current = destroyStack[i];
+                if (current.entityIsDestroyed)
+                    continue;
+                WriteEntityDataRef(current);
+                DestroyEntityInLS(current); // Latency hiding.
+            }
+            ArrList.Clear(ref destroyStack, ref destroyStackCount);
+
+            lockstep.SendInputAction(destroyEntitiesIAId);
+        }
+
+        [HideInInspector][SerializeField] private uint destroyEntitiesIAId;
+        [LockstepInputAction(nameof(destroyEntitiesIAId))]
+        public void OnDestroyEntitiesIA()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  OnDestroyEntitiesIA");
+#endif
+            uint destroyedCount = lockstep.ReadSmallUInt();
+            for (uint i = 0; i < destroyedCount; i++)
+                if (TryReadEntityDataRef(out EntityData entityData, isImport: false))
+                    DestroyEntityInGS(entityData);
         }
 
         public override void SendDestroyAllEntitiesIA()
@@ -763,13 +819,21 @@ namespace JanSharp.Internal
 #endif
             if (!entityData.CheckLiveliness() || entityData.instanceIndex == -1)
                 return;
-            pooling.ReturnEntity(entityData);
+            DestroyEntityInLS(entityData);
             if (entityData.uniqueId != InvalidUniqueId)
                 entityDataByUniqueId.Remove(entityData.uniqueId);
             DeregisterEntityDataAndId(entityData);
             entityDataLogic.OnEntityDataDestroyed(entityData);
             RaiseOnEntityDestroyed(entityData);
             entityData.DecrementRefsCount();
+        }
+
+        private void DestroyEntityInLS(EntityData entityData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  DestroyEntityInLS");
+#endif
+            pooling.ReturnEntity(entityData);
         }
 
         public override void WriteEntityExtensionDataRef(EntityExtensionData extensionData)

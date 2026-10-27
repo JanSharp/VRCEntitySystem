@@ -84,7 +84,7 @@ namespace JanSharp.Internal
             entityData.createdByPlayerData = createdByPlayerData;
             entityData.lastUserPlayerData = lastUserPlayerData;
             entityData.hidden = false;
-            entityData.parentEntity = null;
+            entityData.parentEntityData = null;
 
             EntityExtensionData[] allExtensionData = entityData.allExtensionData;
             int length = allExtensionData.Length;
@@ -111,7 +111,7 @@ namespace JanSharp.Internal
             entityData.CreatedByPlayerData = null;
             entityData.LastUserPlayerData = null;
             entityData.hidden = false;
-            entityData.parentEntity = null;
+            entityData.parentEntityData = null;
 
             EntityExtensionData[] allExtensionData = entityData.allExtensionData;
             EntityExtension[] extensions = entity.extensions;
@@ -165,8 +165,44 @@ namespace JanSharp.Internal
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityDataLogic  OnEntityDataDestroyed");
 #endif
+            ClearParentEntity(entityData);
+            ClearChildEntities(entityData);
             foreach (EntityExtensionData extensionData in entityData.allExtensionData)
                 extensionData.OnEntityExtensionDataDestroyed();
+        }
+
+        private void ClearParentEntity(EntityData entityData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log("[EntitySystemDebug] EntityDataLogic  ClearParentEntity");
+#endif
+            EntityData parentEntityData = entityData.parentEntityData;
+            if (parentEntityData == null)
+                return;
+            RemoveFromChildEntities(parentEntityData, entityData);
+            entityData.parentEntityData = null;
+        }
+
+        private void ClearChildEntities(EntityData entityData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log("[EntitySystemDebug] EntityDataLogic  ClearChildEntities");
+#endif
+            EntityData[] childEntities = entityData.childEntities;
+            int childEntitiesCount = entityData.childEntitiesCount;
+            for (int i = 0; i < childEntitiesCount; i++)
+                childEntities[i].parentEntityData = null;
+            entityData.childEntitiesCount = 0;
+        }
+
+        private void AddToChildEntities(EntityData entityData, EntityData childEntityData)
+        {
+            ArrList.Add(ref entityData.childEntities, ref entityData.childEntitiesCount, childEntityData);
+        }
+
+        private void RemoveFromChildEntities(EntityData entityData, EntityData childEntityData)
+        {
+            ArrList.Remove(ref entityData.childEntities, ref entityData.childEntitiesCount, childEntityData);
         }
 
         /// <summary>
@@ -433,6 +469,33 @@ namespace JanSharp.Internal
             // See SetTransformSyncControllerDueToDeserialization.
         }
 
+        private void SerializeChildEntities(EntityData entityData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  SerializeChildEntities");
+#endif
+            EntityData[] childEntities = entityData.childEntities;
+            int childEntitiesCount = entityData.childEntitiesCount;
+            lockstep.WriteSmallUInt((uint)childEntitiesCount);
+            for (int i = 0; i < childEntitiesCount; i++)
+                entitySystem.WriteEntityDataRef(childEntities[i]);
+        }
+
+        private void DeserializeChildEntities(EntityData entityData, bool isImport)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  DeserializeChildEntities");
+#endif
+            int incomingChildEntitiesCount = (int)lockstep.ReadSmallUInt();
+            EntityData[] childEntities = entityData.childEntities;
+            int count = 0; // For imports this count may end up not matching the incoming count.
+            for (int i = 0; i < incomingChildEntitiesCount; i++)
+                if (entitySystem.TryReadEntityDataRef(out EntityData childData, isImport))
+                    ArrList.Add(ref childEntities, ref count, childData);
+            entityData.childEntities = childEntities;
+            entityData.childEntitiesCount = count;
+        }
+
         public void Serialize(EntityData entityData, bool isExport)
         {
 #if ENTITY_SYSTEM_DEBUG
@@ -443,12 +506,8 @@ namespace JanSharp.Internal
             entitySystem.WritePlayerDataRef(entityData.CreatedByPlayerData);
             entitySystem.WritePlayerDataRef(entityData.LastUserPlayerData);
 
-            EntityData parentEntity = entityData.parentEntity;
-            EntityData[] childEntities = entityData.childEntities;
-            lockstep.WriteSmallUInt(parentEntity == null ? 0u : parentEntity.id);
-            lockstep.WriteSmallUInt((uint)childEntities.Length);
-            foreach (EntityData child in childEntities)
-                lockstep.WriteSmallUInt(child.id);
+            entitySystem.WriteEntityDataRef(entityData.parentEntityData);
+            SerializeChildEntities(entityData);
 
             EntityExtensionData[] allExtensionData = entityData.allExtensionData;
             if (isExport)
@@ -467,28 +526,17 @@ namespace JanSharp.Internal
             entityData.CreatedByPlayerData = entitySystem.ReadPlayerDataRef(isImport);
             entityData.LastUserPlayerData = entitySystem.ReadPlayerDataRef(isImport);
 
-            entityData.unresolvedParentEntityId = lockstep.ReadSmallUInt();
-            int childEntitiesLength = (int)lockstep.ReadSmallUInt();
-            uint[] unresolvedChildEntitiesIds = new uint[childEntitiesLength];
-            entityData.unresolvedChildEntitiesIds = unresolvedChildEntitiesIds;
-            for (int i = 0; i < childEntitiesLength; i++)
-                unresolvedChildEntitiesIds[i] = lockstep.ReadSmallUInt();
+            entitySystem.TryReadEntityDataRef(out entityData.parentEntityData, isImport);
+            DeserializeChildEntities(entityData, isImport);
+
+            if (!entityData.isInitialized)
+                InitAllExtensionDataBeforeDeserialization(entityData);
 
             if (!isImport)
-            {
-                ResolveParentEntityId(entityData);
-                ResolveChildEntityIds(entityData);
-                if (!entityData.isInitialized)
-                    InitAllExtensionDataBeforeDeserialization(entityData);
                 DeserializeAllExtensionData(entityData);
-            }
             else
             {
-                ResolveImportedParentEntityId(entityData);
-                ResolveImportedChildEntityIds(entityData);
                 entityData.latencyHiddenUniqueIds.Clear();
-                if (!entityData.isInitialized)
-                    InitAllExtensionDataBeforeDeserialization(entityData);
                 ImportAllExtensionData(entityData);
             }
 
@@ -503,59 +551,6 @@ namespace JanSharp.Internal
                 entityData.noTransformSync = false;
                 entityData.lastKnownTransformStateTick = 0u;
             }
-        }
-
-        private void ResolveParentEntityId(EntityData entityData)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityDataLogic  ResolveParentEntityId");
-#endif
-            entitySystem.TryGetEntityData(entityData.unresolvedParentEntityId, out entityData.parentEntity);
-            entityData.unresolvedParentEntityId = 0u;
-        }
-
-        private void ResolveChildEntityIds(EntityData entityData)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityDataLogic  ResolveChildEntityIds");
-#endif
-            uint[] unresolvedChildEntitiesIds = entityData.unresolvedChildEntitiesIds;
-            int count = unresolvedChildEntitiesIds.Length;
-            EntityData[] childEntities = new EntityData[count];
-            entityData.childEntities = childEntities;
-            for (int i = 0; i < count; i++)
-                childEntities[i] = entitySystem.GetEntityData(unresolvedChildEntitiesIds[i]);
-            entityData.unresolvedChildEntitiesIds = null;
-        }
-
-        private void ResolveImportedParentEntityId(EntityData entityData)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityDataLogic  ResolveImportedParentEntityId");
-#endif
-            entitySystem.TryGetRemappedImportedEntityData(entityData.unresolvedParentEntityId, out entityData.parentEntity);
-            entityData.unresolvedParentEntityId = 0u;
-        }
-
-        private void ResolveImportedChildEntityIds(EntityData entityData)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityDataLogic  ResolveImportedChildEntityIds");
-#endif
-            uint[] unresolvedChildEntitiesIds = entityData.unresolvedChildEntitiesIds;
-            EntityData[] childEntities = new EntityData[unresolvedChildEntitiesIds.Length];
-            entityData.childEntities = childEntities;
-            int i = 0;
-            foreach (uint childId in unresolvedChildEntitiesIds)
-                if (entitySystem.TryGetRemappedImportedEntityData(childId, out EntityData data))
-                    childEntities[i++] = data;
-            if (i != childEntities.Length)
-            {
-                EntityData[] shortenedList = new EntityData[i];
-                System.Array.Copy(childEntities, shortenedList, i);
-                childEntities = shortenedList;
-            }
-            entityData.unresolvedChildEntitiesIds = null;
         }
 
         private void DeserializeAllExtensionData(EntityData entityData)
