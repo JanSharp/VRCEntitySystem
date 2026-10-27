@@ -58,6 +58,10 @@ namespace JanSharp
         /// it.</para>
         /// <para>This uses a callback in order to avoid recursion in the middle of the entity creation
         /// process.</para>
+        /// <para>The entity is not actually guaranteed to exist inside of the callback, unfortunately,
+        /// because a destroy input action may have already been sent
+        /// (<see cref="EntityData.entityIsDestroyed"/> being <see langword="true"/>) at which point
+        /// <see cref="EntityData.entity"/> will be <see langword="null"/> and must stay that way.</para>
         /// </summary>
         /// <param name="entityData"></param>
         /// <param name="callbackInst"></param>

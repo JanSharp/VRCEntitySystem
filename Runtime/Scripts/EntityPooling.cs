@@ -168,7 +168,10 @@ namespace JanSharp.Internal
                 localCallbackEventName = (string)request[2];
                 localCallbackCustomData = request[3];
 
-                CreateEntity(localEntityData);
+                // Might already exist, if the same entity was requested twice simultaneously.
+                // Might also already have been destroyed in the latency state, at which point no entity should be assigned to the entity data.
+                if (IsMissingEntity(localEntityData))
+                    CreateEntity(localEntityData);
                 if (localCallbackInst != null)
                     entitySystem.RaiseEnsureEntityExistsCallback(localEntityData, localCallbackInst, localCallbackEventName, localCallbackCustomData);
                 localEntityData.DecrementRefsCount();
