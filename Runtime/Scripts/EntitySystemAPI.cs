@@ -82,6 +82,9 @@ namespace JanSharp
         public abstract EntityPrototype ReadEntityPrototypeRef();
         public abstract EntityPrototype ReadEntityPrototypeRef(bool isImport);
 
+        /// <summary>
+        /// </summary>
+        /// <param name="entityData">Can be <see langword="null"/>.</param>
         public abstract void WriteEntityDataRef(EntityData entityData);
         public abstract bool TryReadEntityDataRef(out EntityData entityData);
         public abstract bool TryReadEntityDataRef(out EntityData entityData, bool isImport);

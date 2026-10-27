@@ -584,6 +584,11 @@ namespace JanSharp.Internal
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  WriteEntityDataRef");
 #endif
+            if (entityData == null)
+            {
+                lockstep.WriteSmallUInt(InvalidId);
+                return;
+            }
             uint id = entityData.id;
             if (id != InvalidId)
             {
