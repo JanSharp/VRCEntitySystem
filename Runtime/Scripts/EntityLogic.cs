@@ -554,6 +554,7 @@ namespace JanSharp.Internal
                     {
                         listener.SendCustomEvent(currentEventNameToRaise);
                         i++;
+                        count = System.Math.Min(count, currentListenersToRaiseTo.Count);
                     }
                     else
                     {
