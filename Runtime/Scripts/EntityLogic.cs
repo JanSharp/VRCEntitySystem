@@ -164,6 +164,7 @@ namespace JanSharp.Internal
                 extension.entityData = null;
                 extension.extensionData = null;
             }
+            entity.runtimeEventListeners.Clear();
             entity.entityData = null;
         }
 
