@@ -76,4 +76,5 @@
   - [x] in the latency state
   - [x] make resetting latency state to game state also reset child attachment states... ~~likely must reset the entire tree of entities~~ nope, no resetting the whole tree needed, an entity is simply only responsible for managing it's parent in the latency state, what children it has in the latency state is up to said children. And the order of child entities in the latency state does not need to match that of the game state
 - [ ] arguably all pre instantiated entities should be moved to scene root on init, because the system is now using local position and rotation with the parent child entity implementation
+  - [ ] at minimum destroyed entities must be moved to root
 - [ ] how should physics entities interact with entities which have parent entities?
