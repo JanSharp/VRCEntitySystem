@@ -35,6 +35,8 @@ namespace JanSharp
         public const float TransformChangeInterpolationDuration = TimeBetweenTransformChangeIAs + 0.1f;
         public const float SetParentInterpolationDuration = TransformChangeInterpolationDuration;
 
+        public const string OnLatencyParentEntityChangedEventName = "OnLatencyParentEntityChanged";
+
         // In the latency state, an entity is responsible for managing which entity is its parent entity.
         // However the list of child entities is up to the children to update.
         // Resetting the latency state to game state only resets the parent entity, the list of child entities

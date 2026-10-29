@@ -294,6 +294,7 @@ namespace JanSharp.Internal
                 if (parentEntityData.entity == null)
                 {
                     t.SetParent(null);
+                    RaiseRuntimeEvent(entity, Entity.OnLatencyParentEntityChangedEventName);
                     return; // Do not touch the transform of our entity in this case.
                 }
                 t.SetParent(parentEntityData.entity.transform);
@@ -314,6 +315,8 @@ namespace JanSharp.Internal
                 t.localRotation = rotation;
                 t.localScale = scale;
             }
+
+            RaiseRuntimeEvent(entity, Entity.OnLatencyParentEntityChangedEventName);
         }
 
         public void TakeControlOfTransformSync(Entity entity, EntityTransformController controller)
