@@ -1,5 +1,6 @@
 ﻿using UdonSharp;
 using UnityEngine;
+using VRC.SDK3.Data;
 
 namespace JanSharp
 {
@@ -47,6 +48,8 @@ namespace JanSharp
         [System.NonSerialized] public EntityData[] childEntities = new EntityData[ArrList.MinCapacity];
         [System.NonSerialized] public int childEntitiesCount = 0;
 
+        internal DataDictionary runtimeEventListeners = new DataDictionary();
+
         public void SendDestroyEntityIA(bool keepChildEntitiesAlive = false) => entitySystem.SendDestroyEntityIA(entityData, keepChildEntitiesAlive);
 
         public void ApplyEntityData() => logic.ApplyEntityData(this);
@@ -79,6 +82,43 @@ namespace JanSharp
         {
             logic.SetParentEntityInLS(this, parentEntityData, position, rotation, scale, doInterpolate);
         }
+
+        /// <summary>
+        /// <para>Ignores/Prevents double registrations.</para>
+        /// <para>It is recommended for systems to provide a <see langword="const"/> such as
+        /// <c>OnFooEventName = "OnFoo";</c> (where <c>Foo</c> is the custom event name).</para>
+        /// <para>Then the actual event handler function on the listener must be
+        /// <c>public void OnFoo()</c>.</para>
+        /// </summary>
+        /// <param name="listener">Must not be <see langword="null"/>.</param>
+        /// <param name="eventName">Must not be <see langword="null"/>.</param>
+        public void RegisterForRuntimeEvent(UdonSharpBehaviour listener, string eventName) => logic.RegisterForRuntimeEvent(this, listener, eventName);
+
+        /// <summary>
+        /// <para>Allows trying to deregister a not actually registered listener.</para>
+        /// <para>It is recommended for systems to provide a <see langword="const"/> such as
+        /// <c>OnFooEventName = "OnFoo";</c> (where <c>Foo</c> is the custom event name).</para>
+        /// <para>Then the actual event handler function on the listener must be
+        /// <c>public void OnFoo()</c>.</para>
+        /// </summary>
+        /// <param name="listener">Must not be <see langword="null"/>.</param>
+        /// <param name="eventName">Must not be <see langword="null"/>.</param>
+        public void DeregisterFromRuntimeEvent(UdonSharpBehaviour listener, string eventName) => logic.DeregisterFromRuntimeEvent(this, listener, eventName);
+
+        /// <summary>
+        /// <para>Raise an event to all listeners registered through
+        /// <see cref="RegisterForRuntimeEvent(UdonSharpBehaviour, string)"/> for this entity.</para>
+        /// <para>It is recommended for systems to provide a <see langword="const"/> such as
+        /// <c>OnFooEventName = "OnFoo";</c> (where <c>Foo</c> is the custom event name).</para>
+        /// <para>Then the actual event handler function on the listener must be
+        /// <c>public void OnFoo()</c>.</para>
+        /// <para>Can be called recursively, though the events will not be raised recursively. Rather they
+        /// will be enqueued to be raised after the current event. This applies to all events raised for/on
+        /// any entity, only 1 of them will be dispatching, all others will be enqueued.</para>
+        /// <para>You can thank Udon for being horrendous to use with recursion.</para>
+        /// </summary>
+        /// <param name="eventName">Must not be <see langword="null"/>.</param>
+        public void RaiseRuntimeEvent(string eventName) => logic.RaiseRuntimeEvent(this, eventName);
 
         // The rest of the logic below is kept in this file, even though that makes instantiation slower,
         // because the increased runtime cost of added Get/SetProgramVariable calls at runtime are not worth it.

@@ -68,7 +68,7 @@
 - [x] ensure all pre instantiated entity instances do not have any overrides on their list of extensions. The extensions list can gain overrides when one removes an extension from an instance and then applies those overrides to the prefab. It does not apply the fact that there is now a missing element in the array, it remains an override
 - [ ] add a context menu or otherwise editor tool to create an entity prefab plus entity prototype from a given object (entity) in the scene
   - [ ] likely have some kind of metadata definition editor only script in the scene which specifies which folders to put the prefab and the entity prototype asset
-- [ ] add runtime registerable events to entities (latency state)
+- [x] add runtime registerable events to entities (latency state)
 - [ ] raise events when an entity's transform controller changed
   - [ ] as well as a one-frame-delayed variant, to make handling of cases where multiple controller changes happen immediately after each other easier
 - [x] add API for attaching and detaching child entities

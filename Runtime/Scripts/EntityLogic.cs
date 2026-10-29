@@ -1,5 +1,6 @@
 ﻿using UdonSharp;
 using UnityEngine;
+using VRC.SDK3.Data;
 
 namespace JanSharp.Internal
 {
@@ -386,6 +387,110 @@ namespace JanSharp.Internal
             {
                 interpolation.CancelScaleInterpolation(t);
                 t.localScale = scale;
+            }
+        }
+
+        public void RegisterForRuntimeEvent(Entity entity, UdonSharpBehaviour listener, string eventName)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityLogic  RegisterForRuntimeEvent - eventName: {eventName}");
+#endif
+            DataDictionary runtimeEventListeners = entity.runtimeEventListeners;
+            DataList listeners;
+            DataToken eventNameToken = eventName;
+            if (runtimeEventListeners.TryGetValue(eventNameToken, out DataToken listenersToken))
+                listeners = listenersToken.DataList;
+            else
+            {
+                listeners = new DataList();
+                runtimeEventListeners.Add(eventNameToken, listeners);
+            }
+            if (!listeners.Contains(listener))
+                listeners.Add(listener);
+        }
+
+        public void DeregisterFromRuntimeEvent(Entity entity, UdonSharpBehaviour listener, string eventName)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityLogic  DeregisterFromRuntimeEvent - eventName: {eventName}");
+#endif
+            if (entity.runtimeEventListeners.TryGetValue(eventName, out DataToken listenersToken))
+                listenersToken.DataList.Remove(listener);
+        }
+
+        ///cSpell: ignore ltrt, entr
+        // Recursion in Udon is a nightmare.
+        // Guess what event based systems have a high likelihood of causing.
+        // Recursion.
+        // Not using the [RecursiveMethod] attribute because I cannot accept the performance overhead.
+
+        private bool isInTheMiddleOfRaising = false;
+
+        private DataList[] listenersToRaiseTo = new DataList[ArrQueue.MinCapacity];
+        private int ltrtStartIndex = 0;
+        private int ltrtCount = 0;
+        private string[] eventNamesToRaise = new string[ArrQueue.MinCapacity];
+        private int entrStartIndex = 0;
+        private int entrCount = 0;
+
+        private DataList currentListenersToRaiseTo;
+        private string currentEventNameToRaise;
+
+        public void RaiseRuntimeEvent(Entity entity, string eventName)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityLogic  RaiseRuntimeEvent - eventName: {eventName}");
+#endif
+            if (!entity.runtimeEventListeners.TryGetValue(eventName, out DataToken listenersToken))
+                return;
+            DataList listeners = listenersToken.DataList;
+            if (listeners.Count == 0)
+                return;
+            if (isInTheMiddleOfRaising)
+            {
+                ArrQueue.Enqueue(ref listenersToRaiseTo, ref ltrtStartIndex, ref ltrtCount, listeners);
+                ArrQueue.Enqueue(ref eventNamesToRaise, ref entrStartIndex, ref entrCount, eventName);
+                return;
+            }
+            currentListenersToRaiseTo = listeners;
+            currentEventNameToRaise = eventName;
+            RaiseRuntimeEventLoop();
+        }
+
+        private void RaiseRuntimeEventLoop()
+        {
+            isInTheMiddleOfRaising = true;
+            while (true)
+            {
+#if ENTITY_SYSTEM_DEBUG
+                Debug.Log($"[EntitySystemDebug] EntityLogic  RaiseRuntimeEventLoop (inner) - eventName: {currentEventNameToRaise}");
+#endif
+                int count = currentListenersToRaiseTo.Count;
+                int i = 0;
+                while (i < count)
+                {
+                    // Tested this to make sure, accessing the token does not throw an exception
+                    // when a listener got destroyed... at least not in editor.
+                    UdonSharpBehaviour listener = (UdonSharpBehaviour)currentListenersToRaiseTo[i].Reference;
+                    if (listener != null)
+                    {
+                        listener.SendCustomEvent(currentEventNameToRaise);
+                        i++;
+                    }
+                    else
+                    {
+                        // Listener got destroyed.
+                        currentListenersToRaiseTo.RemoveAt(i);
+                        count--;
+                    }
+                }
+                if (ltrtCount == 0)
+                {
+                    isInTheMiddleOfRaising = false;
+                    return;
+                }
+                currentListenersToRaiseTo = ArrQueue.Dequeue(ref listenersToRaiseTo, ref ltrtStartIndex, ref ltrtCount);
+                currentEventNameToRaise = ArrQueue.Dequeue(ref eventNamesToRaise, ref entrStartIndex, ref entrCount);
             }
         }
     }
