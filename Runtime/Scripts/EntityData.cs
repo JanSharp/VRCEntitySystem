@@ -240,6 +240,8 @@ namespace JanSharp
             // lol.
             logic.SetParentEntityInGS(this, parentEntityData, position, rotation, scale);
         }
+
+        public void SetParentEntityInGS(EntityData parentEntityData) => logic.SetParentEntityInGS(this, parentEntityData);
     }
 
     public static class EntityDataExtensions

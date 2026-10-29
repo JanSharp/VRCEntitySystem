@@ -221,6 +221,27 @@ namespace JanSharp.Internal
                 doInterpolateRemotely);
         }
 
+        public void SetParentEntityInLS(Entity entity, Entity parentEntity)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log("[EntitySystemDebug] EntityLogic  SetParentEntityInLS");
+#endif
+            EntityData parentEntityData = parentEntity == null ? null : parentEntity.entityData;
+            if (entity.parentEntityData == parentEntityData)
+                return;
+            Transform t = entity.transform;
+            t.SetParent(parentEntity == null ? null : parentEntity.transform);
+            // The function below ends up doing pointless logic because the parent transform and
+            // the local values are all correct already, but it ends up setting them again anyway.
+            SetParentEntityInLS(
+                entity,
+                parentEntityData,
+                t.localPosition,
+                t.localRotation,
+                t.localScale,
+                doInterpolate: false);
+        }
+
         public void SetParentEntityInLS(
             Entity entity,
             EntityData parentEntityData,

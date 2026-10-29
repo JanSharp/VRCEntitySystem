@@ -82,6 +82,13 @@ namespace JanSharp
             logic.GiveBackControlOfTransformSync(this, releasingController, position, rotation, scale, interpolationDuration);
         }
 
+        /// <summary>
+        /// <para>World position stays.</para>
+        /// <para>Cancels any ongoing interpolation done by the <see cref="InterpolationManager"/> for this
+        /// entity.</para>
+        /// </summary>
+        /// <param name="parentEntity"></param>
+        /// <param name="doInterpolateRemotely"></param>
         public void SendSetParentEntityIA(Entity parentEntity, bool doInterpolateRemotely) => logic.SendSetParentEntityIA(this, parentEntity, doInterpolateRemotely);
 
         public void SetParentEntityInLS(
@@ -93,6 +100,14 @@ namespace JanSharp
         {
             logic.SetParentEntityInLS(this, parentEntityData, position, rotation, scale, doInterpolate);
         }
+
+        /// <summary>
+        /// <para>World position stays.</para>
+        /// <para>Cancels any ongoing interpolation done by the <see cref="InterpolationManager"/> for this
+        /// entity.</para>
+        /// </summary>
+        /// <param name="parentEntity"></param>
+        public void SetParentEntityInLS(Entity parentEntity) => logic.SetParentEntityInLS(this, parentEntity);
 
         /// <summary>
         /// <para>Ignores/Prevents double registrations.</para>

@@ -800,12 +800,20 @@ namespace JanSharp.Internal
             Vector3 scale)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityDataLogic  SetParentEntityInGS");
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  SetParentEntityInGS - with position, rotation and scale");
 #endif
             entityData.position = position;
             entityData.rotation = rotation;
             entityData.scale = scale;
 
+            SetParentEntityInGS(entityData, parentEntityData);
+        }
+
+        public void SetParentEntityInGS(EntityData entityData, EntityData parentEntityData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  SetParentEntityInGS");
+#endif
             EntityData prevParentEntityData = entityData.parentEntityData;
             if (prevParentEntityData != null)
                 RemoveFromChildEntities(prevParentEntityData, entityData);
