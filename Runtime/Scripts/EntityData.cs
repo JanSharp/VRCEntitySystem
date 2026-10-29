@@ -219,6 +219,27 @@ namespace JanSharp
 
         public void SetTransformSyncControllerDueToDeserialization(EntityTransformController controller)
             => logic.SetTransformSyncControllerDueToDeserialization(this, controller);
+
+        public void SendSetParentEntityIA(
+            EntityData parentEntityData,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            bool doInterpolate)
+        {
+            // This is even worse.
+            logic.SendSetParentEntityIA(this, parentEntityData, position, rotation, scale, doInterpolate, doInterpolate);
+        }
+
+        public void SetParentEntityInGS(
+            EntityData parentEntityData,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale)
+        {
+            // lol.
+            logic.SetParentEntityInGS(this, parentEntityData, position, rotation, scale);
+        }
     }
 
     public static class EntityDataExtensions

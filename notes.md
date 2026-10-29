@@ -71,9 +71,9 @@
 - [ ] add runtime registerable events to entities (latency state)
 - [ ] raise events when an entity's transform controller changed
   - [ ] as well as a one-frame-delayed variant, to make handling of cases where multiple controller changes happen immediately after each other easier
-- [ ] add API for attaching and detaching child entities
-  - [ ] in the game state
-  - [ ] in the latency state
+- [x] add API for attaching and detaching child entities
+  - [x] in the game state
+  - [x] in the latency state
   - [x] make resetting latency state to game state also reset child attachment states... ~~likely must reset the entire tree of entities~~ nope, no resetting the whole tree needed, an entity is simply only responsible for managing it's parent in the latency state, what children it has in the latency state is up to said children. And the order of child entities in the latency state does not need to match that of the game state
 - [ ] arguably all pre instantiated entities should be moved to scene root on init, because the system is now using local position and rotation with the parent child entity implementation
 - [ ] how should physics entities interact with entities which have parent entities?

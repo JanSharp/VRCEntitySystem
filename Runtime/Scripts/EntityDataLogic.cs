@@ -9,7 +9,7 @@ namespace JanSharp.Internal
     public class EntityDataLogic : UdonSharpBehaviour
     {
         [HideInInspector][SerializeField][SingletonReference] private LockstepAPI lockstep;
-        [HideInInspector][SerializeField][SingletonReference] private EntitySystemAPI entitySystem;
+        [HideInInspector][SerializeField][SingletonReference] private EntitySystem entitySystem;
         [HideInInspector][SerializeField][SingletonReference] private InterpolationManager interpolation;
         [HideInInspector][SerializeField][SingletonReference] private WannaBeClassesManager wannaBeClasses;
         [HideInInspector][SerializeField][SingletonReference] private EntityLogic entityLogic;
@@ -732,6 +732,87 @@ namespace JanSharp.Internal
                     entityTransform.localScale = incomingScale;
                 }
             }
+        }
+
+        public void SendSetParentEntityIA(
+            EntityData entityData,
+            EntityData parentEntityData,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            bool doInterpolateLocally,
+            bool doInterpolateRemotely)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  SendSetParentEntityIA");
+#endif
+            entitySystem.WriteEntityDataRef(entityData);
+            entitySystem.WriteEntityDataRef(parentEntityData);
+
+            lockstep.WriteVector3(position);
+            lockstep.WriteQuaternion(rotation);
+            lockstep.WriteVector3(scale);
+            lockstep.WriteFlags(doInterpolateRemotely);
+
+            ulong uniqueId = lockstep.SendInputAction(setParentEntityIAId);
+
+            Entity entity = entityData.entity;
+            if (entity == null || !entityData.RegisterLatencyHiddenUniqueId(uniqueId))
+                return;
+
+            entityLogic.SetParentEntityInLS(entity, parentEntityData, position, rotation, scale, doInterpolateLocally);
+        }
+
+        [HideInInspector][SerializeField] private uint setParentEntityIAId;
+        [LockstepInputAction(nameof(setParentEntityIAId))]
+        public void OnSetParentEntityIA()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  OnSetParentEntityIA");
+#endif
+            if (!entitySystem.TryReadEntityDataRef(out EntityData entityData, isImport: false))
+                return;
+            if (!entitySystem.TryReadEntityDataRef(out EntityData parentEntityData, isImport: false))
+            {
+                ResetLatencyStateBecauseIAGotAppliedDifferently(entityData);
+                return;
+            }
+
+            Vector3 position = lockstep.ReadVector3();
+            Quaternion rotation = lockstep.ReadQuaternion();
+            Vector3 scale = lockstep.ReadVector3();
+            lockstep.ReadFlags(out bool doInterpolate);
+
+            SetParentEntityInGS(entityData, parentEntityData, position, rotation, scale);
+
+            Entity entity = entityData.entity;
+            if (!ShouldApplyReceivedIAToLatencyState(entityData) || entity == null)
+                return;
+
+            entityLogic.SetParentEntityInLS(entity, parentEntityData, position, rotation, scale, doInterpolate);
+        }
+
+        public void SetParentEntityInGS(
+            EntityData entityData,
+            EntityData parentEntityData,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  SetParentEntityInGS");
+#endif
+            entityData.position = position;
+            entityData.rotation = rotation;
+            entityData.scale = scale;
+
+            EntityData prevParentEntityData = entityData.parentEntityData;
+            if (prevParentEntityData != null)
+                RemoveFromChildEntities(prevParentEntityData, entityData);
+
+            entityData.parentEntityData = parentEntityData;
+            if (parentEntityData)
+                AddToChildEntities(parentEntityData, entityData);
         }
     }
 }

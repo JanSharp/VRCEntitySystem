@@ -70,7 +70,7 @@ namespace JanSharp.Internal
             {
                 // And with this being game state unsafe, from this point until the callback runs,
                 // the game state is therefore guaranteed to not get modified.
-                entitySystem.EnsureEntityExistsForEntityData(parentEntityData, this, nameof(OnParentEntityCreated), entity);
+                entitySystem.EnsureEntityExistsForEntityData(parentEntityData, this, nameof(OnParentEntityCreatedForApplyEntityData), entity);
                 return;
             }
 
@@ -78,10 +78,10 @@ namespace JanSharp.Internal
             lockstep.CloseGameStateUnsafeScope();
         }
 
-        public void OnParentEntityCreated()
+        public void OnParentEntityCreatedForApplyEntityData()
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityLogic  OnParentEntityCreated");
+            Debug.Log($"[EntitySystemDebug] EntityLogic  OnParentEntityCreatedForApplyEntityData");
 #endif
             ResumeApplyEntityDataWithoutExtensions((Entity)entitySystem.CallbackCustomData);
             lockstep.CloseGameStateUnsafeScope();
@@ -196,6 +196,123 @@ namespace JanSharp.Internal
                 child.transform.SetParent(null);
             }
             entity.childEntitiesCount = 0;
+        }
+
+        public void SendSetParentEntityIA(Entity entity, Entity parentEntity, bool doInterpolateRemotely)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log("[EntitySystemDebug] EntityLogic  SendSetParentEntityIA");
+#endif
+            EntityData parentEntityData = parentEntity == null ? null : parentEntity.entityData;
+            if (entity.parentEntityData == parentEntityData)
+                return;
+            Transform t = entity.transform;
+            t.SetParent(parentEntity == null ? null : parentEntity.transform);
+            // The latency hiding of the function below ends up doing pointless logic because the parent
+            // transform and the local values are all correct already, but it ends up setting them again anyway.
+            entityDataLogic.SendSetParentEntityIA(
+                entity.entityData,
+                parentEntityData,
+                t.localPosition,
+                t.localRotation,
+                t.localScale,
+                doInterpolateLocally: false,
+                doInterpolateRemotely);
+        }
+
+        public void SetParentEntityInLS(
+            Entity entity,
+            EntityData parentEntityData,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            bool doInterpolate)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log("[EntitySystemDebug] EntityLogic  SetParentEntityInLS");
+#endif
+            EntityData entityData = entity.entityData;
+
+            EntityData prevParentEntityData = entity.parentEntityData;
+            if (prevParentEntityData != null && prevParentEntityData.entity != null)
+                RemoveFromChildEntities(prevParentEntityData.entity, entityData);
+
+            entity.parentEntityData = parentEntityData;
+
+            if (parentEntityData != null && parentEntityData.entity == null)
+            {
+                entitySystem.EnsureEntityExistsForEntityData(parentEntityData, this, nameof(OnParentEntityCreatedForSetParentEntity), new object[]
+                {
+                    entity,
+                    position,
+                    rotation,
+                    scale,
+                    doInterpolate,
+                });
+                return;
+            }
+
+            ResumeSetParentEntity(entity, position, rotation, scale, doInterpolate);
+        }
+
+        public void OnParentEntityCreatedForSetParentEntity()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log("[EntitySystemDebug] EntityLogic  OnParentEntityCreatedForSetParentEntity");
+#endif
+            object[] callbackData = (object[])entitySystem.CallbackCustomData;
+            ResumeSetParentEntity(
+                entity: (Entity)callbackData[0],
+                position: (Vector3)callbackData[1],
+                rotation: (Quaternion)callbackData[2],
+                scale: (Vector3)callbackData[3],
+                doInterpolate: (bool)callbackData[4]);
+        }
+
+        private void ResumeSetParentEntity(
+            Entity entity,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            bool doInterpolate)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log("[EntitySystemDebug] EntityLogic  ResumeSetParentEntity");
+#endif
+            EntityData entityData = entity.entityData;
+            EntityData parentEntityData = entity.parentEntityData;
+            if (parentEntityData != null && parentEntityData.entity != null)
+                AddToChildEntities(parentEntityData.entity, entityData);
+
+            Transform t = entity.transform;
+
+            if (parentEntityData == null)
+                t.SetParent(null);
+            else
+            {
+                if (parentEntityData.entity == null)
+                {
+                    t.SetParent(null);
+                    return; // Do not touch the transform of our entity in this case.
+                }
+                t.SetParent(parentEntityData.entity.transform);
+            }
+
+            if (doInterpolate)
+            {
+                interpolation.LerpLocalPosition(t, position, Entity.SetParentInterpolationDuration);
+                interpolation.LerpLocalRotation(t, rotation, Entity.SetParentInterpolationDuration);
+                interpolation.LerpLocalScale(t, scale, Entity.SetParentInterpolationDuration);
+            }
+            else
+            {
+                interpolation.CancelPositionInterpolation(t);
+                interpolation.CancelRotationInterpolation(t);
+                interpolation.CancelScaleInterpolation(t);
+                t.localPosition = position;
+                t.localRotation = rotation;
+                t.localScale = scale;
+            }
         }
 
         public void TakeControlOfTransformSync(Entity entity, EntityTransformController controller)

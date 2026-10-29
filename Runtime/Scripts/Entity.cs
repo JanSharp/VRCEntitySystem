@@ -32,6 +32,7 @@ namespace JanSharp
         private float timeAtLastTransformChangeIA = 0f;
         public const float TimeBetweenTransformChangeIAs = 0.2f;
         public const float TransformChangeInterpolationDuration = TimeBetweenTransformChangeIAs + 0.1f;
+        public const float SetParentInterpolationDuration = TransformChangeInterpolationDuration;
 
         // In the latency state, an entity is responsible for managing which entity is its parent entity.
         // However the list of child entities is up to the children to update.
@@ -65,6 +66,18 @@ namespace JanSharp
             // Udon and its stupid eternity it takes to instantiate scripts, causing me to do this.
             // I am disgusted.
             logic.GiveBackControlOfTransformSync(this, releasingController, position, rotation, scale, interpolationDuration);
+        }
+
+        public void SendSetParentEntityIA(Entity parentEntity, bool doInterpolateRemotely) => logic.SendSetParentEntityIA(this, parentEntity, doInterpolateRemotely);
+
+        public void SetParentEntityInLS(
+            EntityData parentEntityData,
+            Vector3 position,
+            Quaternion rotation,
+            Vector3 scale,
+            bool doInterpolate)
+        {
+            logic.SetParentEntityInLS(this, parentEntityData, position, rotation, scale, doInterpolate);
         }
 
         // The rest of the logic below is kept in this file, even though that makes instantiation slower,
