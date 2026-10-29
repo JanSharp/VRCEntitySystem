@@ -508,12 +508,19 @@ namespace JanSharp.Internal
                 return;
             }
 
+            lockstep.ReadFlags(out bool worldLocationIsKnown);
+
             if (entitySystem.TryGetRemappedImportedEntityData(parentEntityId, out entityData.parentEntityData))
+            {
+                if (!worldLocationIsKnown)
+                    return;
+                lockstep.ReadVector3(); // Discard.
+                lockstep.ReadQuaternion(); // Discard.
                 return;
+            }
 
             // Had a parent entity when exporting but cannot resolve it when importing,
             // try to set the world position and rotation.
-            lockstep.ReadFlags(out bool worldLocationIsKnown);
             if (!worldLocationIsKnown)
             {
                 // This case here is actually really bad. The local position and rotation of the entity at the
