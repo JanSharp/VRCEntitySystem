@@ -121,6 +121,8 @@ namespace JanSharp
         /// <c>OnFooEventName = "OnFoo";</c> (where <c>Foo</c> is the custom event name).</para>
         /// <para>Then the actual event handler function on the listener must be
         /// <c>public void OnFoo()</c>.</para>
+        /// <para>Strongly recommended to add the <see cref="EntityRuntimeEventListenerAttribute"/> the
+        /// <c>OnFoo</c> listener, using a reference to the same <see langword="const"/>.</para>
         /// <para>For events registered for the entire lifetime of an entity, register events inside of
         /// <see cref="EntityExtension.AssociateWithExtensionData"/>.</para>
         /// </summary>
@@ -134,6 +136,8 @@ namespace JanSharp
         /// <c>OnFooEventName = "OnFoo";</c> (where <c>Foo</c> is the custom event name).</para>
         /// <para>Then the actual event handler function on the listener must be
         /// <c>public void OnFoo()</c>.</para>
+        /// <para>Strongly recommended to add the <see cref="EntityRuntimeEventListenerAttribute"/> the
+        /// <c>OnFoo</c> listener, using a reference to the same <see langword="const"/>.</para>
         /// </summary>
         /// <param name="listener">Must not be <see langword="null"/>.</param>
         /// <param name="eventName">Must not be <see langword="null"/>.</param>
@@ -146,6 +150,8 @@ namespace JanSharp
         /// <c>OnFooEventName = "OnFoo";</c> (where <c>Foo</c> is the custom event name).</para>
         /// <para>Then the actual event handler function on the listener must be
         /// <c>public void OnFoo()</c>.</para>
+        /// <para>Strongly recommended to add the <see cref="EntityRuntimeEventListenerAttribute"/> the
+        /// <c>OnFoo</c> listener, using a reference to the same <see langword="const"/>.</para>
         /// <para>Can be called recursively, though the events will not be raised recursively. Rather they
         /// will be enqueued to be raised after the current event. This applies to all events raised for/on
         /// any entity, only 1 of them will be dispatching, all others will be enqueued.</para>
