@@ -94,21 +94,28 @@ namespace JanSharp.Internal
             Debug.Log($"[EntitySystemDebug] EntityLogic  ResumeApplyEntityDataWithoutExtensions");
 #endif
             EntityData entityData = entity.entityData;
+
+            // Must assign a value (such as null) in order for C# to not complain in the second if block.
+            Entity prevParentEntity = null;
+            Entity parentEntity = null;
+            EntityData prevParentEntityData = entity.parentEntityData;
             EntityData parentEntityData = entityData.parentEntityData;
 
             Transform t = entity.transform;
-            EntityData prevParentEntityData = entity.parentEntityData;
-            if (prevParentEntityData != parentEntityData)
+            bool parentChanged = prevParentEntityData != parentEntityData;
+            if (parentChanged)
             {
+                prevParentEntity = prevParentEntityData == null ? null : prevParentEntityData.entity;
+                parentEntity = parentEntityData == null ? null : parentEntityData.entity;
                 entity.parentEntityData = parentEntityData;
 
-                if (prevParentEntityData != null && prevParentEntityData.entity != null)
-                    RemoveFromChildEntities(prevParentEntityData.entity, entityData);
+                if (prevParentEntity != null)
+                    RemoveFromChildEntities(prevParentEntity, entityData);
 
-                if (parentEntityData != null && parentEntityData.entity != null)
+                if (parentEntity != null)
                 {
-                    AddToChildEntities(parentEntityData.entity, entityData);
-                    t.SetParent(parentEntityData.entity.transform);
+                    AddToChildEntities(parentEntity, entityData);
+                    t.SetParent(parentEntity.transform);
                 }
                 else
                     t.SetParent(null);
@@ -122,6 +129,15 @@ namespace JanSharp.Internal
                 t.localPosition = entityData.position;
                 t.localRotation = entityData.rotation;
                 t.localScale = entityData.scale;
+            }
+
+            if (parentChanged)
+            {
+                RaiseRuntimeEvent(entity, Entity.OnLatencyParentEntityChangedEventName);
+                if (prevParentEntity != null)
+                    RaiseRuntimeEvent(prevParentEntity, Entity.OnLatencyChildEntitiesChangedEventName);
+                if (parentEntity != null)
+                    RaiseRuntimeEvent(parentEntity, Entity.OnLatencyChildEntitiesChangedEventName);
             }
         }
 
@@ -176,10 +192,14 @@ namespace JanSharp.Internal
             EntityData parentEntityData = entity.parentEntityData;
             if (parentEntityData == null)
                 return;
-            if (parentEntityData.entity != null)
-                RemoveFromChildEntities(parentEntityData.entity, entity.entityData);
+            Entity parentEntity = parentEntityData.entity;
+            if (parentEntity != null)
+                RemoveFromChildEntities(parentEntity, entity.entityData);
             entity.parentEntityData = null;
             entity.transform.SetParent(null);
+            RaiseRuntimeEvent(entity, Entity.OnLatencyParentEntityChangedEventName);
+            if (parentEntity != null)
+                RaiseRuntimeEvent(parentEntity, Entity.OnLatencyChildEntitiesChangedEventName);
         }
 
         private void ClearChildEntities(Entity entity)
@@ -189,15 +209,21 @@ namespace JanSharp.Internal
 #endif
             EntityData[] childEntities = entity.childEntities;
             int childEntitiesCount = entity.childEntitiesCount;
-            for (int i = 0; i < childEntitiesCount; i++)
+            if (childEntitiesCount == 0)
+                return; // To not raise the changed event.
+
+            while (--childEntitiesCount >= 0)
             {
-                Entity child = childEntities[i].entity;
+                Entity child = childEntities[childEntitiesCount].entity;
                 if (child == null)
                     continue;
                 child.parentEntityData = null;
                 child.transform.SetParent(null);
+                entity.childEntitiesCount = childEntitiesCount; // Update prior to raising the event.
+                RaiseRuntimeEvent(child, Entity.OnLatencyParentEntityChangedEventName);
             }
             entity.childEntitiesCount = 0;
+            RaiseRuntimeEvent(entity, Entity.OnLatencyChildEntitiesChangedEventName);
         }
 
         public void SendSetParentEntityIA(Entity entity, Entity parentEntity, bool doInterpolateRemotely)
@@ -256,9 +282,9 @@ namespace JanSharp.Internal
 #endif
             EntityData entityData = entity.entityData;
 
-            EntityData prevParentEntityData = entity.parentEntityData;
-            if (prevParentEntityData != null && prevParentEntityData.entity != null)
-                RemoveFromChildEntities(prevParentEntityData.entity, entityData);
+            Entity prevParentEntity = entity.parentEntityData == null ? null : entity.parentEntityData.entity;
+            if (prevParentEntity != null)
+                RemoveFromChildEntities(prevParentEntity, entityData);
 
             entity.parentEntityData = parentEntityData;
 
@@ -267,6 +293,7 @@ namespace JanSharp.Internal
                 entitySystem.EnsureEntityExistsForEntityData(parentEntityData, this, nameof(OnParentEntityCreatedForSetParentEntity), new object[]
                 {
                     entity,
+                    prevParentEntity,
                     position,
                     rotation,
                     scale,
@@ -275,7 +302,7 @@ namespace JanSharp.Internal
                 return;
             }
 
-            ResumeSetParentEntity(entity, position, rotation, scale, doInterpolate);
+            ResumeSetParentEntity(entity, prevParentEntity, position, rotation, scale, doInterpolate);
         }
 
         public void OnParentEntityCreatedForSetParentEntity()
@@ -286,14 +313,16 @@ namespace JanSharp.Internal
             object[] callbackData = (object[])entitySystem.CallbackCustomData;
             ResumeSetParentEntity(
                 entity: (Entity)callbackData[0],
-                position: (Vector3)callbackData[1],
-                rotation: (Quaternion)callbackData[2],
-                scale: (Vector3)callbackData[3],
-                doInterpolate: (bool)callbackData[4]);
+                prevParentEntity: (Entity)callbackData[1],
+                position: (Vector3)callbackData[2],
+                rotation: (Quaternion)callbackData[3],
+                scale: (Vector3)callbackData[4],
+                doInterpolate: (bool)callbackData[5]);
         }
 
         private void ResumeSetParentEntity(
             Entity entity,
+            Entity prevParentEntity,
             Vector3 position,
             Quaternion rotation,
             Vector3 scale,
@@ -303,23 +332,30 @@ namespace JanSharp.Internal
             Debug.Log("[EntitySystemDebug] EntityLogic  ResumeSetParentEntity");
 #endif
             EntityData entityData = entity.entityData;
-            EntityData parentEntityData = entity.parentEntityData;
-            if (parentEntityData != null && parentEntityData.entity != null)
-                AddToChildEntities(parentEntityData.entity, entityData);
+            Entity parentEntity = entity.parentEntityData == null ? null : entity.parentEntityData.entity;
+            if (parentEntity != null)
+                AddToChildEntities(parentEntity, entityData);
 
             Transform t = entity.transform;
 
-            if (parentEntityData == null)
+            if (entity.parentEntityData == null)
                 t.SetParent(null);
             else
             {
-                if (parentEntityData.entity == null)
+                if (parentEntity == null)
                 {
                     t.SetParent(null);
+                    // Do not touch the transform of our entity in this case.
+
+                    // Copy pasted for the early return.
+                    if (prevParentEntity != null)
+                        RaiseRuntimeEvent(prevParentEntity, Entity.OnLatencyChildEntitiesChangedEventName);
+                    if (parentEntity != null)
+                        RaiseRuntimeEvent(parentEntity, Entity.OnLatencyChildEntitiesChangedEventName);
                     RaiseRuntimeEvent(entity, Entity.OnLatencyParentEntityChangedEventName);
-                    return; // Do not touch the transform of our entity in this case.
+                    return;
                 }
-                t.SetParent(parentEntityData.entity.transform);
+                t.SetParent(parentEntity.transform);
             }
 
             if (doInterpolate)
@@ -338,6 +374,10 @@ namespace JanSharp.Internal
                 t.localScale = scale;
             }
 
+            if (prevParentEntity != null)
+                RaiseRuntimeEvent(prevParentEntity, Entity.OnLatencyChildEntitiesChangedEventName);
+            if (parentEntity != null)
+                RaiseRuntimeEvent(parentEntity, Entity.OnLatencyChildEntitiesChangedEventName);
             RaiseRuntimeEvent(entity, Entity.OnLatencyParentEntityChangedEventName);
         }
 

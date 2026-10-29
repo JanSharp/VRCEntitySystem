@@ -35,7 +35,13 @@ namespace JanSharp
         public const float TransformChangeInterpolationDuration = TimeBetweenTransformChangeIAs + 0.1f;
         public const float SetParentInterpolationDuration = TransformChangeInterpolationDuration;
 
+        /// <summary>
+        /// <para>Does also get raised during the creation, resetting to game state or destruction of an
+        /// entity. In other words, listening to this event will inform about any and all changes.</para>
+        /// </summary>
         public const string OnLatencyParentEntityChangedEventName = "OnLatencyParentEntityChanged";
+        /// <inheritdoc cref="OnLatencyParentEntityChangedEventName"/>>
+        public const string OnLatencyChildEntitiesChangedEventName = "OnLatencyChildEntitiesChanged";
 
         public const string OnLatencyTransformSyncControllerChangedEventName = "OnLatencyTransformSyncControllerChanged";
         public const string OnLatencyTransformSyncControllerChangedLastFrameEventName = "OnLatencyTransformSyncControllerChangedLastFrame";
