@@ -115,6 +115,8 @@ namespace JanSharp
         /// <c>OnFooEventName = "OnFoo";</c> (where <c>Foo</c> is the custom event name).</para>
         /// <para>Then the actual event handler function on the listener must be
         /// <c>public void OnFoo()</c>.</para>
+        /// <para>For events registered for the entire lifetime of an entity, register events inside of
+        /// <see cref="EntityExtension.AssociateWithExtensionData"/>.</para>
         /// </summary>
         /// <param name="listener">Must not be <see langword="null"/>.</param>
         /// <param name="eventName">Must not be <see langword="null"/>.</param>
