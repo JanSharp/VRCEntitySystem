@@ -69,8 +69,8 @@
 - [ ] add a context menu or otherwise editor tool to create an entity prefab plus entity prototype from a given object (entity) in the scene
   - [ ] likely have some kind of metadata definition editor only script in the scene which specifies which folders to put the prefab and the entity prototype asset
 - [x] add runtime registerable events to entities (latency state)
-- [ ] raise events when an entity's transform controller changed
-  - [ ] as well as a one-frame-delayed variant, to make handling of cases where multiple controller changes happen immediately after each other easier
+- [x] raise events when an entity's transform controller changed
+  - [x] as well as a one-frame-delayed variant, to make handling of cases where multiple controller changes happen immediately after each other easier
 - [x] add API for attaching and detaching child entities
   - [x] in the game state
   - [x] in the latency state

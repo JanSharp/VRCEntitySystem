@@ -328,6 +328,7 @@ namespace JanSharp.Internal
             {
                 entity.noTransformSync = true;
                 entity.transformSyncController = controller;
+                RaiseOnLatencyTransformSyncControllerChanged(entity);
                 return;
             }
             EntityTransformController prevController = entity.transformSyncController;
@@ -335,6 +336,7 @@ namespace JanSharp.Internal
                 return;
             entity.transformSyncController = controller;
             prevController.OnLatencyControlTakenOver(entity, controller);
+            RaiseOnLatencyTransformSyncControllerChanged(entity);
         }
 
         /// <param name="releasingController">Only give back control if this matches the current controller.
@@ -391,6 +393,17 @@ namespace JanSharp.Internal
                 interpolation.CancelScaleInterpolation(t);
                 t.localScale = scale;
             }
+
+            RaiseOnLatencyTransformSyncControllerChanged(entity);
+        }
+
+        private void RaiseOnLatencyTransformSyncControllerChanged(Entity entity)
+        {
+            RaiseRuntimeEvent(entity, Entity.OnLatencyTransformSyncControllerChangedEventName);
+            if (entity.flaggedForOnLatencyTransformSyncControllerChangedLastFrame)
+                return;
+            entity.flaggedForOnLatencyTransformSyncControllerChangedLastFrame = true;
+            entity.SendCustomEventDelayedFrames(nameof(Entity.RaiseOnLatencyTransformSyncControllerChangedLastFrame), 1);
         }
 
         public void RegisterForRuntimeEvent(Entity entity, UdonSharpBehaviour listener, string eventName)

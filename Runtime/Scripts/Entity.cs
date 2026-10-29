@@ -37,6 +37,15 @@ namespace JanSharp
 
         public const string OnLatencyParentEntityChangedEventName = "OnLatencyParentEntityChanged";
 
+        public const string OnLatencyTransformSyncControllerChangedEventName = "OnLatencyTransformSyncControllerChanged";
+        public const string OnLatencyTransformSyncControllerChangedLastFrameEventName = "OnLatencyTransformSyncControllerChangedLastFrame";
+        internal bool flaggedForOnLatencyTransformSyncControllerChangedLastFrame = false;
+        public void RaiseOnLatencyTransformSyncControllerChangedLastFrame()
+        {
+            flaggedForOnLatencyTransformSyncControllerChangedLastFrame = false;
+            logic.RaiseRuntimeEvent(this, OnLatencyTransformSyncControllerChangedLastFrameEventName);
+        }
+
         // In the latency state, an entity is responsible for managing which entity is its parent entity.
         // However the list of child entities is up to the children to update.
         // Resetting the latency state to game state only resets the parent entity, the list of child entities
