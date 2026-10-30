@@ -69,8 +69,6 @@ namespace JanSharp
 
         public void SendDestroyEntityIA(bool keepChildEntitiesAlive = false) => entitySystem.SendDestroyEntityIA(entityData, keepChildEntitiesAlive);
 
-        public void ApplyEntityData() => logic.ApplyEntityData(this);
-
         public void TakeControlOfTransformSync(EntityTransformController controller) => logic.TakeControlOfTransformSync(this, controller);
 
         /// <param name="releasingController">Only give back control if this matches the current controller.
@@ -159,6 +157,32 @@ namespace JanSharp
         /// </summary>
         /// <param name="eventName">Must not be <see langword="null"/>.</param>
         public void RaiseRuntimeEvent(string eventName) => logic.RaiseRuntimeEvent(this, eventName);
+
+        public void ApplyEntityData()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] Entity  ApplyEntityData");
+#endif
+            // Keeping the ApplyEntityData function in here rather than in the logic file to allow it to run
+            // on multiple entities "simultaneously"/"recursively".
+            // ApplyEntityDataWithoutExtensions can life in the logic file though, only its event raising part
+            // must be able to "recurse".
+            logic.ApplyEntityDataWithoutExtensions(this);
+            foreach (EntityExtension extension in extensions)
+                extension.ApplyExtensionData();
+        }
+
+        internal void RaiseParentChangedEvents(Entity prevParentEntity, Entity parentEntity)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] Entity  RaiseParentChangedEvents");
+#endif
+            logic.RaiseRuntimeEvent(this, OnLatencyParentEntityChangedEventName);
+            if (prevParentEntity != null)
+                logic.RaiseRuntimeEvent(prevParentEntity, OnLatencyChildEntitiesChangedEventName);
+            if (parentEntity != null)
+                logic.RaiseRuntimeEvent(parentEntity, OnLatencyChildEntitiesChangedEventName);
+        }
 
         // The rest of the logic below is kept in this file, even though that makes instantiation slower,
         // because the increased runtime cost of added Get/SetProgramVariable calls at runtime are not worth it.

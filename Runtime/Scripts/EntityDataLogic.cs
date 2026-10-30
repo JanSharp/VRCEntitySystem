@@ -230,7 +230,7 @@ namespace JanSharp.Internal
             latencyHiddenUniqueIds.Clear();
             Entity entity = entityData.entity;
             if (entity != null)
-                entityLogic.ApplyEntityData(entity);
+                entity.ApplyEntityData();
             return false; // Already got applied by the above.
         }
 
@@ -270,7 +270,7 @@ namespace JanSharp.Internal
             latencyHiddenUniqueIds.Clear();
             Entity entity = entityData.entity;
             if (entity != null)
-                entityLogic.ApplyEntityData(entity);
+                entity.ApplyEntityData();
             return true;
         }
 
@@ -295,7 +295,7 @@ namespace JanSharp.Internal
             latencyHiddenUniqueIds.Clear();
             Entity entity = entityData.entity;
             if (entity != null)
-                entityLogic.ApplyEntityData(entity);
+                entity.ApplyEntityData();
             return true;
         }
 

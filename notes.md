@@ -78,3 +78,4 @@
 - [ ] arguably all pre instantiated entities should be moved to scene root on init, because the system is now using local position and rotation with the parent child entity implementation
   - [ ] at minimum destroyed entities must be moved to root
 - [ ] how should physics entities interact with entities which have parent entities?
+- [ ] late joiner syncing for parented entities does not always set the transform's parent. appears to depend on load order of entities. also only tested with pre instantiated entities

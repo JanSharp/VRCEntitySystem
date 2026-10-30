@@ -53,7 +53,7 @@ namespace JanSharp.Internal
             entityDataLogic.OnAssociatedWithEntity(entityData);
         }
 
-        private void ApplyEntityDataWithoutExtensions(Entity entity)
+        public void ApplyEntityDataWithoutExtensions(Entity entity)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityLogic  ApplyEntityDataWithoutExtensions - entity.noTransformSync: {entity.noTransformSync}, entity.entityData.noTransformSync: {entity.entityData.noTransformSync}");
@@ -133,11 +133,9 @@ namespace JanSharp.Internal
 
             if (parentChanged)
             {
-                RaiseRuntimeEvent(entity, Entity.OnLatencyParentEntityChangedEventName);
-                if (prevParentEntity != null)
-                    RaiseRuntimeEvent(prevParentEntity, Entity.OnLatencyChildEntitiesChangedEventName);
-                if (parentEntity != null)
-                    RaiseRuntimeEvent(parentEntity, Entity.OnLatencyChildEntitiesChangedEventName);
+                // That function must life outside of this file in order for ApplyEntityDataWithoutExtensions
+                // to be able to run for multiple different entities recursively without breaking.
+                entity.RaiseParentChangedEvents(prevParentEntity, parentEntity);
             }
         }
 
@@ -149,16 +147,6 @@ namespace JanSharp.Internal
         private void RemoveFromChildEntities(Entity entity, EntityData childEntityData)
         {
             ArrList.Remove(ref entity.childEntities, ref entity.childEntitiesCount, childEntityData);
-        }
-
-        public void ApplyEntityData(Entity entity)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntityLogic  ApplyEntityData");
-#endif
-            ApplyEntityDataWithoutExtensions(entity);
-            foreach (EntityExtension extension in entity.extensions)
-                extension.ApplyExtensionData();
         }
 
         public void DisassociateFromEntityDataAndReset(Entity entity, Entity defaultEntityInst)

@@ -1203,7 +1203,7 @@ namespace JanSharp.Internal
                 }
                 entityDataLogic.Deserialize(entityData, isImport: true, importedDataVersion);
                 if (entityData.entity != null)
-                    entityLogic.ApplyEntityData(entityData.entity);
+                    entityData.entity.ApplyEntityData();
                 else
                     pooling.RequestEntity(entityData);
             }
