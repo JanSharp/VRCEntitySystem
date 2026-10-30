@@ -741,6 +741,37 @@ namespace JanSharp.Internal
             }
         }
 
+        public bool IsNestedChildOfInLS(EntityData entityData, EntityData potentialParent)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  IsNestedChildOfInLS");
+#endif
+            do
+            {
+                if (entityData == potentialParent)
+                    return true;
+                Entity entity = entityData.entity;
+                entityData = entity != null ? entity.parentEntityData : entityData.parentEntityData;
+            }
+            while (entityData != null);
+            return false;
+        }
+
+        public bool IsNestedChildOfInGS(EntityData entityData, EntityData potentialParent)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  IsNestedChildOfInGS");
+#endif
+            do
+            {
+                if (entityData == potentialParent)
+                    return true;
+                entityData = entityData.parentEntityData;
+            }
+            while (entityData != null);
+            return false;
+        }
+
         public void SendSetParentEntityIA(
             EntityData entityData,
             EntityData parentEntityData,
@@ -753,6 +784,9 @@ namespace JanSharp.Internal
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityDataLogic  SendSetParentEntityIA");
 #endif
+            if (IsNestedChildOfInLS(parentEntityData, entityData))
+                return;
+
             entitySystem.WriteEntityDataRef(entityData);
             entitySystem.WriteEntityDataRef(parentEntityData);
 
@@ -779,8 +813,10 @@ namespace JanSharp.Internal
 #endif
             if (!entitySystem.TryReadEntityDataRef(out EntityData entityData, isImport: false))
                 return;
-            if (!entitySystem.TryReadEntityDataRef(out EntityData parentEntityData, isImport: false))
+            if (!entitySystem.TryReadEntityDataRef(out EntityData parentEntityData, isImport: false)
+                || IsNestedChildOfInGS(parentEntityData, entityData))
             {
+                // FIXME: Resetting latency state could cause a different loop in parents in the latency state.
                 ResetLatencyStateBecauseIAGotAppliedDifferently(entityData);
                 return;
             }

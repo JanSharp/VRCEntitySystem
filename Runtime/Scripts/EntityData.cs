@@ -220,6 +220,9 @@ namespace JanSharp
         public void SetTransformSyncControllerDueToDeserialization(EntityTransformController controller)
             => logic.SetTransformSyncControllerDueToDeserialization(this, controller);
 
+        public bool IsNestedChildOfInLS(EntityData potentialParent) => logic.IsNestedChildOfInLS(this, potentialParent);
+        public bool IsNestedChildOfInGS(EntityData potentialParent) => logic.IsNestedChildOfInGS(this, potentialParent);
+
         public void SendSetParentEntityIA(
             EntityData parentEntityData,
             Vector3 position,
