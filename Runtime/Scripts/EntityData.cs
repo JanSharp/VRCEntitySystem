@@ -234,6 +234,13 @@ namespace JanSharp
             logic.SendSetParentEntityIA(this, parentEntityData, position, rotation, scale, doInterpolate, doInterpolate);
         }
 
+        /// <summary>
+        /// <para>Must set the parent on the <see cref="entity"/> in LS <b>first</b>.</para>
+        /// </summary>
+        /// <param name="parentEntityData"></param>
+        /// <param name="position"></param>
+        /// <param name="rotation"></param>
+        /// <param name="scale"></param>
         public void SetParentEntityInGS(
             EntityData parentEntityData,
             Vector3 position,
@@ -244,6 +251,7 @@ namespace JanSharp
             logic.SetParentEntityInGS(this, parentEntityData, position, rotation, scale);
         }
 
+        /// <inheritdoc cref="SetParentEntityInGS(EntityData, Vector3, Quaternion, Vector3)"/>
         public void SetParentEntityInGS(EntityData parentEntityData) => logic.SetParentEntityInGS(this, parentEntityData);
     }
 

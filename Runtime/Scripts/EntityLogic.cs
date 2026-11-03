@@ -42,6 +42,11 @@ namespace JanSharp.Internal
                 Debug.LogError($"[EntitySystemDebug] Attempt to InitFromEntityData an Entity multiple times.");
 #endif
             entityDataLogic.SetEntity(entityData, entity);
+            // Can get away with (and actually must) not call/ing EnsureNoParentLoopWouldEmergeInLSRecursive here.
+            // Because prior to this point in time, without an Entity for an EntityData, the LS and GS "were matching".
+            // Which means associating the Entity with EntityData must be impossible to suddenly close a
+            // parent loop in LS. And it must not call the ensure function, as that function expects the GS to
+            // get updated after the LS, but here the GS is already the most resent state.
             ApplyEntityDataWithoutExtensions(entity);
             EntityExtensionData[] allExtensionData = entityData.allExtensionData;
             EntityExtension[] extensions = entity.extensions;
@@ -269,6 +274,7 @@ namespace JanSharp.Internal
             Debug.Log("[EntitySystemDebug] EntityLogic  SetParentEntityInLS");
 #endif
             EntityData entityData = entity.entityData;
+            EnsureNoParentLoopWouldEmergeInLSRecursive(entityData, parentEntityData);
 
             Entity prevParentEntity = entity.parentEntityData == null ? null : entity.parentEntityData.entity;
             if (prevParentEntity != null)
@@ -367,6 +373,64 @@ namespace JanSharp.Internal
             if (parentEntity != null)
                 RaiseRuntimeEvent(parentEntity, Entity.OnLatencyChildEntitiesChangedEventName);
             RaiseRuntimeEvent(entity, Entity.OnLatencyParentEntityChangedEventName);
+        }
+
+        private EntityData[] resumeStack = new EntityData[ArrList.MinCapacity];
+        private int resumeStackCount = 0;
+
+        /// <summary>
+        /// <para>In the case of changing parents, this function expects the LS to get updated <b>before</b>
+        /// the GS. Else it will reset LS to GS for an entity which does not need it, and depending on where
+        /// control flow is coming from it may recurse a function which does not support recursion.</para>
+        /// </summary>
+        /// <param name="entityData"></param>
+        /// <param name="supposedNewParentEntityData"></param>
+        public void EnsureNoParentLoopWouldEmergeInLSRecursive(EntityData entityData, EntityData supposedNewParentEntityData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntityDataLogic  EnsureNoParentLoopWouldEmergeInLSRecursive");
+#endif
+            if (supposedNewParentEntityData == null || !entityDataLogic.IsNestedChildOfInLS(supposedNewParentEntityData, entityData))
+                return;
+
+            EntityData current = supposedNewParentEntityData;
+            while (current != null) // Could use do while loop, but this is easier to read.
+            {
+                if (current.entity == null || current.entity.parentEntityData == current.parentEntityData)
+                {
+                    current = current.parentEntityData;
+                    continue; // LS and GS match, move on.
+                }
+                // LS and GS parents differ.
+
+                // Blindly reset LS to GS. This one might not be the one that would cause the loop in LS parents,
+                // however one of them in the LS parent chain will. So just reset all of them.
+                // And if resetting one of them to GS would cause another different loop in Ls parents,
+                // that gets handled through ApplyEntityData ultimately recursing into this function again.
+                // This works based on the assumption that there won't ever be any loops in the GS, and there
+                // won't be any attempts made to close loops in LS+GS either. See early return in SendSetParentEntityIA.
+
+                if (current.latencyHiddenUniqueIds.Count == 0)
+                    Debug.LogError($"[EntitySystem] An entity's latency parent entity does not match "
+                        + $"its game state parent entity, yet there are no latency hidden input actions "
+                        + $"registered for this entity. Resetting to game state will work regardless, "
+                        + $"however this is a bug in some external system which must be fixed. "
+                        + $"{nameof(EntityData.ResetLatencyStateIfItDiverged)} would not behave correctly "
+                        + $"in this state, for example.");
+
+                current.latencyHiddenUniqueIds.Clear();
+
+                // Stupid Udon recursion nonsense.
+
+                EntityData toReset = current;
+                // Continue walking in LS, we don't know where in LS the loop would actually be caused.
+                // GS parent gets checked by recursion through ApplyEntityData.
+                current = current.entity.parentEntityData;
+
+                ArrList.Add(ref resumeStack, ref resumeStackCount, current);
+                toReset.entity.ApplyEntityData();
+                current = ArrList.RemoveAt(ref resumeStack, ref resumeStackCount, resumeStackCount - 1);
+            }
         }
 
         public void TakeControlOfTransformSync(Entity entity, EntityTransformController controller)

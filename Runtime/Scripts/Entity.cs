@@ -167,6 +167,9 @@ namespace JanSharp
             // on multiple entities "simultaneously"/"recursively".
             // ApplyEntityDataWithoutExtensions can life in the logic file though, only its event raising part
             // must be able to "recurse".
+            EntityData parentEntityDataInGS = entityData.parentEntityData;
+            if (parentEntityData != parentEntityDataInGS)
+                logic.EnsureNoParentLoopWouldEmergeInLSRecursive(entityData, parentEntityDataInGS);
             logic.ApplyEntityDataWithoutExtensions(this);
             foreach (EntityExtension extension in extensions)
                 extension.ApplyExtensionData();

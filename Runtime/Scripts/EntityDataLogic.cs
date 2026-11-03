@@ -816,7 +816,6 @@ namespace JanSharp.Internal
             if (!entitySystem.TryReadEntityDataRef(out EntityData parentEntityData, isImport: false)
                 || IsNestedChildOfInGS(parentEntityData, entityData))
             {
-                // FIXME: Resetting latency state could cause a different loop in parents in the latency state.
                 ResetLatencyStateBecauseIAGotAppliedDifferently(entityData);
                 return;
             }
