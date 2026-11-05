@@ -100,6 +100,29 @@ namespace JanSharp.Internal
         /// <summary><para>Game state safe.</para></summary>
         private int allEntityDataCount = 0;
 
+        private int suspendedIndexInArray = 0;
+        private System.Diagnostics.Stopwatch workSw = new System.Diagnostics.Stopwatch();
+        private bool WorkIsRunningLong()
+        {
+            bool result = workSw.Elapsed.TotalMilliseconds > maxWorkMSPerFrame;
+            if (result)
+                lockstep.FlagToContinueNextFrame();
+            return result;
+        }
+        private EntityData[] allEntityDataSorted = null;
+        private int suspendedAllEntityDataSortedCount = 0;
+        private int suspendedIndexInAllEntityDataSorted = 0;
+        private int deSerializationStage = 0;
+        #region Deserializing
+        private int entitiesToDeserializeCount;
+        #endregion
+        #region Importing
+        private EntityData[] allImportedEntityData = null;
+        private DataDictionary importedPrototypeMetadataById = null;
+        private DataDictionary remappedImportedEntityData = null;
+        private EntityData dummyEntityDataForImport = null;
+        #endregion
+
         private VRCPlayerApi localPlayer;
         private uint localPlayerId;
         private int playerDataClassNameIndex;
@@ -217,22 +240,20 @@ namespace JanSharp.Internal
             }
         }
 
-        private int initPreInstantiatedEntitiesIndex = 0;
         private void InitPreInstantiatedEntities()
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  InitPreInstantiatedEntities");
 #endif
-            deserializationSw.Restart(); // No deserialization can run while this is running so just reuse that code.
+            workSw.Restart(); // No de/serialization can run while this is running so just reuse that logic.
             int length = preInstantiatedEntityInstances.Length;
-            while (initPreInstantiatedEntitiesIndex < length)
+            while (suspendedIndexInArray < length)
             {
-                if (DeserializationIsRunningLong())
+                if (WorkIsRunningLong())
                     return;
-                InitPreInstantiatedEntity(initPreInstantiatedEntitiesIndex);
-                initPreInstantiatedEntitiesIndex++;
+                InitPreInstantiatedEntity(suspendedIndexInArray++);
             }
-            initPreInstantiatedEntitiesIndex = 0;
+            suspendedIndexInArray = 0;
             preInstantiatedEntityInstances = null;
             preInstantiatedEntityInstanceIds = null;
             preInstantiatedEntityInstancePrototypes = null;
@@ -776,7 +797,7 @@ namespace JanSharp.Internal
                 if (IsPreInstantiatedEntityId(entityData.id, isImport: false))
                     continue;
                 DestroyEntityInGS(entityData);
-                if (isImporting && DeserializationIsRunningLong())
+                if (isImporting && WorkIsRunningLong())
                 {
                     destroyNonPreInstantiatedEntitiesIndex = i;
                     return;
@@ -784,7 +805,7 @@ namespace JanSharp.Internal
             }
             destroyNonPreInstantiatedEntitiesIndex = -1;
             if (isImporting)
-                deserializationStage++;
+                deSerializationStage++;
         }
 
         private int destroyEntitiesWhichWereNotImportedIndex = -1;
@@ -802,14 +823,14 @@ namespace JanSharp.Internal
                 if (entityData.importedMetadata != null)
                     continue;
                 DestroyEntityInGS(entityData);
-                if (DeserializationIsRunningLong())
+                if (WorkIsRunningLong())
                 {
                     destroyEntitiesWhichWereNotImportedIndex = i;
                     return;
                 }
             }
             destroyEntitiesWhichWereNotImportedIndex = -1;
-            deserializationStage++;
+            deSerializationStage++;
         }
 
         public override void DestroyEntityInGS(EntityData entityData)
@@ -903,99 +924,146 @@ namespace JanSharp.Internal
             extensionData.SendCustomEvent(methodName);
         }
 
-        private int exportStage = 0;
-        private int suspendedIndexInArray = 0;
-        private System.Diagnostics.Stopwatch serializationSw = new System.Diagnostics.Stopwatch();
+        #region Serialization
 
-        private bool SerializationIsRunningLong()
+        private void PrepareForBuildSortedEntityDataList()
         {
-            bool result = serializationSw.Elapsed.TotalMilliseconds > maxWorkMSPerFrame;
-            if (result)
-                lockstep.FlagToContinueNextFrame();
-            return result;
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  PrepareForBuildSortedEntityDataList");
+#endif
+            allEntityDataSorted = new EntityData[allEntityDataCount];
+            deSerializationStage++;
+        }
+
+        private void BuildSortedEntityDataList()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  BuildSortedEntityDataList");
+#endif
+            while (suspendedAllEntityDataSortedCount < allEntityDataCount)
+            {
+                if (WorkIsRunningLong())
+                    return;
+
+                // This logic quite simply orders the serialization of entities such that roots (in terms of parenting)
+                // come first, followed by their children, then the children of children, so that whole tree.
+                // Then moving on to the next root.
+                // Deserialization requires the guarantee that parents come before their children.
+                EntityData entityData;
+                if (suspendedIndexInAllEntityDataSorted < suspendedAllEntityDataSortedCount)
+                    entityData = allEntityDataSorted[suspendedIndexInAllEntityDataSorted++];
+                else
+                {
+                    entityData = allEntityData[suspendedIndexInArray++];
+                    if (entityData.parentEntityData != null)
+                        continue;
+                    allEntityDataSorted[suspendedAllEntityDataSortedCount++] = entityData;
+                    suspendedIndexInAllEntityDataSorted++;
+                }
+
+                ArrList.AddRange(ref allEntityDataSorted, ref suspendedAllEntityDataSortedCount, entityData.childEntities, entityData.childEntitiesCount);
+            }
+
+            if (suspendedAllEntityDataSortedCount != allEntityDataCount)
+                Debug.LogError($"[EntitySystem] The game state contains broken parent child relationships. "
+                    + $"When finding all root entities and visiting them and their children recursively, "
+                    + $"the total amount of entities visited ({suspendedAllEntityDataSortedCount}) does "
+                    + $"not match the total entity count ({allEntityDataCount}). This must be impossible.");
+
+            suspendedAllEntityDataSortedCount = 0;
+            suspendedIndexInAllEntityDataSorted = 0;
+            suspendedIndexInArray = 0;
+            deSerializationStage++;
+        }
+
+        private void CleanupSortedEntityDataList()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  CleanupSortedEntityDataList");
+#endif
+            allEntityDataSorted = null;
+            deSerializationStage++;
         }
 
         private void Export()
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  Export - exportStage: {exportStage}");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  Export");
 #endif
-            if (exportStage == 0)
+            if (deSerializationStage == 0)
             {
                 lockstep.WriteSmallUInt(highestPreInstantiatedEntityId);
-                exportStage++;
+                deSerializationStage++;
             }
-            if (exportStage == 1)
+            if (deSerializationStage == 1)
                 WriteAllExportedPrototypeMetadata();
-            if (exportStage == 2)
+            if (deSerializationStage == 2)
             {
                 if (!optionsGS.ExportOptions.includeEntities)
                 {
-                    exportStage = 0;
+                    deSerializationStage = 0;
                     return;
                 }
-                exportStage++;
+                deSerializationStage++;
             }
-            if (exportStage == 3)
+            if (deSerializationStage == 3)
+                PrepareForBuildSortedEntityDataList();
+            if (deSerializationStage == 4)
+                BuildSortedEntityDataList();
+            if (deSerializationStage == 5)
                 WriteExportedIdsCount();
-            if (exportStage == 4)
+            if (deSerializationStage == 6)
                 WriteExportedIds();
-            if (exportStage == 5)
+            if (deSerializationStage == 7)
                 WriteExportedEntities();
-            if (exportStage == 6)
-                exportStage = 0;
+            if (deSerializationStage == 8)
+                CleanupSortedEntityDataList();
+            if (deSerializationStage == 9)
+                deSerializationStage = 0;
         }
 
-        private int deserializationStage = 0;
-        private System.Diagnostics.Stopwatch deserializationSw = new System.Diagnostics.Stopwatch();
-
-        private bool DeserializationIsRunningLong()
-        {
-            bool result = deserializationSw.Elapsed.TotalMilliseconds > maxWorkMSPerFrame;
-            if (result)
-                lockstep.FlagToContinueNextFrame();
-            return result;
-        }
-
-        private EntityData[] allImportedEntityData = null;
         private string Import(uint importedDataVersion)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  Import - deserializationStage: {deserializationStage}");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  Import");
 #endif
-            if (deserializationStage == 0)
+            if (deSerializationStage == 0)
             {
                 importedPrototypeMetadataById = new DataDictionary();
                 remappedImportedEntityData = new DataDictionary();
                 highestImportedPreInstantiatedEntityId = lockstep.ReadSmallUInt();
-                deserializationStage++;
+                deSerializationStage++;
             }
-            if (deserializationStage == 1)
+            if (deSerializationStage == 1)
                 ReadAllImportedPrototypeMetadata();
-            if (deserializationStage == 2)
+            if (deSerializationStage == 2)
             {
                 if (!optionsGS.OptionsFromExport.includeEntities || !optionsGS.ImportOptions.includeEntities)
                 {
-                    deserializationStage = 0;
+                    deSerializationStage = 0;
                     return null;
                 }
-                deserializationStage++;
+                deSerializationStage++;
             }
             // There's technically no reason for this to happen separately to
             // DestroyEntitiesWhichWereNotImported, but this is easier to read.
-            if (deserializationStage == 3)
+            if (deSerializationStage == 3)
                 DestroyNonPreInstantiatedEntities();
-            if (deserializationStage == 4)
-                allImportedEntityData = ReadImportedIds();
-            if (deserializationStage == 5)
+            if (deSerializationStage == 4)
+                ReadImportedIdsCount();
+            if (deSerializationStage == 5)
+                ReadImportedIds();
+            if (deSerializationStage == 6)
                 DestroyEntitiesWhichWereNotImported();
-            if (deserializationStage == 6)
-                ReadAndCreateImportedEntities(allImportedEntityData, importedDataVersion);
-            if (deserializationStage == 7)
-                ClearEntityPrototypeMetadataReferences(allImportedEntityData);
-            if (deserializationStage == 8)
+            if (deSerializationStage == 7)
+                PrepareForReadAndCreateImportedEntities();
+            if (deSerializationStage == 8)
+                ReadAndCreateImportedEntities(importedDataVersion);
+            if (deSerializationStage == 9)
+                ClearEntityPrototypeMetadataReferences();
+            if (deSerializationStage == 10)
             {
-                deserializationStage = 0;
+                deSerializationStage = 0;
                 allImportedEntityData = null;
             }
             return null;
@@ -1017,12 +1085,11 @@ namespace JanSharp.Internal
             remappedImportedEntityData = null;
         }
 
-        private DataDictionary importedPrototypeMetadataById;
         public override EntityPrototypeMetadata GetImportedPrototypeMetadata(uint prototypeId) => (EntityPrototypeMetadata)importedPrototypeMetadataById[prototypeId].Reference;
         public override bool TryGetImportedPrototypeMetadata(uint prototypeId, out EntityPrototypeMetadata metadata)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  TryGetImportedMetadata");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  TryGetImportedPrototypeMetadata");
 #endif
             if (importedPrototypeMetadataById.TryGetValue(prototypeId, out DataToken token))
             {
@@ -1033,7 +1100,6 @@ namespace JanSharp.Internal
             return false;
         }
 
-        private DataDictionary remappedImportedEntityData;
         public override EntityData GetRemappedImportedEntityData(uint importedId) => (EntityData)remappedImportedEntityData[importedId].Reference;
         public override bool TryGetRemappedImportedEntityData(uint importedId, out EntityData remappedEntityData)
         {
@@ -1060,98 +1126,102 @@ namespace JanSharp.Internal
             lockstep.WriteSmallUInt((uint)entityPrototypes.Length);
             foreach (EntityPrototype prototype in entityPrototypes)
                 prototype.ExportMetadata();
-            exportStage++;
+            deSerializationStage++;
         }
 
-        private int readAllImportedPrototypeMetadataLength = -1;
-        private int readAllImportedPrototypeMetadataIndex = 0;
+        private int prototypeMetadataToImportCount = -1;
         private void ReadAllImportedPrototypeMetadata()
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadAllImportedPrototypeMetadata");
 #endif
-            if (readAllImportedPrototypeMetadataLength == -1)
-                readAllImportedPrototypeMetadataLength = (int)lockstep.ReadSmallUInt();
-            for (int i = readAllImportedPrototypeMetadataIndex; i < readAllImportedPrototypeMetadataLength; i++)
+            if (prototypeMetadataToImportCount == -1)
+                prototypeMetadataToImportCount = (int)lockstep.ReadSmallUInt();
+            while (suspendedIndexInArray < prototypeMetadataToImportCount)
             {
                 EntityPrototypeMetadata metadata = EntityPrototypeStatics.ImportMetadata(wannaBeClasses, lockstep, this);
                 importedPrototypeMetadataById.Add(metadata.id, metadata);
-                if (DeserializationIsRunningLong())
-                {
-                    readAllImportedPrototypeMetadataIndex = i + 1;
+                suspendedIndexInArray++;
+                if (WorkIsRunningLong())
                     return;
-                }
             }
-            readAllImportedPrototypeMetadataLength = -1;
-            readAllImportedPrototypeMetadataIndex = 0;
-            deserializationStage++;
+            prototypeMetadataToImportCount = -1;
+            suspendedIndexInArray = 0;
+            deSerializationStage++;
         }
 
         private void WriteExportedIdsCount()
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  WriteExportedIdsCount");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  WriteExportedIdsCount - allEntityDataCount: {allEntityDataCount}");
 #endif
             lockstep.WriteSmallUInt((uint)allEntityDataCount);
-            exportStage++;
+            deSerializationStage++;
+        }
+
+        private void ReadImportedIdsCount()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  ReadImportedIdsCount");
+#endif
+            allImportedEntityData = new EntityData[(int)lockstep.ReadSmallUInt()];
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  ReadImportedIdsCount (inner) - allImportedEntityData.Length: {allImportedEntityData.Length}");
+#endif
+            deSerializationStage++;
         }
 
         private void WriteExportedIds()
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  ReadImportedIds");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  WriteExportedIds");
 #endif
-            for (int i = suspendedIndexInArray; i < allEntityDataCount; i++)
+            while (suspendedIndexInArray < allEntityDataCount)
             {
-                EntityData entityData = allEntityData[i];
+                // Unlike LJ GS serialization, exports can use the sorted list, because
+                // in exports the order of entities is not required to match the current state.
+                // And by WriteExportedIds and WriteExportedEntities both using the same order,
+                // WriteExportedEntities does not need to serialize each entity's id again,
+                // unlike SerializeEntities.
+                EntityData entityData = allEntityDataSorted[suspendedIndexInArray++];
                 lockstep.WriteSmallUInt(entityData.id);
                 lockstep.WriteSmallUInt(entityData.entityPrototype.Id);
-                if (SerializationIsRunningLong())
-                {
-                    suspendedIndexInArray = i + 1;
+                if (WorkIsRunningLong())
                     return;
-                }
             }
             suspendedIndexInArray = 0;
-            exportStage++;
+            deSerializationStage++;
         }
 
-        private int readImportedIdsIndex = 0;
-        private EntityData[] readImportedIdsAllEntityData = null;
-        private EntityData[] ReadImportedIds()
+        private void ReadImportedIds()
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadImportedIds");
 #endif
-            if (readImportedIdsAllEntityData == null)
-                readImportedIdsAllEntityData = new EntityData[(int)lockstep.ReadSmallUInt()];
-            int length = readImportedIdsAllEntityData.Length;
-            for (int i = readImportedIdsIndex; i < length; i++)
+            int length = allImportedEntityData.Length;
+            while (suspendedIndexInArray < length)
             {
                 uint id = lockstep.ReadSmallUInt();
                 uint prototypeId = lockstep.ReadSmallUInt();
                 EntityPrototypeMetadata metadata = GetImportedPrototypeMetadata(prototypeId);
                 if (metadata.entityPrototype == null)
+                {
+                    suspendedIndexInArray++;
                     continue;
+                }
                 EntityData entityData = (IsPreInstantiatedEntityId(id, isImport: true)
                     && TryGetEntityData(id, out EntityData existingEntityData)
                     && existingEntityData.entityPrototype == metadata.entityPrototype)
                     ? existingEntityData
                     : NewEntityData(metadata.entityPrototype, InvalidUniqueId, nextEntityId++);
                 entityData.importedMetadata = metadata;
-                readImportedIdsAllEntityData[i] = entityData;
+                allImportedEntityData[suspendedIndexInArray++] = entityData;
                 remappedImportedEntityData.Add(id, entityData);
-                if (DeserializationIsRunningLong())
-                {
-                    readImportedIdsIndex = i + 1;
-                    return null;
-                }
+                if (WorkIsRunningLong())
+                    return;
             }
-            EntityData[] result = readImportedIdsAllEntityData;
-            readImportedIdsIndex = 0;
-            readImportedIdsAllEntityData = null;
-            deserializationStage++;
-            return result;
+            suspendedIndexInArray = 0;
+            deSerializationStage++;
         }
 
         private void WriteExportedEntities()
@@ -1159,46 +1229,39 @@ namespace JanSharp.Internal
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  WriteExportedEntities");
 #endif
-            for (int i = suspendedIndexInArray; i < allEntityDataCount; i++)
+            while (suspendedIndexInArray < allEntityDataCount)
             {
-                entityDataLogic.Serialize(allEntityData[i], isExport: true);
-                if (SerializationIsRunningLong())
-                {
-                    suspendedIndexInArray = i + 1;
+                entityDataLogic.Serialize(allEntityDataSorted[suspendedIndexInArray++], isExport: true);
+                if (WorkIsRunningLong())
                     return;
-                }
             }
             suspendedIndexInArray = 0;
-            exportStage++;
+            deSerializationStage++;
         }
 
-        private int readAndCreateImportedEntitiesIndex = -1;
-        private EntityData readAndCreateImportedEntitiesDummy = null;
-        private void ReadAndCreateImportedEntities(EntityData[] allImportedEntityData, uint importedDataVersion)
+        private void PrepareForReadAndCreateImportedEntities()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  PrepareForReadAndCreateImportedEntities");
+#endif
+            dummyEntityDataForImport = NewEntityData(prototype: null, InvalidUniqueId, InvalidId);
+            deSerializationStage++;
+        }
+
+        private void ReadAndCreateImportedEntities(uint importedDataVersion)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  ReadAndCreateImportedEntities");
 #endif
             int length = allImportedEntityData.Length;
-            int startIndex;
-            if (readAndCreateImportedEntitiesIndex != -1)
-                startIndex = readAndCreateImportedEntitiesIndex;
-            else
+            while (suspendedIndexInArray < length)
             {
-                startIndex = 0;
-                readAndCreateImportedEntitiesDummy = NewEntityData(prototype: null, InvalidUniqueId, InvalidId);
-            }
-            for (int i = startIndex; i < length; i++)
-            {
-                if (DeserializationIsRunningLong())
-                {
-                    readAndCreateImportedEntitiesIndex = i;
+                if (WorkIsRunningLong())
                     return;
-                }
-                EntityData entityData = allImportedEntityData[i];
+                EntityData entityData = allImportedEntityData[suspendedIndexInArray++];
                 if (entityData == null)
                 {
-                    entityDataLogic.Deserialize(readAndCreateImportedEntitiesDummy, isImport: true, importedDataVersion);
+                    entityDataLogic.Deserialize(dummyEntityDataForImport, isImport: true, importedDataVersion);
                     continue;
                 }
                 entityDataLogic.Deserialize(entityData, isImport: true, importedDataVersion);
@@ -1207,81 +1270,65 @@ namespace JanSharp.Internal
                 else
                     pooling.RequestEntity(entityData);
             }
-            readAndCreateImportedEntitiesIndex = -1;
-            readAndCreateImportedEntitiesDummy.Delete();
-            readAndCreateImportedEntitiesDummy = null;
-            deserializationStage++;
+            dummyEntityDataForImport.Delete();
+            dummyEntityDataForImport = null;
+            suspendedIndexInArray = 0;
+            deSerializationStage++;
         }
 
-        private void ClearEntityPrototypeMetadataReferences(EntityData[] allImportedEntityData)
+        private void ClearEntityPrototypeMetadataReferences()
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  DeleteEntityPrototypeMetadataClasses");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  ClearEntityPrototypeMetadataReferences");
 #endif
             // Clear references to what is going to be empty unity object reference objects so those can get GCed too.
             foreach (EntityData entityData in allImportedEntityData)
                 if (entityData != null)
                     entityData.importedMetadata = null;
-            deserializationStage++;
+            deSerializationStage++;
         }
 
-        private void WriteEntityData(EntityData entityData, bool isExport)
+        private void SerializeEntityDataId(EntityData entityData)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  WriteEntityData - entityData.id: {entityData.id}, entityData.entityPrototype.Id: {entityData.entityPrototype.Id}");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SerializeEntityDataId - entityData.id: {entityData.id}, entityData.entityPrototype.Id: {entityData.entityPrototype.Id}");
 #endif
             lockstep.WriteSmallUInt(entityData.id);
             if (!IsPreInstantiatedEntityId(entityData.id, isImport: false))
                 lockstep.WriteULong(entityData.uniqueId);
             lockstep.WriteSmallUInt(entityData.entityPrototype.Id);
-            entityDataLogic.Serialize(entityData, isExport);
         }
 
-        private EntityData ReadEntityData()
+        private void DeserializeEntityDataId()
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityData");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializeEntityDataId");
 #endif
             uint id = lockstep.ReadSmallUInt();
             bool isPreInstantiated = IsPreInstantiatedEntityId(id, isImport: false);
             ulong uniqueId = isPreInstantiated ? InvalidUniqueId : lockstep.ReadULong();
             uint prototypeId = lockstep.ReadSmallUInt();
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityData (inner) - id: {id}, uniqueId: 0x{uniqueId:x16}, prototypeId: {prototypeId}");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializeEntityData (inner) - id: {id}, uniqueId: 0x{uniqueId:x16}, prototypeId: {prototypeId}");
 #endif
-            if (!isPreInstantiated)
-                return ReadEntityDataIntoNewEntity(GetEntityPrototype(prototypeId), uniqueId, id);
-            return DeserializePreInstantiatedEntity(id, prototypeId);
+            if (isPreInstantiated)
+                DeserializePreInstantiatedEntityId(id, prototypeId);
+            else
+                NewEntityData(GetEntityPrototype(prototypeId), uniqueId, id);
         }
 
-        // Without this UdonSharp sometimes uses a shared temporary instead which gets overwritten by other functions.
-        // Since this is a very weird issue that I have otherwise not observed anywhere else, and the asset file
-        // of the EntitySystem kept getting modified while others do not... that was while this was a partial
-        // class. Which is to say, maybe, now that the EntitySystem class is no longer partial, this bug would
-        // also no longer happen. Who knows, maybe they are related.
-        private EntityData readEntityDataIntoNewEntityEntityData;
-        private EntityData ReadEntityDataIntoNewEntity(EntityPrototype prototype, ulong uniqueId, uint id)
+        private void DeserializePreInstantiatedEntityId(uint id, uint prototypeId)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  ReadEntityDataIntoNewEntity");
-#endif
-            readEntityDataIntoNewEntityEntityData = NewEntityData(prototype, uniqueId, id);
-            entityDataLogic.Deserialize(readEntityDataIntoNewEntityEntityData, isImport: false, importedDataVersion: 0u);
-            pooling.RequestEntity(readEntityDataIntoNewEntityEntityData);
-            return readEntityDataIntoNewEntityEntityData;
-        }
-
-        private EntityData DeserializePreInstantiatedEntity(uint id, uint prototypeId)
-        {
-#if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializePreInstantiatedEntity");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializePreInstantiatedEntityId");
 #endif
             if (!preInstantiatedEntityIndexById.TryGetValue(id, out DataToken indexToken))
             {
                 Debug.LogError($"[EntitySystem] Impossible, the incoming/deserialized id {id} should be an id of "
                     + $"a pre instantiated entity, however there is no pre instantiated entity with this id.");
-                // Instantiate a new entity to recover.
-                return ReadEntityDataIntoNewEntity(GetEntityPrototype(prototypeId), InvalidId, id);
+                // Create a new entity to recover.
+                NewEntityData(GetEntityPrototype(prototypeId), InvalidUniqueId, id);
+                return;
             }
             int index = indexToken.Int;
             preInstantiatedEntityInstanceIds[index] = InvalidId; // Mark as used.
@@ -1290,29 +1337,14 @@ namespace JanSharp.Internal
             EntityData entityData = preInstantiatedEntityData[index];
             entityDataLogic.WannaBeConstructor(entityData, prototype, InvalidUniqueId, id);
             RegisterEntityDataAndId(entityData);
-            entityDataLogic.Deserialize(entityData, isImport: false, importedDataVersion: 0u);
-
-            Entity entity = preInstantiatedEntityInstances[index];
-            if (entity != null)
-            {
-                entityLogic.AssociateWithEntityData(entity, entityData);
-                return entityData;
-            }
-
-            Debug.LogError($"[EntitySystem] A pre instantiated entity was deleted before initialization "
-                + $"in a non deterministic fashion. Prototype name: {prototype.PrototypeName}");
-            pooling.RequestEntity(entityData); // To recover, instantiate a new entity.
-            return entityData;
         }
-
-        private int entitiesToWriteIndex;
 
         public override void SerializeGameState(bool isExport, LockstepGameStateOptionsData exportOptions)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  SerializeGameState");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SerializeGameState - deSerializationStage: {deSerializationStage}");
 #endif
-            serializationSw.Restart();
+            workSw.Restart();
 
             if (isExport)
             {
@@ -1320,106 +1352,226 @@ namespace JanSharp.Internal
                 return;
             }
 
-            if (!lockstep.IsContinuationFromPrevFrame)
+            if (deSerializationStage == 0)
             {
                 lockstep.WriteSmallUInt(nextEntityId);
-                lockstep.WriteSmallUInt((uint)allEntityDataCount);
-                entitiesToWriteIndex = 0;
+                deSerializationStage++;
             }
-            while (entitiesToWriteIndex < allEntityDataCount)
-            {
-                if (SerializationIsRunningLong())
-                    return;
-                WriteEntityData(allEntityData[entitiesToWriteIndex], isExport: false);
-                entitiesToWriteIndex++;
-            }
+            if (deSerializationStage == 1)
+                PrepareForBuildSortedEntityDataList();
+            if (deSerializationStage == 2)
+                BuildSortedEntityDataList();
+            if (deSerializationStage == 3)
+                SerializeEntityIdsCount();
+            if (deSerializationStage == 4)
+                SerializeEntityIds();
+            if (deSerializationStage == 5)
+                SerializeEntities();
+            if (deSerializationStage == 6)
+                CleanupSortedEntityDataList();
+            if (deSerializationStage == 7)
+                deSerializationStage = 0;
         }
 
         public override string DeserializeGameState(bool isImport, uint importedDataVersion, LockstepGameStateOptionsData importOptions)
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializeGameState");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializeGameState - deSerializationStage: {deSerializationStage}");
 #endif
-            deserializationSw.Restart();
+            workSw.Restart();
 
             if (isImport)
                 return Import(importedDataVersion);
 
-            if (deserializationStage == 0)
+            if (deSerializationStage == 0)
             {
-                // Build lut for use in late joiner deserialization.
-                preInstantiatedEntityIndexById = new DataDictionary();
-                for (int i = 0; i < preInstantiatedEntityInstanceIds.Length; i++)
-                    preInstantiatedEntityIndexById.Add(preInstantiatedEntityInstanceIds[i], i);
                 nextEntityId = lockstep.ReadSmallUInt();
-                deserializationStage++;
+                deSerializationStage++;
             }
-            if (deserializationStage == 1)
-                DeserializeEntities();
-            if (deserializationStage == 2)
+            if (deSerializationStage == 1)
+                PrepareForPreInstantiatedEntityDeserialization();
+            if (deSerializationStage == 2)
+                DeserializeEntityIdsCount();
+            if (deSerializationStage == 3)
+                DeserializeEntityIds();
+            if (deSerializationStage == 4)
                 DestroyUnusedPreInstantiatedEntities();
-            if (deserializationStage == 3)
-                deserializationStage = 0;
+            if (deSerializationStage == 5)
+                DeserializeEntities();
+            if (deSerializationStage == 6)
+                DeserializationOfPreInstantiatedEntitiesFinished();
+            if (deSerializationStage == 7)
+                deSerializationStage = 0;
             return null;
         }
 
-        private int deserializeEntitiesCount = -1;
-        private int deserializeEntitiesIndex = -1;
-        private void DeserializeEntities()
+        private void PrepareForPreInstantiatedEntityDeserialization()
         {
 #if ENTITY_SYSTEM_DEBUG
-            Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializeEntities");
+            Debug.Log($"[EntitySystemDebug] EntitySystem  PrepareForPreInstantiatedEntityDeserialization");
 #endif
-            if (deserializeEntitiesCount == -1)
-            {
-                deserializeEntitiesCount = (int)lockstep.ReadSmallUInt();
-                deserializeEntitiesIndex = 0;
-                ArrList.EnsureCapacity(ref allEntityData, deserializeEntitiesCount);
-            }
-            while (deserializeEntitiesIndex < deserializeEntitiesCount)
-            {
-                EntityData entityData = ReadEntityData();
-                RaiseOnEntityDeserialized(entityData);
-                deserializeEntitiesIndex++;
-                if (DeserializationIsRunningLong())
-                    return;
-            }
-            deserializeEntitiesCount = -1;
-            deserializeEntitiesIndex = -1;
-            deserializationStage++;
+            // Required by entity id deserialization.
+            preInstantiatedEntityIndexById = new DataDictionary();
+            for (int i = 0; i < preInstantiatedEntityInstanceIds.Length; i++)
+                preInstantiatedEntityIndexById.Add(preInstantiatedEntityInstanceIds[i], i);
+            deSerializationStage++;
         }
 
-        private int destroyUnusedPreInstantiatedEntitiesIndex = 0;
+        private void SerializeEntityIdsCount()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SerializeEntityIdsCount");
+#endif
+            lockstep.WriteSmallUInt((uint)allEntityDataCount);
+            deSerializationStage++;
+        }
+
+        private void DeserializeEntityIdsCount()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializeEntityIdsCount");
+#endif
+            entitiesToDeserializeCount = (int)lockstep.ReadSmallUInt();
+            ArrList.EnsureCapacity(ref allEntityData, entitiesToDeserializeCount);
+            deSerializationStage++;
+        }
+
+        private void SerializeEntityIds()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SerializeEntityIds");
+#endif
+            while (suspendedIndexInArray < allEntityDataCount)
+            {
+                // Must use allEntityData, not allEntityDataSorted, because the order of allEntityData
+                // is part of the game state and must be restored as such on the joining client.
+                SerializeEntityDataId(allEntityData[suspendedIndexInArray++]);
+                if (WorkIsRunningLong())
+                    return;
+            }
+            suspendedIndexInArray = 0;
+            deSerializationStage++;
+        }
+
+        private void DeserializeEntityIds()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializeEntityIds");
+#endif
+            while (suspendedIndexInArray < entitiesToDeserializeCount)
+            {
+                DeserializeEntityDataId();
+                suspendedIndexInArray++;
+                if (WorkIsRunningLong())
+                    return;
+            }
+            suspendedIndexInArray = 0;
+            deSerializationStage++;
+        }
+
         private void DestroyUnusedPreInstantiatedEntities()
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  DestroyUnusedPreInstantiatedEntities");
 #endif
             int length = preInstantiatedEntityInstanceIds.Length;
-            while (destroyUnusedPreInstantiatedEntitiesIndex < length)
+            while (suspendedIndexInArray < length)
             {
-                if (preInstantiatedEntityInstanceIds[destroyUnusedPreInstantiatedEntitiesIndex] == InvalidId)
+                if (preInstantiatedEntityInstanceIds[suspendedIndexInArray] == InvalidId)
                 {
-                    destroyUnusedPreInstantiatedEntitiesIndex++;
+                    suspendedIndexInArray++;
                     continue;
                 }
                 // This makes both entities and entityData go through their usual lifecycle, which ultimately
                 // allows for the entity instances to be put into the entity pool rather than just being
                 // destroyed right now.
-                EntityData entityData = InitPreInstantiatedEntity(destroyUnusedPreInstantiatedEntitiesIndex);
+                EntityData entityData = InitPreInstantiatedEntity(suspendedIndexInArray++);
                 DestroyEntityInGS(entityData);
-                destroyUnusedPreInstantiatedEntitiesIndex++;
-                if (DeserializationIsRunningLong())
+                if (WorkIsRunningLong())
                     return;
             }
+            suspendedIndexInArray = 0;
+            deSerializationStage++;
+        }
+
+        private void SerializeEntities()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  SerializeEntities");
+#endif
+            while (suspendedIndexInArray < allEntityDataCount)
+            {
+                if (WorkIsRunningLong())
+                    return;
+                EntityData entityData = allEntityDataSorted[suspendedIndexInArray++];
+                // Entity data ids and entity data gets serialized in a different order. Must write
+                // the associated id for deserialization to know which entity data to read into.
+                lockstep.WriteSmallUInt(entityData.id);
+                entityDataLogic.Serialize(entityData, isExport: false);
+            }
+            suspendedIndexInArray = 0;
+            deSerializationStage++;
+        }
+
+        private void DeserializeEntities()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializeEntities");
+#endif
+            while (suspendedIndexInArray < entitiesToDeserializeCount)
+            {
+                uint id = lockstep.ReadSmallUInt();
+                EntityData entityData = (EntityData)entityDataById[id].Reference;
+                entityDataLogic.Deserialize(entityData, isImport: false, importedDataVersion: 0u);
+                RequestOrAssociateDeserializedEntity(entityData);
+                RaiseOnEntityDeserialized(entityData);
+                suspendedIndexInArray++;
+                if (WorkIsRunningLong())
+                    return;
+            }
+            suspendedIndexInArray = 0;
+            deSerializationStage++;
+        }
+
+        private void RequestOrAssociateDeserializedEntity(EntityData entityData)
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  RequestOrAssociateDeserializedEntity");
+#endif
+            uint id = entityData.id;
+            if (!IsPreInstantiatedEntityId(id, isImport: false)
+                || !preInstantiatedEntityIndexById.TryGetValue(id, out DataToken indexToken))
+            {
+                pooling.RequestEntity(entityData);
+                return;
+            }
+
+            Entity entity = preInstantiatedEntityInstances[indexToken.Int];
+            if (entity != null)
+            {
+                entityLogic.AssociateWithEntityData(entity, entityData);
+                return;
+            }
+
+            Debug.LogError($"[EntitySystem] A pre instantiated entity was deleted before initialization "
+                + $"in a non deterministic fashion. Prototype name: {entityData.entityPrototype.PrototypeName}");
+            pooling.RequestEntity(entityData); // To recover, instantiate a new entity.
+        }
+
+        private void DeserializationOfPreInstantiatedEntitiesFinished()
+        {
+#if ENTITY_SYSTEM_DEBUG
+            Debug.Log($"[EntitySystemDebug] EntitySystem  DeserializationOfPreInstantiatedEntitiesFinished");
+#endif
             preInstantiatedEntityInstances = null;
             preInstantiatedEntityInstanceIds = null;
             preInstantiatedEntityInstancePrototypes = null;
             preInstantiatedEntityData = null;
             preInstantiatedEntityIndexById = null;
-            destroyUnusedPreInstantiatedEntitiesIndex = 0;
-            deserializationStage++;
+            deSerializationStage++;
         }
+
+        #endregion
 
         #region EventDispatcher
 
