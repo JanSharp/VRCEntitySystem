@@ -76,7 +76,7 @@ namespace JanSharp.Internal
             {
                 // And with this being game state unsafe, from this point until the callback runs,
                 // the game state is therefore guaranteed to not get modified.
-                entitySystem.EnsureEntityExistsForEntityData(parentEntityData, this, nameof(OnParentEntityCreatedForApplyEntityData), entity);
+                entitySystem.EnsureEntityExistsForEntityData(parentEntityData, CallbackInfo.New(this, nameof(OnParentEntityCreatedForApplyEntityData), nameof(entityForCallback), entity));
                 return;
             }
 
@@ -84,12 +84,14 @@ namespace JanSharp.Internal
             lockstep.CloseGameStateUnsafeScope();
         }
 
+        private Entity entityForCallback;
+
         public void OnParentEntityCreatedForApplyEntityData()
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityLogic  OnParentEntityCreatedForApplyEntityData");
 #endif
-            ResumeApplyEntityDataWithoutExtensions((Entity)entitySystem.CallbackCustomData);
+            ResumeApplyEntityDataWithoutExtensions(entityForCallback);
             lockstep.CloseGameStateUnsafeScope();
         }
 
@@ -284,7 +286,7 @@ namespace JanSharp.Internal
 
             if (parentEntityData != null && parentEntityData.entity == null)
             {
-                entitySystem.EnsureEntityExistsForEntityData(parentEntityData, this, nameof(OnParentEntityCreatedForSetParentEntity), new object[]
+                entitySystem.EnsureEntityExistsForEntityData(parentEntityData, CallbackInfo.New(this, nameof(OnParentEntityCreatedForSetParentEntity), nameof(setParentCallbackData), new object[]
                 {
                     entity,
                     prevParentEntity,
@@ -292,26 +294,27 @@ namespace JanSharp.Internal
                     rotation,
                     scale,
                     doInterpolate,
-                });
+                }));
                 return;
             }
 
             ResumeSetParentEntity(entity, prevParentEntity, position, rotation, scale, doInterpolate);
         }
 
+        private object[] setParentCallbackData;
+
         public void OnParentEntityCreatedForSetParentEntity()
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log("[EntitySystemDebug] EntityLogic  OnParentEntityCreatedForSetParentEntity");
 #endif
-            object[] callbackData = (object[])entitySystem.CallbackCustomData;
             ResumeSetParentEntity(
-                entity: (Entity)callbackData[0],
-                prevParentEntity: (Entity)callbackData[1],
-                position: (Vector3)callbackData[2],
-                rotation: (Quaternion)callbackData[3],
-                scale: (Vector3)callbackData[4],
-                doInterpolate: (bool)callbackData[5]);
+                entity: (Entity)setParentCallbackData[0],
+                prevParentEntity: (Entity)setParentCallbackData[1],
+                position: (Vector3)setParentCallbackData[2],
+                rotation: (Quaternion)setParentCallbackData[3],
+                scale: (Vector3)setParentCallbackData[4],
+                doInterpolate: (bool)setParentCallbackData[5]);
         }
 
         private void ResumeSetParentEntity(

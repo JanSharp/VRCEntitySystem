@@ -1,4 +1,3 @@
-using UdonSharp;
 using UnityEngine;
 
 namespace JanSharp
@@ -51,11 +50,8 @@ namespace JanSharp
         public abstract void RaiseOnEntityCreatedInCustomCreateEntityIA(EntityData entityData);
 
         /// <summary>
-        /// <para>Read <see cref="CallbackEntityData"/> and <see cref="CallbackCustomData"/> inside of the
-        /// callback event as defined by <paramref name="callbackInst"/> and
-        /// <paramref name="callbackEventName"/> in order to know which entity has been created, as well as
-        /// what <paramref name="callbackCustomData"/> was passed to this function at the time of calling
-        /// it.</para>
+        /// <para>Read <see cref="CallbackEntityData"/> inside of the <paramref name="callback"/> in order to
+        /// know which entity has been created.</para>
         /// <para>This uses a callback in order to avoid recursion in the middle of the entity creation
         /// process.</para>
         /// <para>The entity is not actually guaranteed to exist inside of the callback, unfortunately,
@@ -64,17 +60,10 @@ namespace JanSharp
         /// <see cref="EntityData.entity"/> will be <see langword="null"/> and must stay that way.</para>
         /// </summary>
         /// <param name="entityData"></param>
-        /// <param name="callbackInst"></param>
-        /// <param name="callbackEventName"></param>
-        /// <param name="callbackCustomData"></param>
-        public abstract void EnsureEntityExistsForEntityData(
-            EntityData entityData,
-            UdonSharpBehaviour callbackInst,
-            string callbackEventName,
-            object callbackCustomData = null);
+        /// <param name="callback"></param>
+        public abstract void EnsureEntityExistsForEntityData(EntityData entityData, CallbackInfo callback);
 
         public abstract EntityData CallbackEntityData { get; }
-        public abstract object CallbackCustomData { get; }
 
         public abstract void WriteEntityPrototypeRef(EntityPrototype prototype);
         public abstract bool TryReadEntityPrototypeRef(out EntityPrototype prototype);

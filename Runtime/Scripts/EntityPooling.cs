@@ -112,7 +112,7 @@ namespace JanSharp.Internal
                     entityData.DecrementRefsCount();
                     continue;
                 }
-                CreateEntityAvoidingRecursion(entityData, null, null, null);
+                CreateEntityAvoidingRecursion(entityData, null);
                 entityData.DecrementRefsCount();
                 if (rqCount == 0)
                     updateManager.Deregister(this);
@@ -125,11 +125,9 @@ namespace JanSharp.Internal
             return !entityData.entityIsDestroyed && entityData.entity == null;
         }
 
-        public void CreateEntityAvoidingRecursion(
-            EntityData entityData,
-            UdonSharpBehaviour callbackInst,
-            string callbackEventName,
-            object callbackCustomData)
+        private CallbackInfo[] hi;
+
+        public void CreateEntityAvoidingRecursion(EntityData entityData, CallbackInfo callback)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntityPooling  CreateEntityAvoidingRecursion");
@@ -140,9 +138,7 @@ namespace JanSharp.Internal
                 ArrQueue.Enqueue(ref requestsWithCallbackQueue, ref rwcqStartIndex, ref rwcqCount, new object[]
                 {
                     entityData,
-                    callbackInst,
-                    callbackEventName,
-                    callbackCustomData,
+                    callback,
                 });
                 return;
             }
@@ -150,30 +146,26 @@ namespace JanSharp.Internal
             // Must use locals since parameters would be overwritten when CreateEntityAvoidingRecursion
             // gets called in the middle of entity creation.
             EntityData localEntityData = entityData;
-            UdonSharpBehaviour localCallbackInst = callbackInst;
-            string localCallbackEventName = callbackEventName;
-            object localCallbackCustomData = callbackCustomData;
+            CallbackInfo localCallback = callback;
 
             localEntityData.IncrementRefsCount();
             CreateEntity(localEntityData);
-            if (localCallbackInst != null)
-                entitySystem.RaiseEnsureEntityExistsCallback(localEntityData, localCallbackInst, localCallbackEventName, localCallbackCustomData);
+            if (localCallback != null)
+                entitySystem.RaiseEnsureEntityExistsCallback(localEntityData, localCallback);
             localEntityData.DecrementRefsCount();
 
             while (rwcqCount != 0)
             {
                 object[] request = ArrQueue.Dequeue(ref requestsWithCallbackQueue, ref rwcqStartIndex, ref rwcqCount);
                 localEntityData = (EntityData)request[0];
-                localCallbackInst = (UdonSharpBehaviour)request[1];
-                localCallbackEventName = (string)request[2];
-                localCallbackCustomData = request[3];
+                localCallback = (CallbackInfo)request[1];
 
                 // Might already exist, if the same entity was requested twice simultaneously.
                 // Might also already have been destroyed in the latency state, at which point no entity should be assigned to the entity data.
                 if (IsMissingEntity(localEntityData))
                     CreateEntity(localEntityData);
-                if (localCallbackInst != null)
-                    entitySystem.RaiseEnsureEntityExistsCallback(localEntityData, localCallbackInst, localCallbackEventName, localCallbackCustomData);
+                if (localCallback != null)
+                    entitySystem.RaiseEnsureEntityExistsCallback(localEntityData, localCallback);
                 localEntityData.DecrementRefsCount();
             }
         }

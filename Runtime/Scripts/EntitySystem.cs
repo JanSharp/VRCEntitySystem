@@ -519,11 +519,7 @@ namespace JanSharp.Internal
             return entityData;
         }
 
-        public override void EnsureEntityExistsForEntityData(
-            EntityData entityData,
-            UdonSharpBehaviour callbackInst,
-            string callbackEventName,
-            object callbackCustomData = null)
+        public override void EnsureEntityExistsForEntityData(EntityData entityData, CallbackInfo callback)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  EnsureEntityExistsForEntityData");
@@ -533,29 +529,24 @@ namespace JanSharp.Internal
             // Udon is a great language.
             if (!pooling.IsMissingEntity(entityData))
             {
-                RaiseEnsureEntityExistsCallback(entityData, callbackInst, callbackEventName, callbackCustomData);
+                RaiseEnsureEntityExistsCallback(entityData, callback);
                 return;
             }
-            pooling.CreateEntityAvoidingRecursion(entityData, callbackInst, callbackEventName, callbackCustomData);
+            pooling.CreateEntityAvoidingRecursion(entityData, callback);
         }
 
         private EntityData callbackEntityData;
         public override EntityData CallbackEntityData => callbackEntityData;
-        private object callbackCustomData;
-        public override object CallbackCustomData => callbackCustomData;
 
         public void RaiseEnsureEntityExistsCallback(
             EntityData entityData,
-            UdonSharpBehaviour callbackInst,
-            string callbackEventName,
-            object callbackCustomData)
+            CallbackInfo callback)
         {
 #if ENTITY_SYSTEM_DEBUG
             Debug.Log($"[EntitySystemDebug] EntitySystem  RaiseEnsureEntityExistsCallback");
 #endif
             callbackEntityData = entityData;
-            this.callbackCustomData = callbackCustomData;
-            callbackInst.SendCustomEvent(callbackEventName);
+            callback.Invoke();
         }
 
         public override void WriteEntityPrototypeRef(EntityPrototype prototype)
